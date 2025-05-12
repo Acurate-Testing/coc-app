@@ -1,58 +1,144 @@
-import { NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import NextAuth from "next-auth/next";
+import { JWT } from "next-auth/jwt";
+//
 
-const prisma = new PrismaClient();
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      email?: string | null;
+      name?: string | null;
+      image?: string | null;
+      accounts?: any[];
+      agency_id?: string | null;
+    };
+  }
+}
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+  }
+}
+
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials");
+          console.error("Missing credentials");
+          throw new Error("Email and password are required");
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
+        try {
+          const cookieStore = cookies();
+          const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+              cookies: {
+                get(name: string) {
+                  return cookieStore.get(name)?.value;
+                },
+                set(name: string, value: string, options: any) {
+                  cookieStore.set({ name, value, ...options });
+                },
+                remove(name: string, options: any) {
+                  cookieStore.set({ name, value: "", ...options });
+                },
+              },
+            }
+          );
+
+          const {
+            data: { user },
+            error,
+          } = await supabase.auth.signInWithPassword({
             email: credentials.email,
-          },
-        });
+            password: credentials.password,
+          });
 
-        if (!user || !user?.password) {
-          throw new Error("Invalid credentials");
+          if (error) {
+            console.error("Supabase auth error:", error);
+            throw new Error(error.message);
+          }
+
+          if (!user) {
+            console.error("No user found after successful auth");
+            throw new Error("No user found");
+          }
+
+          // Initialize accounts as empty array and agency_id as null
+          let accounts = [];
+          let agency_id = null;
+
+          try {
+            // Try to fetch agency accounts for the user
+            const { data: accountsData, error: accountsError } = await supabase
+              .from("accounts")
+              .select("*")
+              .eq("user_id", user.id);
+
+            if (!accountsError && accountsData) {
+              accounts = accountsData;
+              if (accounts.length > 0) {
+                agency_id = accounts[0].agency_id;
+              }
+            }
+          } catch (error) {
+            console.warn("Could not fetch accounts - this is optional:", error);
+            // Continue with empty accounts array
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.full_name,
+            accounts: accounts,
+            agency_id,
+          };
+        } catch (error) {
+          console.error("Authentication error:", error);
+          throw error;
         }
-
-        const isCorrectPassword = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isCorrectPassword) {
-          throw new Error("Invalid credentials");
-        }
-
-        return user;
       },
     }),
   ],
+  pages: {
+    signIn: "/login",
+    error: "/login",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.accounts = (user as any).accounts || [];
+        token.agency_id = (user as any).agency_id ?? null;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.accounts = (token.accounts as any[]) || [];
+        session.user.agency_id =
+          typeof token.agency_id === "string" ? token.agency_id : null;
+      }
+      return session;
+    },
+  },
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
-  pages: {
-    signIn: "/login",
-  },
-};
+});
 
-const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

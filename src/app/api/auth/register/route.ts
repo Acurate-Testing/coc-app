@@ -1,0 +1,89 @@
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+
+export async function POST(request: Request) {
+  try {
+    const { email, password, name } = await request.json();
+    const cookieStore = cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
+
+    // 1. Create the user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 400 });
+    }
+
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: "Failed to create user" },
+        { status: 400 }
+      );
+    }
+
+    // 2. Create the agency record
+    const { data: agencyData, error: agencyError } = await supabase
+      .from("agencies")
+      .insert({
+        name,
+        contact_email: email,
+        created_by: authData.user.id,
+      })
+      .select()
+      .single();
+
+    if (agencyError) {
+      // If agency creation fails, we should clean up the auth user
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      return NextResponse.json({ error: agencyError.message }, { status: 400 });
+    }
+
+    // 3. Create the user record with agency role
+    const { error: userError } = await supabase.from("users").insert({
+      id: authData.user.id,
+      full_name: name,
+      email,
+      role: "agency",
+      agency_id: agencyData.id,
+    });
+
+    if (userError) {
+      // If user creation fails, we should clean up both the auth user and agency
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      await supabase.from("agencies").delete().eq("id", agencyData.id);
+      return NextResponse.json({ error: userError.message }, { status: 400 });
+    }
+
+    return NextResponse.json(
+      { message: "Registration successful" },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Registration error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
