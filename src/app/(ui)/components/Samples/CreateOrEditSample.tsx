@@ -15,7 +15,7 @@ import {
   potableSourcesOptions,
   wastewaterSourcesOptions,
 } from "@/constants/utils";
-import LoadingSpinner from "../LoadingSpinner";
+import LoadingSpinner from "../Common/LoadingSpinner";
 import { Sample } from "@/types/sample";
 import { Button } from "@/stories/Button/Button";
 // type Sample = Database["public"]["Tables"]["samples"]["Row"];
@@ -34,8 +34,8 @@ export default function SampleForm() {
   const steps = [
     "Account & Sample Info",
     "Location & Time",
-    "Temperature",
-    "Notes",
+    "Temperature & Notes",
+    // "Notes",
   ];
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -44,7 +44,9 @@ export default function SampleForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showAddAnotherPopup, setShowAddAnotherPopup] = useState(false);
+  const [showAddAnotherPopup, setShowAddAnotherPopup] =
+    useState<boolean>(false);
+  const [userAccounts, setUserAccounts] = useState<Account[]>([]);
   const [formData, setFormData] = useState<Partial<Sample>>({
     project_id: "",
     agency_id: null,
@@ -95,6 +97,16 @@ export default function SampleForm() {
     }
   };
 
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch("/api/accounts");
+      const data = await res.json();
+      setUserAccounts(data.accounts || []);
+    } catch (e) {
+      setUserAccounts([]);
+    }
+  };
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -120,16 +132,8 @@ export default function SampleForm() {
     }
 
     // Fetch accounts from API
-    // const fetchAccounts = async () => {
-    //   try {
-    //     const res = await fetch("/api/accounts");
-    //     const data = await res.json();
-    //     setUserAccounts(data.accounts || []);
-    //   } catch (e) {
-    //     setUserAccounts([]);
-    //   }
-    // };
-    // fetchAccounts();
+
+    fetchAccounts();
 
     // Fetch test types from API
     // const fetchTestTypes = async () => {
@@ -145,9 +149,6 @@ export default function SampleForm() {
     if (session?.user?.agency_id) {
       setFormData((prev) => ({
         ...prev,
-        // coc_transfers:
-        //   formData.coc_transfers?.[formData.coc_transfers.length - 1]
-        //     ?.received_by || "",
         created_by: session?.user?.id,
         agency_id: session.user.agency_id,
       }));
@@ -288,7 +289,6 @@ export default function SampleForm() {
         temperature: formData.temperature,
         notes: formData.notes,
         pass_fail_notes: formData.pass_fail_notes,
-        attachment_url: formData.attachment_url,
       };
       setFormData({
         ...formData,
@@ -305,11 +305,19 @@ export default function SampleForm() {
       // Start fresh
       setFormData({
         project_id: "",
-        agency_id: "",
-        account_id: "",
-        created_by: "",
+        agency_id: null,
+        account_id: null,
+        created_by: null,
         pws_id: "",
+        source: "",
         matrix_type: "",
+        sample_type: "",
+        chlorine_residual: "",
+        sample_privacy: null,
+        compliance: null,
+        sample_location: "",
+        coc_transfers: [],
+        test_types: [],
         latitude: undefined,
         longitude: undefined,
         temperature: undefined,
@@ -317,6 +325,7 @@ export default function SampleForm() {
         status: "pending",
         pass_fail_notes: "",
         attachment_url: "",
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
     }
@@ -329,7 +338,7 @@ export default function SampleForm() {
       case 1:
         return (
           <div>
-            {/* <div className="mb-3">
+            <div className="mb-3">
               <label>Account Number</label>
               <select
                 className="form-input bg-white mt-1"
@@ -346,7 +355,7 @@ export default function SampleForm() {
                   </option>
                 ))}
               </select>
-            </div> */}
+            </div>
             {/* <div className="mb-3">
                 <label>Transfer COC</label>
                 <select
@@ -496,6 +505,29 @@ export default function SampleForm() {
               </div>
             </div>
             <div className="mb-3">
+              <label>Select Tests</label>
+              <MultiSelect
+                className="z-2 w-full mt-1"
+                options={testTypes.map((test) => ({
+                  label:
+                    test.name.length > 25
+                      ? test.name.substring(0, 25) + "..."
+                      : test.name,
+                  value: test.id,
+                }))}
+                value={selectedTests.map((test) => ({
+                  label: test.name,
+                  value: test.id,
+                }))}
+                onChange={handleTestSelection}
+                labelledBy="Select Test(s)"
+                overrideStrings={{
+                  selectSomeItems: "Select Test(s)",
+                  search: "Search Test(s)",
+                }}
+              />
+            </div>
+            <div className="mb-3">
               <label>Sample Location</label>
               <input
                 type="text"
@@ -530,29 +562,6 @@ export default function SampleForm() {
       case 3:
         return (
           <div>
-            <div className="mb-3">
-              <label>Select Tests</label>
-              <MultiSelect
-                className="z-2 w-full mt-1"
-                options={testTypes.map((test) => ({
-                  label:
-                    test.name.length > 25
-                      ? test.name.substring(0, 25) + "..."
-                      : test.name,
-                  value: test.id,
-                }))}
-                value={selectedTests.map((test) => ({
-                  label: test.name,
-                  value: test.id,
-                }))}
-                onChange={handleTestSelection}
-                labelledBy="Select Test(s)"
-                overrideStrings={{
-                  selectSomeItems: "Select Test(s)",
-                  search: "Search Test(s)",
-                }}
-              />
-            </div>
             <div className="mb-3">
               <label>Temperature</label>
               <input
@@ -607,38 +616,38 @@ export default function SampleForm() {
                 />
               </div>
             )}
-          </div>
-        );
-
-      case 4:
-        return (
-          <div>
             <div className="mb-3">
-              <label>Notes</label>
+              <label>Remark</label>
               <textarea
                 rows={4}
                 value={formData.notes ?? ""}
                 onChange={(e) =>
                   setFormData({ ...formData, notes: e.target.value })
                 }
-                placeholder="Enter any additional notes"
-                className="form-input !h-auto mt-1"
-              />
-            </div>
-            <div className="mb-3">
-              <label>Pass/Fail Notes</label>
-              <textarea
-                rows={4}
-                value={formData.pass_fail_notes ?? ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, pass_fail_notes: e.target.value })
-                }
-                placeholder="Enter pass/fail notes"
+                placeholder="Enter remarks"
                 className="form-input !h-auto mt-1"
               />
             </div>
           </div>
         );
+
+      // case 4:
+      //   return (
+      //     <div>
+      //       <div className="mb-3">
+      //         <label>Pass/Fail Notes</label>
+      //         <textarea
+      //           rows={4}
+      //           value={formData.pass_fail_notes ?? ""}
+      //           onChange={(e) =>
+      //             setFormData({ ...formData, pass_fail_notes: e.target.value })
+      //           }
+      //           placeholder="Enter pass/fail notes"
+      //           className="form-input !h-auto mt-1"
+      //         />
+      //       </div>
+      //     </div>
+      //   );
 
       // case 5:
       //   return (
@@ -690,7 +699,7 @@ export default function SampleForm() {
           ))}
         </div>
       </div>
-      <div className="w-full min-h-[calc(100vh-152px)] mx-auto md:p-8 p-6">
+      <div className="w-full min-h-[calc(100vh-218px)] mx-auto md:p-8 p-6">
         <main>{renderStep()}</main>
         {showAddAnotherPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -734,7 +743,7 @@ export default function SampleForm() {
       </div>
       <div className="navigation-buttons">
         <div className="px-4">
-          {currentStep === 4 ? (
+          {currentStep === 3 ? (
             <>
               <Button
                 label={editMode ? "Update" : "Submit"}

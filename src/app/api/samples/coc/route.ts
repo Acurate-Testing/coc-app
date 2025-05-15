@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { encrypt } from "@/lib/encryption";
+import { SampleStatus } from "@/constants/enums";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 export async function GET(
   request: NextRequest,
@@ -38,13 +41,18 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { sampleId: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    const session = await requireAuth(request);
-    if (session instanceof NextResponse) return session;
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // const session = await requireAuth(request);
+    // if (session instanceof NextResponse) return session;
+
+    const { searchParams } = new URL(request.url);
+    const sampleId = searchParams.get("sample_id");
 
     const { received_by, latitude, longitude, signature } =
       await request.json();
@@ -60,7 +68,7 @@ export async function POST(
     const { data: sample, error: sampleError } = await supabase
       .from("samples")
       .select("*")
-      .eq("id", params.sampleId)
+      .eq("id", sampleId)
       .is("deleted_at", null)
       .single();
 
@@ -72,13 +80,13 @@ export async function POST(
     const { data, error } = await supabase
       .from("coc_transfers")
       .insert({
-        sample_id: params.sampleId,
-        transferred_by: session.id,
+        sample_id: sampleId,
+        transferred_by: session.user.id,
         received_by,
         latitude,
         longitude,
-        signature: encrypt(signature), // Encrypt signature
-        timestamp: new Date().toISOString(),
+        signature: session.user.id,
+        // signature: encrypt(signature), // Encrypt signature
       })
       .select()
       .single();
@@ -90,8 +98,8 @@ export async function POST(
     // Update sample status
     const { error: updateError } = await supabase
       .from("samples")
-      .update({ status: "in_coc" })
-      .eq("id", params.sampleId);
+      .update({ status: SampleStatus.InCOC })
+      .eq("id", sampleId);
 
     if (updateError) {
       console.error("Failed to update sample status:", updateError);

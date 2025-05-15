@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { SessionProvider } from "next-auth/react";
-import LoadingSpinner from "./(ui)/components/LoadingSpinner";
+import LoadingSpinner from "./(ui)/components/Common/LoadingSpinner";
 
 export function NextAuthProvider({ children }: { children: React.ReactNode }) {
   return (

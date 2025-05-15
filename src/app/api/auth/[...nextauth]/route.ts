@@ -10,6 +10,7 @@ declare module "next-auth" {
       name?: string | null;
       image?: string | null;
       accounts?: any[];
+      role?: string;
       agency_id?: string | null;
     };
   }
@@ -115,6 +116,7 @@ const handler = NextAuth({
             id: user.id,
             email: user.email,
             name: LoggedInUserData?.full_name,
+            role: LoggedInUserData.role,
             accounts: accounts,
             agency_id,
           };
@@ -134,6 +136,7 @@ const handler = NextAuth({
       if (user) {
         token.id = user.id;
         token.accounts = (user as any).accounts || [];
+        token.role = (user as any).role ?? undefined;
         token.agency_id = (user as any).agency_id ?? null;
       }
       return token;
@@ -141,6 +144,7 @@ const handler = NextAuth({
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
+        session.user.role = token.role;
         session.user.accounts = (token.accounts as any[]) || [];
         session.user.agency_id =
           typeof token.agency_id === "string" ? token.agency_id : null;

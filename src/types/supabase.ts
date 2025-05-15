@@ -1,4 +1,4 @@
-import { PrivacyPolicy } from "@/constants/enums";
+import { PrivacyPolicy, SampleStatus, UserRole } from "@/constants/enums";
 
 export type Json =
   | string
@@ -91,8 +91,10 @@ export interface Database {
           id: string;
           full_name: string;
           email: string;
-          role: "lab_admin" | "agency" | "user";
+          role: UserRole.LABADMIN | UserRole.AGENCY | UserRole.USER;
           agency_id: string | null;
+          invitation_token: string | null;
+          isActive: boolean;
           created_at: string;
           deleted_at: string | null;
         };
@@ -153,7 +155,12 @@ export interface Database {
           sample_collected_at: string | null;
           temperature: number | null;
           notes: string | null;
-          status: "pending" | "in_coc" | "submitted" | "pass" | "fail";
+          status:
+            | SampleStatus.Pending
+            | SampleStatus.InCOC
+            | SampleStatus.Submitted
+            | SampleStatus.Pass
+            | SampleStatus.Fail;
           pass_fail_notes: string | null;
           attachment_url: string | null;
           created_at: string;
@@ -174,7 +181,12 @@ export interface Database {
           sample_collected_at?: string | null;
           temperature?: number | null;
           notes?: string | null;
-          status?: "pending" | "in_coc" | "submitted" | "pass" | "fail";
+          status:
+            | SampleStatus.Pending
+            | SampleStatus.InCOC
+            | SampleStatus.Submitted
+            | SampleStatus.Pass
+            | SampleStatus.Fail;
           pass_fail_notes?: string | null;
           attachment_url?: string | null;
           created_at?: string;
@@ -194,7 +206,12 @@ export interface Database {
           sample_collected_at?: string | null;
           temperature?: number | null;
           notes?: string | null;
-          status?: "pending" | "in_coc" | "submitted" | "pass" | "fail";
+          status:
+            | SampleStatus.Pending
+            | SampleStatus.InCOC
+            | SampleStatus.Submitted
+            | SampleStatus.Pass
+            | SampleStatus.Fail;
           pass_fail_notes?: string | null;
           attachment_url?: string | null;
           created_at?: string;

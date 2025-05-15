@@ -4,7 +4,8 @@ import { FaBars } from "react-icons/fa6";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { FiLogOut } from "react-icons/fi";
 import { FaUserCircle } from "react-icons/fa";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useMediaQuery } from "react-responsive";
 
 interface ProfileHeaderProps {
   sidebarOpen: boolean;
@@ -13,23 +14,17 @@ interface ProfileHeaderProps {
 
 const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
   const router = useRouter();
-  const params = useParams();
   const { data: session, status } = useSession();
   const pathname = usePathname();
-
-  // const showTitleBasedonPath: Record<string, string> = {
-  //   "/dashboard": "Dashboard",
-  //   "/profile": "My Profile",
-  //   "/samples": "My Samples",
-  //   "/sample/add": "New Sample",
-  // };
+  const isMobile = useMediaQuery({ maxWidth: 535 });
 
   const showTitleBasedonPath: Record<string, string> = {
     "/dashboard": "Dashboard",
     "/profile": "My Profile",
     "/samples": "My Samples",
     "/sample/add": "New Sample",
-    "/users": "Users",
+    "/members": "Members",
+    "/member/invite": "Invite Member",
   };
 
   const getPageTitle = (pathname: string): string => {
@@ -42,9 +37,13 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
   };
   const pageTitle = getPageTitle(pathname);
 
-  const logoutHandler = () => {
-    // logout();
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      await signOut({ redirect: false });
+      router.push("/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
   };
 
   return (
@@ -71,7 +70,7 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
                       .join("")
                   : session?.user?.name.slice(0, 2).toUpperCase())}
             </div>{" "}
-            {session?.user?.name}
+            {!isMobile ? session?.user?.name : ""}
             <svg
               className={`w-5 h-5 text-gray-500 transform rotate-0`}
               xmlns="http://www.w3.org/2000/svg"
@@ -105,7 +104,7 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
             <MenuItem>
               <button
                 className="flex w-full items-center gap-2 rounded-lg py-1.5 px-3 data-[focus]:bg-hoverGray"
-                onClick={logoutHandler}
+                onClick={handleLogout}
               >
                 <FiLogOut size={18} /> Log Out
               </button>

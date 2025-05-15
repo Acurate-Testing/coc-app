@@ -18,13 +18,14 @@ export async function sendEmail({
   html?: string;
 }) {
   try {
-    await sgMail.send({
+    const response = await sgMail.send({
       to,
       from: process.env.SENDGRID_FROM_EMAIL || "noreply@example.com",
       subject,
       text,
       html: html || text,
     });
+    console.log("response+++++", response);
     return true;
   } catch (error) {
     console.error("SendGrid error:", error);

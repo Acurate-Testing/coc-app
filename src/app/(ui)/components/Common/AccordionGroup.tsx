@@ -5,12 +5,15 @@ import {
   AccordionHeader,
   AccordionBody,
 } from "@material-tailwind/react";
+import { Button } from "@/stories/Button/Button";
 
 interface AccordionItem {
   id: string;
   title: string;
   icon?: React.ReactNode;
   content: React.ReactNode;
+  buttonText?: string;
+  buttonAction?: () => void;
   initiallyOpen?: boolean;
 }
 
@@ -52,8 +55,22 @@ export default function AccordionGroup({ items }: AccordionGroupProps) {
               onPointerLeaveCapture={() => {}}
               onClick={() => toggleOpen(item.id)}
             >
-              <div className="flex items-center gap-2 text-lg">
-                {item.icon || ""} {item.title}
+              <div className="w-full flex items-center justify-between gap-2 text-lg">
+                <div className="flex items-center gap-2">
+                  {item.icon || ""} {item.title}
+                </div>
+                {item?.buttonText && (
+                  <div>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        item.buttonAction();
+                      }}
+                      label={item?.buttonText}
+                      size="large"
+                    />
+                  </div>
+                )}
               </div>
             </AccordionHeader>
             <AccordionBody className="px-4">{item.content}</AccordionBody>

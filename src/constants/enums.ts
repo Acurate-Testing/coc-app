@@ -1,9 +1,23 @@
+export const enum UserRole {
+  LABADMIN = "lab_admin",
+  USER = "user",
+  AGENCY = "agency",
+}
 export enum MatrixType {
   PotableWater = "Potable Water",
   Wastewater = "Wastewater",
   NonPotableWater = "Non-potable Water",
   Soil = "Soil",
 }
+
+export enum SampleStatus {
+  Pending = "pending",
+  InCOC = "in_coc",
+  Submitted = "submitted",
+  Pass = "pass",
+  Fail = "fail",
+}
+
 export enum SampleType {
   Composite = "Composite",
   Grab = "Grab",

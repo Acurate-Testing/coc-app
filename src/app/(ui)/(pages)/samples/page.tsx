@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Database } from "@/types/supabase";
 import { IoFlask, IoSearch } from "react-icons/io5";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../components/Common/LoadingSpinner";
 import { Label } from "@/stories/Label/Label";
 import moment from "moment";
 import { Button } from "@/stories/Button/Button";
@@ -19,6 +19,8 @@ import { Pagination } from "@/stories/Pagination/Pagination";
 import { ImBin } from "react-icons/im";
 import { FiEdit } from "react-icons/fi";
 import { Chip } from "@material-tailwind/react";
+import { SampleStatus } from "@/constants/enums";
+import { useMediaQuery } from "react-responsive";
 
 type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
@@ -30,34 +32,10 @@ interface ApiResponse {
   error?: string;
 }
 
-// interface Sample {
-//   id: number;
-//   accountNumber: string;
-//   matrixType: string;
-//   samplePrivacy: string;
-//   pwsId: string;
-//   sampleId: string;
-//   source: string;
-//   sampleType: string;
-//   compliance: string;
-//   testSelection: string[];
-//   chlorineResidual: string;
-//   originalSampleDate: string;
-//   isRepeatSample: boolean;
-//   gpsLocation: {
-//     lat: string;
-//     lng: string;
-//   };
-//   timestamp: string;
-//   remarks: string;
-//   status: 'draft' | 'submitted';
-//   savedAt?: string;
-//   submittedAt?: string;
-// }
-
 export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("All");
   const [samples, setSamples] = useState<Sample[]>([]);
@@ -135,7 +113,7 @@ export default function HomePage() {
       case "pending":
         return "Pending";
       case "in_coc":
-        return "In Chain of Custody";
+        return "In COC";
       case "submitted":
         return "Submitted";
       case "pass":
@@ -195,13 +173,6 @@ export default function HomePage() {
     );
   }
 
-  const handleEditClick = (e: any, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedSample(id);
-    router.push(`/sample/edit/${id}`);
-  };
-
   const handleDeleteClick = (e: any, id: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -239,7 +210,7 @@ export default function HomePage() {
 
   return (
     <>
-      <SampleOverview />
+      {!isMobile && <SampleOverview />}
       <div className="relative bg-gray-50">
         <button
           onClick={() => router.push("/sample/add")}
@@ -248,7 +219,7 @@ export default function HomePage() {
           <LuPlus size={30} />
         </button>
       </div>
-      <div className="w-full md:p-8 p-6 !pt-0">
+      <div className="w-full md:p-8 p-6 md:!pt-0">
         <div className="flex gap-4 items-center">
           <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="relative">
@@ -279,11 +250,11 @@ export default function HomePage() {
                 className="form-input bg-white"
               >
                 <option value="All">All</option>
-                <option value="pending">Pending</option>
-                <option value="in_coc">In COC</option>
-                <option value="submitted">Submitted</option>
-                <option value="pass">Pass</option>
-                <option value="fail">Fail</option>
+                <option value={SampleStatus.Pending}>Pending</option>
+                <option value={SampleStatus.InCOC}>In COC</option>
+                <option value={SampleStatus.Submitted}>Submitted</option>
+                <option value={SampleStatus.Pass}>Pass</option>
+                <option value={SampleStatus.Fail}>Fail</option>
               </select>
             </div>
           </div>
@@ -295,10 +266,10 @@ export default function HomePage() {
                 <div key={sample.id} className="mb-4">
                   <Card
                     onClick={() => router.push(`/sample/${sample.id}`)}
-                    className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between"
+                    className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between cursor-pointer"
                   >
                     <div>
-                      <div className="flex gap-4">
+                      <div className="flex md:flex-row flex-col-reverse md:gap-4 gap-1">
                         <div>
                           <Label
                             label={`#${sample.project_id || "N/A"}`}
@@ -357,18 +328,18 @@ export default function HomePage() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button
-                        className="min-w-[110px]"
+                        className="md:min-w-[110px]"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/sample/edit/${sample.id}`);
                         }}
-                        label="Edit"
+                        label={isMobile ? "" : "Edit"}
                         icon={<FiEdit className="text-lg" />}
                       />
                       <Button
-                        className="min-w-[110px]"
+                        className="md:min-w-[110px]"
                         onClick={(e) => handleDeleteClick(e, sample.id)}
-                        label="Delete"
+                        label={isMobile ? "" : "Delete"}
                         variant="danger"
                         icon={<ImBin className="text-lg" />}
                       />
@@ -377,7 +348,7 @@ export default function HomePage() {
                 </div>
               ))}
               {totalPages && (
-                <div className="p-5">
+                <div>
                   <Pagination
                     activePage={currentPage || 0}
                     setActivePage={setCurrentPage}

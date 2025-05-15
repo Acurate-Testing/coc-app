@@ -88,7 +88,7 @@ export const Modal = ({
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
+            <div className="fixed inset-0 modal-opacity" />
           </Transition.Child>
         )}
         <div
@@ -100,7 +100,7 @@ export const Modal = ({
         >
           <div
             className={[
-              "min-h-full p-4",
+              "min-h-screen p-4",
               _.isEmpty(position) ? "flex items-center justify-center" : "",
             ].join(" ")}
           >

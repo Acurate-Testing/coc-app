@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { GET, POST } from "@/app/api/samples/[sampleId]/coc/route";
+import { GET, POST } from "@/app/api/samples/coc/route";
 import { supabase } from "@/lib/supabase";
 
 describe("Chain of Custody API", () => {

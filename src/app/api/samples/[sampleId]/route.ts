@@ -135,7 +135,6 @@ export async function PUT(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     if (updateData.test_types.length > 0) {
-      console.log("updateData.test_types.", updateData.test_types);
       const testTypeEntries = updateData.test_types.map(
         (testType: TestType) => ({
           sample_id: data.id,
@@ -171,11 +170,9 @@ export async function PUT(
     //     .select()
     //     .single();
 
-    //   console.log("object===cocTransferData", cocTransferData);
     //   transferData = cocTransferData;
 
     //   if (cocTransferError) {
-    //     console.log("ERROR++++object===cocTransferData", cocTransferError);
     //     return NextResponse.json(
     //       { error: cocTransferError.message },
     //       { status: 500 }

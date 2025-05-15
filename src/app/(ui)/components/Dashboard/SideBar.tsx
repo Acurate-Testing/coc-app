@@ -65,10 +65,11 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
       isActive: pathname.includes("dashboard"),
     },
     {
-      name: "Users",
+      name: "Members",
       icon: <FaUsers size={22} />,
-      to: "/users",
-      isActive: pathname.includes("users"),
+      to: "/members",
+      isActive:
+        pathname.includes("members") || pathname.includes("member/invite"),
     },
     {
       name: "Samples",
