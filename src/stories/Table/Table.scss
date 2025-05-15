@@ -1,0 +1,11 @@
+.storybook-table {
+}
+
+.table-history {
+    .storybook-pagination {
+        div:nth-child(1),
+        div:nth-child(3) {
+            display: none;
+        }
+    }
+}

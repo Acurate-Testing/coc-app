@@ -1,3 +1,5 @@
+import { PrivacyPolicy } from "@/constants/enums";
+
 export type Json =
   | string
   | number
@@ -139,6 +141,13 @@ export interface Database {
           created_by: string | null;
           pws_id: string | null;
           matrix_type: string | null;
+          sample_privacy: PrivacyPolicy.Private | PrivacyPolicy.Public | null;
+          compliance: "Yes" | "No" | null;
+          chlorine_residual: string | null;
+          county: string | null;
+          sample_type: string | null;
+          sample_location: string | null;
+          source: string | null;
           latitude: number | null;
           longitude: number | null;
           sample_collected_at: string | null;
@@ -149,6 +158,7 @@ export interface Database {
           attachment_url: string | null;
           created_at: string;
           updated_at: string;
+          saved_at: string;
           deleted_at: string | null;
         };
         Insert: {

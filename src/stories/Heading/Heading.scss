@@ -1,0 +1,119 @@
+.storybook-heading {
+  // font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--global-font);
+  color: var(--color-black);
+}
+.storybook-heading--heading1 {
+  font-size: 3.75rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 60px;
+    letter-spacing: -0.125rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 3.125rem;
+  }
+  @media only screen and (max-width: 768px) {
+    font-size: 1.875rem;
+  }
+}
+.storybook-heading--heading2 {
+  font-size: 3.125rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 50px;
+    letter-spacing: -0.1rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 2.5rem;
+  }
+  @media only screen and (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+}
+.storybook-heading--heading3 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 40px;
+    letter-spacing: -0.0625rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 2.125rem;
+  }
+  @media only screen and (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+}
+.storybook-heading--h1 {
+  font-size: 2.125rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 34px;
+    letter-spacing: -0.0625rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 2.125rem;
+  }
+  @media only screen and (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+}
+.storybook-heading--h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 32px;
+    letter-spacing: -0.05rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 1.5rem;
+  }
+  @media only screen and (max-width: 768px) {
+    font-size: 1.125rem;
+  }
+}
+.storybook-heading--h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 26px;
+    letter-spacing: -0.0375rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 1.25rem;
+  }
+  @media only screen and (max-width: 768px) {
+    font-size: 1.125rem;
+  }
+}
+.storybook-heading--h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 22px;
+    letter-spacing: -0.025rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 1.125rem;
+  }
+}
+.storybook-heading--h5 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 20px;
+    letter-spacing: -0.0125rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 1rem;
+  }
+}
+.storybook-heading--h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  @media only screen and (min-width: 1024px) {
+    line-height: 18px;
+    letter-spacing: -0.00625rem;
+  }
+}

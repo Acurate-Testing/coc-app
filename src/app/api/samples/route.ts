@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getToken } from "next-auth/jwt";
+import { TestType } from "@/types/sample";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,13 +11,13 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
+    const page = Number(searchParams.get("page"));
+    const limit = Number(searchParams.get("limit")) || 10;
     const search = searchParams.get("search") || "";
     const agencyId = searchParams.get("agencyId");
     const status = searchParams.get("status");
-    const testType = searchParams.get("testType");
-    const limit = 10;
-    const offset = (page - 1) * limit;
+    // const testType = searchParams.get("testType");
+    const offset = page * limit;
 
     let query = supabase
       .from("samples")
@@ -25,7 +26,9 @@ export async function GET(request: NextRequest) {
         *,
         agency:agencies(name),
         account:accounts(name),
-        test_types:test_types(name)
+        sample_test_types(
+          test_type:test_types(id, name)
+        )
       `,
         { count: "exact" }
       )
@@ -45,9 +48,9 @@ export async function GET(request: NextRequest) {
       query = query.eq("status", status);
     }
 
-    if (testType) {
-      query = query.contains("test_types", [{ id: testType }]);
-    }
+    // if (testType) {
+    //   query = query.contains("test_types", [{ id: testType }]);
+    // }
 
     const { data, error, count } = await query;
 
@@ -80,10 +83,45 @@ export async function POST(request: NextRequest) {
 
     const sampleData = await request.json();
 
-    // Validate required fields
+    const allowedFields = [
+      "project_id",
+      "agency_id",
+      "account_id",
+      "created_by",
+      "pws_id",
+      "matrix_type",
+      "sample_privacy",
+      "compliance",
+      "chlorine_residual",
+      "county",
+      "sample_type",
+      "sample_location",
+      "source",
+      "latitude",
+      "longitude",
+      "sample_collected_at",
+      "temperature",
+      "notes",
+      "status",
+      "pass_fail_notes",
+      "attachment_url",
+      "created_at",
+      "updated_at",
+      "saved_at",
+      "deleted_at",
+    ];
+
+    const filteredSampleData: Record<string, any> = {};
+    for (const key of allowedFields) {
+      if (key in sampleData) {
+        filteredSampleData[key] = sampleData[key];
+      }
+    }
+
+    // ✅ Validate required fields
     const requiredFields = ["agency_id"];
     for (const field of requiredFields) {
-      if (!sampleData[field]) {
+      if (!filteredSampleData[field]) {
         return NextResponse.json(
           { error: `${field} is required` },
           { status: 400 }
@@ -91,14 +129,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ✅ Add created_by and default status
+    filteredSampleData.created_by = token.sub;
+    filteredSampleData.status = "pending";
+    filteredSampleData.updated_at = new Date().toISOString();
+
     // Add created_by and set initial status
     const { data, error } = await supabase
       .from("samples")
-      .insert({
-        ...sampleData,
-        created_by: token.sub,
-        status: "pending",
-      })
+      .insert(filteredSampleData)
       .select()
       .single();
 
@@ -107,9 +146,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    if (sampleData.test_types.length > 0) {
+      const testTypeEntries = sampleData.test_types.map(
+        (testType: TestType) => ({
+          sample_id: data.id,
+          test_type_id: testType.id,
+        })
+      );
+
+      const { data: testSamplesData, error: testSampleError } = await supabase
+        .from("sample_test_types")
+        .insert(testTypeEntries)
+        .select();
+
+      if (testSampleError) {
+        console.error("Error inserting test types:", testSampleError);
+        return NextResponse.json(
+          { error: "Failed to associate test types with sample" },
+          { status: 500 }
+        );
+      }
+    }
+
     return NextResponse.json({ sample: data });
   } catch (error) {
     console.error("Create sample error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const token = await getToken({ req: request });
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Sample ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from("samples")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Supabase delete error:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: "Sample deleted successfully" });
+  } catch (error) {
+    console.error("Delete sample error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -1,0 +1,75 @@
+.storybook-button {
+  font-weight: 600;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.storybook-button--primary {
+  color: white;
+  background-color: var(--color-primary);
+}
+.storybook-button--white {
+  color: black;
+  border: 1px solid black;
+  background-color: white;
+}
+.storybook-button--warning {
+  color: var(--color-warning-text);
+  background-color: var(--color-warning);
+}
+.storybook-button--danger {
+  color: white;
+  background-color: #dc2626;
+}
+.storybook-button--outline-primary {
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  background-color: transparent;
+}
+.storybook-button--outline-gray {
+  color: var(--color-neutral-850);
+  border: 1px solid var(--color-neutral-100);
+  background-color: transparent;
+}
+.storybook-button--outline-warning {
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+  background-color: transparent;
+}
+.storybook-button--outline-danger {
+  color: #dc2626;
+  border: 1px solid #dc2626;
+  background-color: transparent;
+}
+.storybook-button--icon-button {
+  color: var(--color-primary);
+  background-color: transparent;
+  padding: 0 !important;
+}
+.storybook-button--more-menu-item {
+  --tw-bg-opacity: 1;
+  background-color: var(--color-primary);
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 !important;
+}
+.storybook-button--small {
+  font-size: 12px;
+  padding: 10px 16px;
+}
+.storybook-button--medium {
+  font-size: 14px;
+  padding: 11px 20px;
+}
+.storybook-button--large {
+  font-size: 16px;
+  padding: 12px 24px;
+}

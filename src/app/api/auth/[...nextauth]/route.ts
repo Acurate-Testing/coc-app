@@ -2,9 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { JWT } from "next-auth/jwt";
-//
-
 declare module "next-auth" {
   interface Session {
     user: {
@@ -55,6 +52,11 @@ const handler = NextAuth({
                   cookieStore.set({ name, value: "", ...options });
                 },
               },
+              auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: false,
+              },
             }
           );
 
@@ -79,6 +81,7 @@ const handler = NextAuth({
           // Initialize accounts as empty array and agency_id as null
           let accounts = [];
           let agency_id = null;
+          let LoggedInUserData = null;
 
           try {
             // Try to fetch agency accounts for the user
@@ -87,11 +90,21 @@ const handler = NextAuth({
               .select("*")
               .eq("user_id", user.id);
 
+            const { data: userData, error: userError } = await supabase
+              .from("users")
+              .select("*")
+              .eq("id", user.id)
+              .single();
+
             if (!accountsError && accountsData) {
               accounts = accountsData;
-              if (accounts.length > 0) {
-                agency_id = accounts[0].agency_id;
-              }
+              // if (accounts.length > 0) {
+              //   agency_id = accounts[0].agency_id;
+              // }
+            }
+            if (!userError && userData) {
+              agency_id = userData.agency_id;
+              LoggedInUserData = userData;
             }
           } catch (error) {
             console.warn("Could not fetch accounts - this is optional:", error);
@@ -101,7 +114,7 @@ const handler = NextAuth({
           return {
             id: user.id,
             email: user.email,
-            name: user.user_metadata?.full_name,
+            name: LoggedInUserData?.full_name,
             accounts: accounts,
             agency_id,
           };

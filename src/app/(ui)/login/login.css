@@ -3,20 +3,10 @@
   background-color: white;
 }
 
-.login-card {
-  max-width: 400px;
-  width: 90%;
-  margin: 0 auto;
-  padding: 2rem;
-  border-radius: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  background-color: white;
-}
-
 .shield-icon {
   width: 60px;
   height: 60px;
-  background-color: #0052FF;
+  background-color: #0052ff;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -42,15 +32,12 @@
 }
 
 .form-control {
+  width: 100%;
   height: 56px;
   font-size: 1rem;
   border-radius: 12px;
-  border: 1px solid #E0E0E0;
+  border: 1px solid #e0e0e0;
   padding-left: 48px;
-}
-
-.input-icon-wrapper {
-  position: relative;
 }
 
 .input-icon {
@@ -65,14 +52,14 @@
   height: 56px;
   font-size: 1rem;
   border-radius: 12px;
-  background-color: #0052FF;
+  background-color: #0052ff;
   border: none;
   transition: all 0.3s ease;
   margin: 1rem 0;
 }
 
 .btn-login:hover {
-  background-color: #0045D8;
+  background-color: #0045d8;
 }
 
 .forgot-password {
@@ -82,17 +69,16 @@
 
 .create-account {
   text-align: center;
-  margin-top: 2rem;
   padding-top: 1rem;
-  border-top: 1px solid #E0E0E0;
+  border-top: 1px solid #e0e0e0;
 }
 
 .btn-create-account {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   border-radius: 12px;
-  border: 2px solid #0052FF;
-  color: #0052FF;
+  border: 2px solid #0052ff;
+  color: #0052ff;
   background-color: transparent;
   transition: all 0.3s ease;
   margin-top: 1rem;
@@ -100,15 +86,15 @@
 }
 
 .btn-create-account:hover {
-  background-color: #0052FF;
+  background-color: #0052ff;
   color: white;
 }
 
 .link-blue {
-  color: #0052FF;
+  color: #0052ff;
   text-decoration: none;
 }
 
 .link-blue:hover {
   text-decoration: underline;
-} 
+}

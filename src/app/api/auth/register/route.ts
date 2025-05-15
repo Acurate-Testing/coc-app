@@ -42,7 +42,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Create the agency record
+    // 2. First create the user record
+    const { error: userError } = await supabase.from("users").insert({
+      id: authData.user.id,
+      full_name: name,
+      email,
+      role: "agency",
+      // agency_id will be updated after agency creation
+    });
+
+    if (userError) {
+      // If user creation fails, clean up the auth user
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      return NextResponse.json({ error: userError.message }, { status: 400 });
+    }
+
+    // 3. Create the agency record now that the user exists
     const { data: agencyData, error: agencyError } = await supabase
       .from("agencies")
       .insert({
@@ -54,25 +69,27 @@ export async function POST(request: Request) {
       .single();
 
     if (agencyError) {
-      // If agency creation fails, we should clean up the auth user
+      // If agency creation fails, clean up the user and auth user
+      await supabase.from("users").delete().eq("id", authData.user.id);
       await supabase.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({ error: agencyError.message }, { status: 400 });
     }
 
-    // 3. Create the user record with agency role
-    const { error: userError } = await supabase.from("users").insert({
-      id: authData.user.id,
-      full_name: name,
-      email,
-      role: "agency",
-      agency_id: agencyData.id,
-    });
+    // 4. Update the user with the agency_id
+    const { error: updateUserError } = await supabase
+      .from("users")
+      .update({ agency_id: agencyData.id })
+      .eq("id", authData.user.id);
 
-    if (userError) {
-      // If user creation fails, we should clean up both the auth user and agency
-      await supabase.auth.admin.deleteUser(authData.user.id);
+    if (updateUserError) {
+      // If user update fails, clean up everything
       await supabase.from("agencies").delete().eq("id", agencyData.id);
-      return NextResponse.json({ error: userError.message }, { status: 400 });
+      await supabase.from("users").delete().eq("id", authData.user.id);
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      return NextResponse.json(
+        { error: updateUserError.message },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json(

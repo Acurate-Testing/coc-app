@@ -38,7 +38,7 @@ const defaultSamples = {
       timestamp: new Date().toISOString(),
       remarks: "Draft sample collection",
       status: "draft" as const,
-      savedAt: new Date().toISOString(),
+      saved_at: new Date().toISOString(),
     },
   ],
   submissions: [

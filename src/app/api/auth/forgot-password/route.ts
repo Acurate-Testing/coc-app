@@ -11,15 +11,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/set-password`,
     });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Send custom reset email
-    await sendPasswordResetEmail(email, "reset-token"); // In production, use actual reset token
+    // // Send custom reset email
+    // await sendPasswordResetEmail(email, "reset-token"); // In production, use actual reset token
 
     return NextResponse.json({ success: true });
   } catch (error) {

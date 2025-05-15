@@ -1,0 +1,37 @@
+.storybook-label {
+}
+.storybook-label--large {
+  font-size: 1.25rem;
+  @media only screen and (min-width: 1024px) {
+    line-height: 30px;
+    letter-spacing: -0.015625rem;
+  }
+  @media only screen and (max-width: 1024px) {
+    font-size: 1.125rem;
+  }
+  @media only screen and (max-width: 768px) {
+    font-size: 1rem;
+  }
+}
+.storybook-label--medium {
+  font-size: 1rem;
+  @media only screen and (min-width: 1024px) {
+    line-height: 24px;
+    letter-spacing: -0.00625rem;
+  }
+}
+.storybook-label--small {
+  font-size: 0.875rem;
+  @media only screen and (min-width: 1024px) {
+    line-height: 16px;
+    letter-spacing: -0.00625rem;
+  }
+}
+
+.storybook-label--extra-small {
+  font-size: 0.75rem;
+  @media only screen and (min-width: 1024px) {
+    line-height: 16px;
+    letter-spacing: -0.00625rem;
+  }
+}

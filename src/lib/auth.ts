@@ -7,7 +7,6 @@ export const AUTH_COOKIE_NAME = "auth_token";
 export async function getSession() {
   const cookieStore = cookies();
   const token = cookieStore.get(AUTH_COOKIE_NAME);
-
   if (!token) return null;
 
   const {
