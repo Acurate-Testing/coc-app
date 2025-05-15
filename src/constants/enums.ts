@@ -42,6 +42,7 @@ export enum County {
   Boundary = "Boundary",
   Kootenai = "Kootenai",
   Shoshone = "Shoshone",
+  Other = "Other",
 }
 export enum PrivacyPolicy {
   Private = "Private",

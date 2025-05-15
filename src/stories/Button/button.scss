@@ -11,11 +11,17 @@
 .storybook-button--primary {
   color: white;
   background-color: var(--color-primary);
+  &:hover {
+    background-color: #1d4ed8;
+  }
 }
 .storybook-button--white {
   color: black;
   border: 1px solid black;
   background-color: white;
+  &:hover {
+    background-color: #f9fafb;
+  }
 }
 .storybook-button--warning {
   color: var(--color-warning-text);
@@ -29,11 +35,17 @@
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
   background-color: transparent;
+  &:hover {
+    background-color: #f9fafb;
+  }
 }
 .storybook-button--outline-gray {
   color: var(--color-neutral-850);
   border: 1px solid var(--color-neutral-100);
   background-color: transparent;
+  &:hover {
+    background-color: #f9fafb;
+  }
 }
 .storybook-button--outline-warning {
   color: var(--color-warning);
@@ -44,6 +56,9 @@
   color: #dc2626;
   border: 1px solid #dc2626;
   background-color: transparent;
+  &:hover {
+    background-color: #b91c1c;
+  }
 }
 .storybook-button--icon-button {
   color: var(--color-primary);

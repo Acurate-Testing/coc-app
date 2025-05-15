@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const sampleId = searchParams.get("sample_id");
 
-    const { received_by, latitude, longitude, signature } =
+    const { received_by, latitude, timestamp, longitude, signature } =
       await request.json();
 
     if (!received_by || !signature) {
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
         received_by,
         latitude,
         longitude,
+        timestamp,
         signature: session.user.id,
         // signature: encrypt(signature), // Encrypt signature
       })

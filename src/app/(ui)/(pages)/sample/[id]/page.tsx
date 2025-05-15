@@ -18,6 +18,7 @@ import { FaFilePdf, FaFingerprint } from "react-icons/fa";
 import { PiRobotFill } from "react-icons/pi";
 import { Button } from "@/stories/Button/Button";
 import ReactDOM from "react-dom";
+import { errorToast } from "@/hooks/useCustomToast";
 
 export default function InspectionDetailPage() {
   const { data: session, status } = useSession();
@@ -25,6 +26,7 @@ export default function InspectionDetailPage() {
   const params = useParams();
   const sampleId = params?.id as string;
   const [userList, setUserList] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<Sample>>({});
 
   const fetchUserList = async () => {
@@ -44,29 +46,32 @@ export default function InspectionDetailPage() {
     }
   }, [status, router]);
 
-  useEffect(() => {
-    const fetchSampleData = async () => {
-      if (sampleId) {
-        try {
-          fetchUserList();
+  const fetchSampleData = async () => {
+    if (sampleId) {
+      setIsLoading(true);
+      try {
+        fetchUserList();
 
-          const response = await fetch(`/api/samples/${sampleId}`);
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Failed to fetch sample data");
-          }
-          const data = await response.json();
-          if (data.sample) {
-            // setSpecificSample(data.sample);
-            setFormData(data.sample);
-          }
-        } catch (error) {
-          console.error("Error fetching sample:", error);
-          alert("Failed to load sample data. Please try again.");
+        const response = await fetch(`/api/samples/${sampleId}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to fetch sample data");
         }
+        const data = await response.json();
+        if (data.sample) {
+          // setSpecificSample(data.sample);
+          setFormData(data.sample);
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching sample:", error);
+        setIsLoading(false);
+        errorToast("Failed to load sample data. Please try again.");
       }
-    };
+    }
+  };
 
+  useEffect(() => {
     fetchSampleData();
   }, [sampleId]);
 
@@ -211,7 +216,7 @@ export default function InspectionDetailPage() {
       buttonAction: handleCOCModalOpen,
       content: (
         <div className="relative border-l-2 border-blue-500 ml-4 space-y-6">
-          {formData?.coc_transfers &&
+          {formData?.coc_transfers && formData.coc_transfers.length > 0 ? (
             formData?.coc_transfers.map((item, index) => (
               <div key={index} className="relative pl-6">
                 {/* Blue dot */}
@@ -221,7 +226,7 @@ export default function InspectionDetailPage() {
                 <div className="bg-gray-50 p-4 rounded-lg shadow-sm flex justify-between items-start">
                   <div>
                     <h3 className="font-semibold text-gray-800">
-                      {item?.user?.role || "Lab Technician"}
+                      {item?.received_by_user?.role || "Member"}
                     </h3>
                     <p className="text-sm text-gray-500">
                       {moment(item.timestamp).format("YYYY-MM-DD hh:mm A")}
@@ -235,10 +240,10 @@ export default function InspectionDetailPage() {
                       /> */}
                       <div>
                         <p className="font-semibold text-gray-800">
-                          {item.received_by}
+                          {item.received_by_user.full_name}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {item?.user?.role || "Lab Technician"}
+                          {item?.received_by_user?.role || "Member"}
                         </p>
                       </div>
                     </div>
@@ -248,7 +253,10 @@ export default function InspectionDetailPage() {
                   <FaFilePdf className="text-red-600 text-2xl mt-1" />
                 </div>
               </div>
-            ))}
+            ))
+          ) : (
+            <span className="text-gray-500"> No Chain Of Custody found</span>
+          )}
         </div>
       ),
     },
@@ -385,7 +393,7 @@ export default function InspectionDetailPage() {
     }
   };
 
-  if (status === "loading") {
+  if (status === "loading" || isLoading) {
     return <LoadingSpinner />;
   }
 

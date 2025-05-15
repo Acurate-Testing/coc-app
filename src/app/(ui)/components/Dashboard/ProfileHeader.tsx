@@ -90,11 +90,11 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
           <MenuItems
             transition
             anchor="bottom end"
-            className="w-40 origin-top-right rounded-xl border border-borderGray bg-white p-1 text-sm/6 text-colorGray transition duration-200 ease-out [--anchor-gap:var(--spacing-1)] focus:outline-none data-[closed]:scale-95 data-[closed]:opacity-0"
+            className="w-48 mt-2 origin-top-right rounded-xl border border-borderGray bg-white p-1 text-base/6 text-gray-700 transition duration-200 ease-out [--anchor-gap:var(--spacing-1)] focus:outline-none data-[closed]:scale-95 data-[closed]:opacity-0"
           >
             <MenuItem>
               <button
-                className="flex w-full items-center gap-2 rounded-lg py-1.5 px-3 data-[focus]:bg-hoverGray"
+                className="flex w-full items-center gap-2 rounded-lg py-3 px-4 data-[focus]:bg-hoverGray"
                 onClick={() => router.push("/profile")}
               >
                 <FaUserCircle size={18} /> My Profile
@@ -103,7 +103,7 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
             <div className="my-1 h-px bg-black/5" />
             <MenuItem>
               <button
-                className="flex w-full items-center gap-2 rounded-lg py-1.5 px-3 data-[focus]:bg-hoverGray"
+                className="flex w-full items-center gap-2 rounded-lg py-3 px-4 data-[focus]:bg-hoverGray"
                 onClick={handleLogout}
               >
                 <FiLogOut size={18} /> Log Out

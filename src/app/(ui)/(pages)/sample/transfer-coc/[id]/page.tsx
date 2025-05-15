@@ -2,15 +2,16 @@
 
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { User } from "@/types/user";
 import { Sample } from "@/types/sample";
+import SignaturePad from "react-signature-canvas";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { Button } from "@/stories/Button/Button";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import LoadingSpinner from "../../../../components/Common/LoadingSpinner";
 import moment from "moment";
-import { BiCheck, BiPencil, BiX } from "react-icons/bi";
+import { BiCamera, BiCheck, BiPencil, BiX } from "react-icons/bi";
 
 export default function TransferCOCPage() {
   const { data: session } = useSession();
@@ -22,10 +23,14 @@ export default function TransferCOCPage() {
   const [selectedUser, setSelectedUser] = useState("");
   const [error, setError] = useState("");
   const [sampleData, setSampleData] = useState<Partial<Sample> | null>(null);
-
+  console.log("sampleData++++", sampleData);
   const [isEditing, setIsEditing] = useState(false);
   const [timestamp, setTimestamp] = useState(new Date());
   const [tempTimestamp, setTempTimestamp] = useState(new Date());
+
+  const sigPadRef = useRef<SignaturePad>(null);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
 
   const handleConfirm = () => {
     setTimestamp(tempTimestamp);
@@ -39,11 +44,34 @@ export default function TransferCOCPage() {
         throw new Error("Failed to fetch sample data");
       }
       const data = await response.json();
-      setSampleData(data);
+      setSampleData(data.sample);
     } catch (error) {
       console.error("Error fetching sample:", error);
       errorToast("Failed to fetch sample data");
       router.push("/samples");
+    }
+  };
+
+  const clearSignature = () => {
+    sigPadRef.current?.clear();
+    setSignatureData(null);
+  };
+
+  const saveSignature = () => {
+    if (sigPadRef.current?.isEmpty()) return;
+    setSignatureData(
+      sigPadRef.current
+        ? sigPadRef.current.getTrimmedCanvas().toDataURL("image/png")
+        : null
+    );
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setPhoto(reader.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
@@ -59,29 +87,26 @@ export default function TransferCOCPage() {
       setIsLoading(true);
       setError("");
 
-      const response = await fetch(
-        `/api/samples/coc?sample_id=${sampleData?.id}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            received_by: selectedUser,
-            latitude: sampleData?.latitude || null,
-            longitude: sampleData?.longitude || null,
-            signature: session?.user.id,
-          }),
-        }
-      );
+      const response = await fetch(`/api/samples/coc?sample_id=${params.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          timestamp,
+          received_by: selectedUser,
+          latitude: sampleData?.latitude || null,
+          longitude: sampleData?.longitude || null,
+          signature: session?.user.id,
+        }),
+      });
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to transfer chain of custody");
       }
-
       successToast("Chain of custody transferred successfully");
-      router.push(`/sample/${params.id}`);
+      router.push(`/samples`);
     } catch (error) {
       console.error("Transfer error:", error);
       errorToast(
@@ -129,42 +154,41 @@ export default function TransferCOCPage() {
             <div className="flex items-center justify-between">
               <div className="text-gray-500">Timestamp</div>
               <div className="text-gray-900">
-                {/* {moment(new Date().toISOString()).format("YYYY-MM-DD hh:mm A")} */}
                 {!isEditing ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className="text-sm text-gray-800">
                       {moment(timestamp).format("YYYY-MM-DD hh:mm A")}
                     </span>
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="text-gray-500 hover:text-blue-600"
+                      className="text-themeColor hover:bg-gray-100 p-1.5 border rounded-lg"
                     >
-                      <BiPencil className="w-4 h-4" />
+                      <BiPencil className="w-6 h-6" />
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <input
                       type="datetime-local"
-                      value={moment(tempTimestamp).format("YYYY-MM-DD hh:mm A")}
+                      value={moment(tempTimestamp).format("YYYY-MM-DDTHH:mm")}
                       onChange={(e) =>
                         setTempTimestamp(new Date(e.target.value))
                       }
-                      className="border rounded px-2 py-1 text-sm"
+                      className="border rounded-lg px-3 py-1 h-11 text-sm"
                     />
                     <button
                       onClick={handleConfirm}
-                      className="text-green-600 hover:text-green-800"
+                      className="text-green-600 hover:bg-gray-100 p-1.5 border rounded-lg"
                       title="Save"
                     >
-                      <BiCheck className="w-4 h-4" />
+                      <BiCheck className="w-6 h-6" />
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-red-600 hover:bg-gray-100 p-1.5 border rounded-lg"
                       title="Cancel"
                     >
-                      <BiX className="w-4 h-4" />
+                      <BiX className="w-6 h-6" />
                     </button>
                   </div>
                 )}
@@ -174,81 +198,141 @@ export default function TransferCOCPage() {
         </div>
       </div>
       <div className="w-full min-h-[calc(100vh-218px)] mx-auto md:p-8 p-6">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h1 className="text-2xl font-semibold mb-6">
-            Transfer Chain of Custody
-          </h1>
-          <div className="mb-6">
-            <h2 className="text-lg font-medium mb-2">Sample Information</h2>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-700">
-                <span className="font-medium">Sample ID:</span> {sampleData.id}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-medium">Sample Type:</span>{" "}
-                {sampleData.sample_type || "N/A"}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-medium">Location:</span>{" "}
-                {sampleData.sample_location || "N/A"}
-              </p>
-              <p className="text-gray-700">
-                <span className="font-medium">Status:</span>{" "}
-                {sampleData.status || "N/A"}
-              </p>
+        <div className="">
+          <label className="block font-medium mb-2">Transfer To</label>
+          <select
+            value={selectedUser}
+            onChange={(e) => {
+              setSelectedUser(e.target.value);
+              setError("");
+            }}
+            className="form-input bg-white w-full mt-1 mb-5"
+            disabled={isFetchingUsers}
+          >
+            <option value="">Select User</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.full_name} ({user.email})
+              </option>
+            ))}
+          </select>
+          <div className="border rounded-lg p-4 shadow-sm bg-white mb-5">
+            <h3 className="font-semibold text-gray-900 mb-1">
+              Signature Required
+            </h3>
+            <p className="text-sm text-gray-500 mb-3">
+              Please sign to confirm sample handoff
+            </p>
+
+            <div className="border rounded-md overflow-hidden bg-gray-50 relative">
+              {signatureData ? (
+                <img
+                  src={signatureData}
+                  alt="Signature"
+                  className="w-full h-48 object-contain"
+                />
+              ) : (
+                <SignaturePad
+                  ref={sigPadRef}
+                  penColor="#000000"
+                  clearOnResize
+                  canvasProps={{ className: "w-full h-48" }}
+                  onEnd={saveSignature}
+                />
+              )}
+              {!signatureData && (
+                <BiPencil className="w-6 h-6 text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-4 mt-4">
+              <Button
+                label="Clear Signature"
+                variant="outline-primary"
+                size="large"
+                disabled={
+                  sigPadRef?.current ? sigPadRef?.current.isEmpty() : false
+                }
+                onClick={clearSignature}
+                className="w-full h-[50px]"
+              />
+              {sigPadRef.current ? (
+                <Button
+                  label="Upload Signature"
+                  size="large"
+                  disabled={sigPadRef.current.isEmpty()}
+                  onClick={saveSignature}
+                  className="w-full h-[50px]"
+                />
+              ) : (
+                ""
+              )}
             </div>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="mb-6">
-              <label className="block text-gray-700 font-medium mb-2">
-                Transfer To
-              </label>
-              <select
-                value={selectedUser}
-                onChange={(e) => {
-                  setSelectedUser(e.target.value);
-                  setError("");
-                }}
-                className="form-input bg-white w-full"
-                disabled={isFetchingUsers}
-              >
-                <option value="">Select User</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.full_name} ({user.email})
-                  </option>
-                ))}
-              </select>
-              {error && (
-                <span className="flex items-center font-medium tracking-wide text-dangerRed text-xs mt-1">
-                  {error}
-                </span>
+          {/* Photo Section */}
+          <div className="border rounded-lg p-4 shadow-sm bg-white">
+            <h3 className="font-semibold text-gray-900 mb-1">
+              Capture Handoff Photo
+            </h3>
+            <p className="text-sm text-gray-500 mb-3">
+              Take a photo with the recipient
+            </p>
+
+            <div className="border rounded-md overflow-hidden bg-gray-100 h-48 flex items-center justify-center relative">
+              {photo ? (
+                <img
+                  src={photo}
+                  alt="Uploaded"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <BiCamera className="w-8 h-8 text-gray-400" />
               )}
             </div>
 
-            <div className="flex justify-end space-x-3">
-              {isLoading ? (
-                <LoadingButton className="!min-w-fit" label="Transferring..." />
-              ) : (
-                <>
-                  <Button
-                    className="!min-w-fit"
-                    variant="white"
-                    label="Cancel"
-                    onClick={() => router.push(`/sample/${params.id}`)}
-                    disabled={isLoading}
-                  />
-                  <Button
-                    className="!min-w-fit"
-                    label="Transfer"
-                    type="submit"
-                    disabled={isLoading || isFetchingUsers}
-                  />
-                </>
-              )}
-            </div>
-          </form>
+            <label htmlFor="photo-upload" className="block mt-3">
+              <input
+                type="file"
+                id="photo-upload"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+              <div className="cursor-pointer bg-themeColor hover:bg-blue-700 text-white py-3 w-full text-center rounded-lg flex justify-center items-center gap-2 font-semibold h-[50px]">
+                <BiCamera className="w-6 h-6" />
+                Take Photo
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div className="navigation-buttons !px-6">
+        <div className="flex items-center justify-center gap-4">
+          {isLoading ? (
+            <LoadingButton
+              label="Submitting"
+              size="large"
+              className="w-full h-[50px]"
+            />
+          ) : (
+            <>
+              <Button
+                label="Cancel"
+                size="large"
+                variant="white"
+                type="button"
+                className="w-full h-[50px]"
+                onClick={() => router.push("/samples")}
+              />
+              <Button
+                label="Submit"
+                size="large"
+                type="button"
+                className="w-full h-[50px]"
+                onClick={handleSubmit}
+              />
+            </>
+          )}
         </div>
       </div>
     </>

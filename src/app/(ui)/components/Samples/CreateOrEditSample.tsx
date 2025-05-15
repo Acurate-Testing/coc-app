@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Database } from "@/types/supabase";
 import { MultiSelect } from "react-multi-select-component";
 import {
   County,

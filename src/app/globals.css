@@ -4,7 +4,8 @@
 
 :root {
   --color-primary: #2563eb;
-  --background-gray:"#E5E7EB"
+  --background-gray: "#E5E7EB";
+  --hover-gray: #222f3e1f;
   --max-width: 1100px;
   --border-radius: 12px;
   --font-mono: ui-monospace, Menlo, Monaco, "Cascadia Mono", "Segoe UI Mono",
@@ -33,7 +34,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background:#E5E7EB
+  background: #e5e7eb;
 }
 
 * {

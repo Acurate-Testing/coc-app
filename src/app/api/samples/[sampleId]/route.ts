@@ -32,7 +32,8 @@ export async function GET(
           timestamp,
           latitude,
           longitude,
-          signature
+          signature,
+          received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email,role)
         )
       `
       )

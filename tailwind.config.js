@@ -10,6 +10,7 @@ module.exports = {
       colors: {
         themeColor: "var(--color-primary)",
         bgGray: "var(--background-gray)",
+        hoverGray: "var(--hover-gray)",
       },
     },
   },
