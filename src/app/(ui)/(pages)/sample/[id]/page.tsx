@@ -220,7 +220,7 @@ export default function InspectionDetailPage() {
             formData?.coc_transfers.map((item, index) => (
               <div key={index} className="relative pl-6">
                 {/* Blue dot */}
-                <span className="absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full bg-blue-600 border-2 border-white"></span>
+                <span className="absolute left-[-0.45rem] top-2.5 w-3 h-3 rounded-full bg-blue-600 border-2 border-white"></span>
 
                 {/* Card */}
                 <div className="bg-gray-50 p-4 rounded-lg shadow-sm flex justify-between items-start">
@@ -238,13 +238,24 @@ export default function InspectionDetailPage() {
                         alt={item.user.name}
                         className="w-10 h-10 rounded-full object-cover"
                       /> */}
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {item.received_by_user.full_name}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {item?.received_by_user?.role || "Member"}
-                        </p>
+                      <div className="flex items-center justify-start gap-4">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-themeColor text-sm font-medium uppercase bg-gray-300">
+                          {session?.user?.name &&
+                            (session?.user?.name.includes(" ")
+                              ? session?.user?.name
+                                  .split(" ")
+                                  .map((n: string) => n.charAt(0).toUpperCase())
+                                  .join("")
+                              : session?.user?.name.slice(0, 2).toUpperCase())}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-800">
+                            {item.received_by_user.full_name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {item?.received_by_user?.role || "Member"}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
