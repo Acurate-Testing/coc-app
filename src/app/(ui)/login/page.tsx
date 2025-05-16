@@ -40,7 +40,7 @@ export default function LoginPage() {
     if (session?.user?.role === "lab_admin") {
       router.push("/admin-dashboard");
     } else if (session) {
-      router.push(searchParams.get("callbackUrl") || "/dashboard");
+      router.push(searchParams.get("callbackUrl") || "/samples");
     }
   }, [session, router, searchParams]);
 
@@ -51,7 +51,7 @@ export default function LoginPage() {
         email,
         password,
         redirect: false,
-        callbackUrl: searchParams.get("callbackUrl") || "/dashboard",
+        callbackUrl: searchParams.get("callbackUrl") || "/samples",
       });
 
       if (result?.error) {

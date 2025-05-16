@@ -99,7 +99,12 @@ export async function POST(request: NextRequest) {
     // Update sample status
     const { error: updateError } = await supabase
       .from("samples")
-      .update({ status: SampleStatus.InCOC })
+      .update({
+        status:
+          received_by === "59398b60-0d7c-43a7-b2c1-4f0c259c1199"
+            ? SampleStatus.Submitted
+            : SampleStatus.InCOC,
+      })
       .eq("id", sampleId);
 
     if (updateError) {

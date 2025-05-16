@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "./(ui)/styles/custom-style.scss";
-// import "./(ui)/styles/glove-friendly.css";
+import "./(ui)/styles/glove-friendly.css";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 

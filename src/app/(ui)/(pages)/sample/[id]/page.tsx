@@ -20,6 +20,8 @@ import { Button } from "@/stories/Button/Button";
 import ReactDOM from "react-dom";
 import { errorToast } from "@/hooks/useCustomToast";
 import { UserRole } from "@/constants/enums";
+import { ImBin } from "react-icons/im";
+import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 
 export default function InspectionDetailPage() {
   const { data: session, status } = useSession();
@@ -29,6 +31,8 @@ export default function InspectionDetailPage() {
   const [userList, setUserList] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState<Partial<Sample>>({});
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
+    useState<boolean>(false);
 
   const fetchUserList = async () => {
     try {
@@ -69,6 +73,39 @@ export default function InspectionDetailPage() {
         setIsLoading(false);
         errorToast("Failed to load sample data. Please try again.");
       }
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setOpenConfirmDeleteDialog(true);
+  };
+
+  const handleDeleteSample = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/samples?id=${params?.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete sample");
+      }
+
+      // Close the confirmation dialog
+      setOpenConfirmDeleteDialog(false);
+      // setSelectedSample("");
+
+      // Refresh the samples list
+      // fetchSamples();
+      router.push("/samples");
+    } catch (error) {
+      console.error("Error deleting sample:", error);
+      errorToast(
+        error instanceof Error ? error.message : "Failed to delete sample"
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -226,23 +263,18 @@ export default function InspectionDetailPage() {
                 {/* Card */}
                 <div className="bg-gray-50 p-4 rounded-lg shadow-sm flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold text-gray-800">
-                      {item?.received_by_user?.role === UserRole.LABADMIN
-                        ? "Lab Admin"
-                        : item?.received_by_user?.role === UserRole.AGENCY
-                        ? "Admin"
-                        : "Member"}
-                    </h3>
                     <p className="text-sm text-gray-500">
                       {moment(item.timestamp).format("YYYY-MM-DD hh:mm A")}
                     </p>
+                    <h3 className="font-semibold text-gray-800">
+                      Tranferred to:{" "}
+                      <span className="!font-normal">
+                        {item.received_by_user.full_name}
+                      </span>
+                    </h3>
 
-                    <div className="flex items-center gap-3 mt-4">
-                      {/* <img
-                        src={item.user.avatar}
-                        alt={item.user.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      /> */}
+                    {/* <div className="flex items-center gap-3 mt-4">
+                  
                       <div className="flex items-center justify-start gap-4">
                         <div className="w-10 h-10 rounded-full flex items-center justify-center text-themeColor text-sm font-medium uppercase bg-gray-300">
                           {item.received_by_user.full_name &&
@@ -268,7 +300,7 @@ export default function InspectionDetailPage() {
                           </p>
                         </div>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
 
                   {/* PDF Icon */}
@@ -281,6 +313,16 @@ export default function InspectionDetailPage() {
           )}
         </div>
       ),
+    },
+    {
+      id: "acc8",
+      title: "Action",
+      buttonText: "Delete",
+      variant: "danger",
+      buttonIcon: <ImBin className="text-lg" />,
+      buttonAction: handleDeleteClick,
+      content: "",
+      initiallyOpen: false,
     },
   ];
 
@@ -427,7 +469,7 @@ export default function InspectionDetailPage() {
           icon={<FaAngleLeft />}
           variant="icon"
           size="large"
-          onClick={() => router.back()}
+          onClick={() => router.push("/samples")}
         />
         <Button
           variant="primary"
@@ -438,6 +480,15 @@ export default function InspectionDetailPage() {
         />
       </div>
       <AccordionGroup items={accordionData} />
+      <ConfirmationModal
+        open={openConfirmDeleteDialog}
+        processing={isLoading}
+        onConfirm={handleDeleteSample}
+        setOpenModal={() => {
+          // setSelectedSample("");
+          setOpenConfirmDeleteDialog(false);
+        }}
+      />
     </div>
   );
 }

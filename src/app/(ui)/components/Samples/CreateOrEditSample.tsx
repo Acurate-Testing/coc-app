@@ -18,6 +18,7 @@ import LoadingSpinner from "../Common/LoadingSpinner";
 import { Sample } from "@/types/sample";
 import { Button } from "@/stories/Button/Button";
 import AddAnotherSampleModal from "./AddAnotherSampleModal";
+import { errorToast, successToast } from "@/hooks/useCustomToast";
 // type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
 interface Account {
@@ -57,6 +58,7 @@ export default function SampleForm() {
     matrix_type: "",
     sample_type: "",
     chlorine_residual: "",
+    address: "",
     sample_privacy: null,
     compliance: null,
     sample_location: "",
@@ -121,13 +123,44 @@ export default function SampleForm() {
     setIsOffline(!navigator.onLine);
 
     // Get GPS location
+    // if (navigator.geolocation) {
+    //   navigator.geolocation.getCurrentPosition((position) => {
+    //     setFormData((prev) => ({
+    //       ...prev,
+    //       latitude: position.coords.latitude,
+    //       longitude: position.coords.longitude,
+    //     }));
+    //   });
+    // }
+
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        // Set the coordinates in your state
         setFormData((prev) => ({
           ...prev,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude: lat,
+          longitude: lon,
         }));
+
+        // Fetch address using OpenStreetMap Nominatim
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+          );
+          const data = await response.json();
+
+          if (data && data.display_name) {
+            setFormData((prev) => ({
+              ...prev,
+              address: data.display_name, // Add this to your formData state
+            }));
+          }
+        } catch (error) {
+          console.error("Failed to get address:", error);
+        }
       });
     }
 
@@ -224,7 +257,6 @@ export default function SampleForm() {
       };
 
       const url = editMode ? `/api/samples/${sampleId}` : "/api/samples";
-      console.log("Submitting to URL:", url);
 
       const res = await fetch(url, {
         method: editMode ? "PUT" : "POST",
@@ -238,11 +270,12 @@ export default function SampleForm() {
           errorData.error || `Failed to ${editMode ? "update" : "add"} sample`
         );
       }
+      successToast("Sample Created Successfully");
 
       router.push("/samples");
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert(
+      errorToast(
         `Failed to ${editMode ? "update" : "add"} sample. Please try again.`
       );
     }
@@ -375,7 +408,7 @@ export default function SampleForm() {
               </div> */}
 
             <div className="mb-3">
-              <label>Matrix Type</label>
+              <label>Matrix Type *</label>
               <select
                 className="form-input bg-white mt-1"
                 value={formData.matrix_type ?? ""}
@@ -421,7 +454,7 @@ export default function SampleForm() {
               />
             </div>
             <div className="mb-3">
-              <label>Sample Type</label>
+              <label>Sample Type *</label>
               <select
                 className="form-input bg-white mt-1"
                 value={formData.sample_type ?? ""}
@@ -488,24 +521,7 @@ export default function SampleForm() {
         return (
           <div>
             <div className="mb-3">
-              <label>GPS Location</label>
-              <div className="form-input mt-1">
-                {formData.latitude
-                  ? `${formData.latitude}° N, ${formData.longitude}° W`
-                  : "Acquiring location..."}
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <label>Date/Timestamp</label>
-              <div className="form-input mt-1">
-                {formData.created_at
-                  ? new Date(formData.created_at).toLocaleString()
-                  : ""}
-              </div>
-            </div>
-            <div className="mb-3">
-              <label>Select Tests</label>
+              <label>Select Tests *</label>
               <MultiSelect
                 className="z-2 w-full mt-1"
                 options={testTypes.map((test) => ({
@@ -527,6 +543,27 @@ export default function SampleForm() {
                 }}
               />
             </div>
+            <div className="mb-3">
+              <label>Current GPS Location</label>
+              <div className=" mt-1">
+                {formData.address ? formData.address : ""}
+                {/* {formData.latitude
+                  ? `${formData.latitude.toFixed(
+                      2
+                    )}° N, ${formData?.longitude?.toFixed(2)}° W`
+                  : "Acquiring location..."} */}
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label>Sample Date</label>
+              <div className="form-input mt-1">
+                {formData.created_at
+                  ? new Date(formData.created_at).toLocaleString()
+                  : ""}
+              </div>
+            </div>
+
             <div className="mb-3">
               <label>Sample Location</label>
               <input

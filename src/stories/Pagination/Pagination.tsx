@@ -133,7 +133,7 @@ export const Pagination = ({
             <FaAngleRight className="h-5 w-8" />
           </button>
         </div>
-        <div className="flex items-center justify-center w-full gap-2">
+        {/* <div className="flex items-center justify-center w-full gap-2">
           <Label label="Items per page" />
           <select
             value={itemsPerPage}
@@ -150,7 +150,7 @@ export const Pagination = ({
               </option>
             ))}
           </select>
-        </div>
+        </div> */}
       </div>
     );
   }

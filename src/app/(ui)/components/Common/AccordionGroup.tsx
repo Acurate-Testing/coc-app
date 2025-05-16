@@ -13,6 +13,8 @@ interface AccordionItem {
   icon?: React.ReactNode;
   content: React.ReactNode;
   buttonText?: string;
+  variant?: string;
+  buttonIcon?: React.ReactNode;
   buttonAction?: () => void;
   initiallyOpen?: boolean;
 }
@@ -62,10 +64,14 @@ export default function AccordionGroup({ items }: AccordionGroupProps) {
                 {item?.buttonText && (
                   <div>
                     <Button
+                      variant={
+                        item?.variant ? (item?.variant as "danger") : "primary"
+                      }
                       onClick={(e) => {
                         e.stopPropagation();
                         item.buttonAction?.();
                       }}
+                      icon={item?.buttonIcon}
                       label={item?.buttonText}
                       size="large"
                     />

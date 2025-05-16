@@ -1,10 +1,12 @@
+import { UserRole } from "@/constants/enums";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { email, password, name } = await request.json();
+    const { email, phone, agency_name, address, password } =
+      await request.json();
     const cookieStore = cookies();
 
     const supabase = createServerClient(
@@ -45,10 +47,8 @@ export async function POST(request: Request) {
     // 2. First create the user record
     const { error: userError } = await supabase.from("users").insert({
       id: authData.user.id,
-      full_name: name,
       email,
-      role: "agency",
-      // agency_id will be updated after agency creation
+      role: UserRole.AGENCY,
     });
 
     if (userError) {
@@ -61,8 +61,10 @@ export async function POST(request: Request) {
     const { data: agencyData, error: agencyError } = await supabase
       .from("agencies")
       .insert({
-        name,
+        name: agency_name,
         contact_email: email,
+        phone,
+        address,
         created_by: authData.user.id,
       })
       .select()

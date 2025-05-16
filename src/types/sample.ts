@@ -19,6 +19,7 @@ export interface Sample {
   county: string | null;
   sample_type: string | null;
   sample_location: string | null;
+  address: string | null;
   source: string | null;
   latitude: number | null | undefined;
   longitude: number | null | undefined;

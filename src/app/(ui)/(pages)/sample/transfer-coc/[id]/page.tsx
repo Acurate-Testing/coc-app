@@ -60,8 +60,8 @@ export default function TransferCOCPage() {
   const saveSignature = () => {
     if (sigPadRef.current?.isEmpty()) return;
     setSignatureData(
-      sigPadRef.current
-        ? sigPadRef.current.getTrimmedCanvas().toDataURL("image/png")
+      sigPadRef?.current
+        ? sigPadRef?.current?.getTrimmedCanvas()?.toDataURL("image/png")
         : null
     );
   };
@@ -106,7 +106,7 @@ export default function TransferCOCPage() {
         throw new Error(data.error || "Failed to transfer chain of custody");
       }
       successToast("Chain of custody transferred successfully");
-      router.push(`/samples`);
+      router.push(`/sample/${params?.id}`);
     } catch (error) {
       console.error("Transfer error:", error);
       errorToast(
@@ -210,6 +210,9 @@ export default function TransferCOCPage() {
             disabled={isFetchingUsers}
           >
             <option value="">Select User</option>
+            <option value="59398b60-0d7c-43a7-b2c1-4f0c259c1199">
+              LAB ADMIN
+            </option>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.full_name} ({user.email})
@@ -322,7 +325,7 @@ export default function TransferCOCPage() {
                 variant="white"
                 type="button"
                 className="w-full h-[50px]"
-                onClick={() => router.push("/samples")}
+                onClick={() => router.push(`/sample/${params.id}`)}
               />
               <Button
                 label="Submit"

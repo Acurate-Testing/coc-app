@@ -21,7 +21,7 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
   const showTitleBasedonPath: Record<string, string> = {
     "/dashboard": "Dashboard",
     "/profile": "My Profile",
-    "/samples": "Agency Samples",
+    "/samples": "Sample List",
     "/sample/add": "New Sample",
     "/members": "Members",
     "/member/invite": "Invite Member",

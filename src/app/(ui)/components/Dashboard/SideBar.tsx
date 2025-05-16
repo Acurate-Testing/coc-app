@@ -96,11 +96,17 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
     ];
   } else {
     sideBarMenuItems = [
+      // {
+      //   name: "Dashboard",
+      //   icon: <TiHome size={24} />,
+      //   to: "/dashboard",
+      //   isActive: pathname.includes("dashboard"),
+      // },
       {
-        name: "Dashboard",
-        icon: <TiHome size={24} />,
-        to: "/dashboard",
-        isActive: pathname.includes("dashboard"),
+        name: "Samples",
+        icon: <FaFileAlt size={22} />,
+        to: "/samples",
+        isActive: pathname.includes("samples") || pathname.includes("sample"),
       },
       {
         name: "Members",
@@ -108,12 +114,6 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
         to: "/members",
         isActive:
           pathname.includes("members") || pathname.includes("member/invite"),
-      },
-      {
-        name: "Samples",
-        icon: <FaFileAlt size={22} />,
-        to: "/samples",
-        isActive: pathname.includes("samples") || pathname.includes("sample"),
       },
     ];
   }

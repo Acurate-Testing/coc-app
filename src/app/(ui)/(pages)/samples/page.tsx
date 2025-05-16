@@ -200,7 +200,7 @@ export default function HomePage() {
       <div className="relative bg-gray-50">
         <button
           onClick={() => router.push("/sample/add")}
-          className="fixed bottom-24 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200"
+          className="fixed z-[50] bottom-24 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200"
         >
           <LuPlus size={30} />
         </button>
@@ -261,7 +261,7 @@ export default function HomePage() {
                       <div className="flex md:flex-row flex-col-reverse md:gap-4 gap-1">
                         <div>
                           <Label
-                            label={`#${sample.project_id || "N/A"}`}
+                            label={`#${sample.pws_id || "N/A"}`}
                             className="text-lg font-semibold"
                           />
                         </div>
@@ -317,21 +317,22 @@ export default function HomePage() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button
-                        className="md:min-w-[110px]"
+                        className="md:min-w-[110px] !bg-[#FEF3C7]"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/sample/edit/${sample.id}`);
                         }}
+                        variant="icon"
                         label={isMobile ? "" : "Edit"}
                         icon={<FiEdit className="text-lg" />}
                       />
-                      <Button
+                      {/* <Button
                         className="md:min-w-[110px]"
                         onClick={(e) => handleDeleteClick(e, sample.id)}
                         label={isMobile ? "" : "Delete"}
                         variant="danger"
                         icon={<ImBin className="text-lg" />}
-                      />
+                      /> */}
                     </div>
                   </Card>
                 </div>
@@ -368,7 +369,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <ConfirmationModal
+      {/* <ConfirmationModal
         open={openConfirmDeleteDialog}
         processing={isLoading}
         onConfirm={handleDeleteSample}
@@ -376,7 +377,7 @@ export default function HomePage() {
           setSelectedSample("");
           setOpenConfirmDeleteDialog(false);
         }}
-      />
+      /> */}
     </>
   );
 }

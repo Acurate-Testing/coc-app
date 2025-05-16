@@ -4,19 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { errorToast } from "@/hooks/useCustomToast";
+import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
+import { Button } from "@/stories/Button/Button";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [signupFormData, setSignupFormData] = useState({
+    agency_name: "",
+    email: "",
+    phone: "",
+    address: "",
+    password: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const name = formData.get("name") as string;
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -24,11 +28,7 @@ export default function RegisterPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-          name,
-        }),
+        body: JSON.stringify(signupFormData),
       });
 
       if (!response.ok) {
@@ -66,12 +66,19 @@ export default function RegisterPage() {
         <h3 className="text-2xl font-semibold text-center mb-6">Register</h3>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="name">Name</label>
+            <label htmlFor="agency_name">Company Name</label>
             <input
               type="text"
-              id="name"
-              name="name"
-              placeholder="Enter your name"
+              id="agency_name"
+              name="agency_name"
+              value={signupFormData.agency_name}
+              placeholder="Enter your agency name"
+              onChange={(e) =>
+                setSignupFormData({
+                  ...signupFormData,
+                  agency_name: e.target.value,
+                })
+              }
               required
               className="form-input mt-1"
             />
@@ -84,8 +91,49 @@ export default function RegisterPage() {
               id="email"
               name="email"
               placeholder="Enter your email"
+              value={signupFormData.email}
+              onChange={(e) =>
+                setSignupFormData({
+                  ...signupFormData,
+                  email: e.target.value,
+                })
+              }
               required
               className="form-input mt-1"
+            />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="phone">Phone</label>
+            <input
+              type="number"
+              id="phone"
+              name="phone"
+              placeholder="Enter your phone"
+              onChange={(e) =>
+                setSignupFormData({
+                  ...signupFormData,
+                  phone: e.target.value,
+                })
+              }
+              required
+              className="form-input mt-1"
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="address">Company Address</label>
+            <textarea
+              id="address"
+              name="address"
+              rows={2}
+              value={signupFormData.address ?? ""}
+              onChange={(e) =>
+                setSignupFormData({
+                  ...signupFormData,
+                  address: e.target.value,
+                })
+              }
+              placeholder="Enter address"
+              className="form-input !h-auto mt-1"
             />
           </div>
 
@@ -96,18 +144,33 @@ export default function RegisterPage() {
               id="password"
               name="password"
               placeholder="Enter password"
+              onChange={(e) =>
+                setSignupFormData({
+                  ...signupFormData,
+                  password: e.target.value,
+                })
+              }
               required
               className="form-input mt-1"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full h-[56px] bg-[#0052ff] text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none disabled:opacity-50"
-          >
-            {isLoading ? "Registering..." : "Register"}
-          </button>
+          {isLoading ? (
+            <LoadingButton
+              label="Registering..."
+              size="large"
+              className="w-full h-[50px] mt-4"
+              disabled
+            />
+          ) : (
+            <Button
+              label="Register"
+              size="large"
+              type="submit"
+              className="w-full h-[50px] mt-4"
+              disabled={isLoading}
+            />
+          )}
         </form>
 
         <div className="mt-4 text-center">
