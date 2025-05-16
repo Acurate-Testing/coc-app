@@ -127,7 +127,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: pdfBytes.toString("base64"),
+      data: Buffer.from(pdfBytes).toString("base64"),
       format: "pdf",
     });
   } catch (error) {
