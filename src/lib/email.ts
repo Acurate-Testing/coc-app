@@ -1,10 +1,28 @@
 import sgMail from "@sendgrid/mail";
+import formData from "form-data";
+import Mailgun from "mailgun.js";
 
-if (!process.env.SENDGRID_API_KEY) {
+const mailgun = new Mailgun(formData);
+const mg = mailgun.client({
+  username: "api",
+  key: process.env.MAILGUN_API_KEY || "",
+});
+
+if (!process.env.EMAIL_PROVIDER) {
+  throw new Error("Missing EMAIL_PROVIDER environment variable");
+}
+
+if (process.env.EMAIL_PROVIDER === "sendgrid" && !process.env.SENDGRID_API_KEY) {
   throw new Error("Missing SENDGRID_API_KEY environment variable");
 }
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+if (process.env.EMAIL_PROVIDER === "mailgun" && !process.env.MAILGUN_API_KEY) {
+  throw new Error("Missing MAILGUN_API_KEY environment variable");
+}
+
+if (process.env.EMAIL_PROVIDER === "sendgrid") {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+}
 
 export async function sendEmail({
   to,
@@ -18,17 +36,28 @@ export async function sendEmail({
   html?: string;
 }) {
   try {
-    const response = await sgMail.send({
-      to,
-      from: process.env.SENDGRID_FROM_EMAIL || "noreply@example.com",
-      subject,
-      text,
-      html: html || text,
-    });
-    console.log("response+++++", response);
+    if (process.env.EMAIL_PROVIDER === "sendgrid") {
+      const response = await sgMail.send({
+        to,
+        from: process.env.SENDGRID_FROM_EMAIL || "noreply@example.com",
+        subject,
+        text,
+        html: html || text,
+      });
+      console.log("SendGrid response:", response);
+    } else if (process.env.EMAIL_PROVIDER === "mailgun") {
+      const response = await mg.messages.create(process.env.MAILGUN_DOMAIN!, {
+        from: process.env.MAILGUN_FROM_EMAIL || "noreply@example.com",
+        to,
+        subject,
+        text,
+        html: html || text,
+      });
+      console.log("Mailgun response:", response);
+    }
     return true;
   } catch (error) {
-    console.error("SendGrid error:", error);
+    console.error("Email sending error:", error);
     return false;
   }
 }
