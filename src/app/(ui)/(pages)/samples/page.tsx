@@ -24,14 +24,6 @@ import { useMediaQuery } from "react-responsive";
 
 type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
-interface ApiResponse {
-  samples: Sample[];
-  total: number;
-  page: number;
-  totalPages: number;
-  error?: string;
-}
-
 export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -152,10 +144,6 @@ export default function HomePage() {
     if (activeTab === "All") return matchesSearch;
     return matchesSearch && sample.status === activeTab.toLowerCase();
   });
-
-  if (status === "loading" || isLoading) {
-    return <LoadingSpinner />;
-  }
 
   if (error) {
     return (
@@ -360,12 +348,18 @@ export default function HomePage() {
                 </div>
               )}
             </>
+          ) : isLoading ? (
+            <LoadingSpinner />
           ) : (
             <Card className="p-4 bg-white !shadow-none rounded-xl">
               <div className="flex items-center justify-center h-64">
                 <Label
-                  label="No samples found"
-                  className="text-lg font-semibold"
+                  label={
+                    activeTab !== "All"
+                      ? "No sample found based on your applied filter."
+                      : "No samples found"
+                  }
+                  className="text-lg font-semibold text-gray-500"
                 />
               </div>
             </Card>

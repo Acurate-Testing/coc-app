@@ -1,43 +1,37 @@
 "use client";
 import { useState, useCallback, memo } from "react";
 import Link from "next/link";
+import { Button } from "@/stories/Button/Button";
+import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 
 export interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;
-  error: string | null;
   isLoading: boolean;
   onRegisterClick: () => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error, isLoading, onRegisterClick }) => {
+const LoginForm: React.FC<LoginFormProps> = ({
+  onSubmit,
+  isLoading,
+  onRegisterClick,
+}) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    await onSubmit(email, password);
-  }, [email, password, onSubmit]);
-
-  const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-  }, []);
-
-  const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-  }, []);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      await onSubmit(email, password);
+    },
+    [email, password, onSubmit]
+  );
 
   return (
     <form onSubmit={handleSubmit} className="w-full flex flex-col gap-3">
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      )}
-
-      <div className="form-group">
+      <div>
         <label htmlFor="email">Email address</label>
-        <div className="relative">
-          <span className="input-icon">
+        <div className="relative mt-1">
+          <span className="absolute left-4 top-1/2 text-gray-500 transform -translate-y-1/2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -50,10 +44,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error, isLoading, onReg
           </span>
           <input
             type="email"
-            className="form-control mt-1"
+            className="form-input !pl-11"
             id="email"
             value={email}
-            onChange={handleEmailChange}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             required
             autoComplete="email"
@@ -61,10 +55,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error, isLoading, onReg
         </div>
       </div>
 
-      <div className="form-group">
+      <div>
         <label htmlFor="password">Password</label>
-        <div className="relative">
-          <span className="input-icon">
+        <div className="relative mt-1">
+          <span className="absolute left-4 top-1/2 text-gray-500 transform -translate-y-1/2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -77,10 +71,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error, isLoading, onReg
           </span>
           <input
             type="password"
-            className="form-control mt-1"
+            className="form-input !pl-11"
             id="password"
             value={password}
-            onChange={handlePasswordChange}
+            onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
             required
             autoComplete="current-password"
@@ -88,43 +82,46 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error, isLoading, onReg
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="btn btn-login text-white font-semibold"
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <>
-            <span
-              className="spinner-border spinner-border-sm me-2"
-              role="status"
-              aria-hidden="true"
-            />
-            Signing in...
-          </>
-        ) : (
-          "Sign in"
-        )}
-      </button>
+      {isLoading ? (
+        <LoadingButton
+          label="Signing in..."
+          size="large"
+          className="h-[50px] mt-4"
+          disabled
+        />
+      ) : (
+        <Button
+          label="Sign in"
+          size="large"
+          type="submit"
+          className="h-[50px] mt-4"
+          disabled={isLoading}
+        />
+      )}
 
-      <div className="forgot-password">
-        <Link href="/reset-password" className="link-blue">
+      <div className="text-center my-4">
+        <Link
+          href="/reset-password"
+          className="text-themeColor hover:underline"
+        >
           Forgot your password?
         </Link>
       </div>
 
-      <div className="create-account">
+      <div className="text-center pt-4 border-t border-t-gray-300">
         <span>Don't have an account? </span>
-        <button
+        <Button
+          label="Create New Account"
+          size="large"
           type="button"
+          variant="outline-primary"
+          className="mx-auto h-[50px] mt-4 hover:!bg-themeColor hover:text-white"
+          disabled={isLoading}
           onClick={onRegisterClick}
-          className="btn-create-account"
-        >
-          Create New Account
-        </button>
+        />
       </div>
     </form>
   );
 };
 
-export default LoginForm; 
+export default LoginForm;

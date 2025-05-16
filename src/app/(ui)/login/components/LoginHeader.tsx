@@ -18,9 +18,7 @@ export default function LoginHeader() {
       </div>
 
       <h1 className="text-3xl text-center font-semibold">Welcome back</h1>
-      <p className="text-center text-gray-600 mb-8">
-        Sign in to your account
-      </p>
+      <p className="text-center text-gray-600 mb-8">Sign in to your account</p>
     </>
   );
-} 
+}
