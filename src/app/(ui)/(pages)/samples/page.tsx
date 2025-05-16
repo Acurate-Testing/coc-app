@@ -214,7 +214,7 @@ export default function HomePage() {
       <div className="relative bg-gray-50">
         <button
           onClick={() => router.push("/sample/add")}
-          className="fixed bottom-24 right-8 bg-blue-600 text-white p-4 rounded-full shadow-xl z-50"
+          className="fixed bottom-24 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200"
         >
           <LuPlus size={30} />
         </button>
@@ -285,7 +285,7 @@ export default function HomePage() {
                           />
                         </div>
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex items-center gap-3">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
@@ -297,7 +297,7 @@ export default function HomePage() {
                           className="text-lg"
                         />
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex items-center gap-3">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
@@ -311,7 +311,7 @@ export default function HomePage() {
                           className="text-lg"
                         />
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex items-center gap-3">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""

@@ -6,7 +6,7 @@
   --spacing-base: 16px;
   --border-radius: 12px;
   --font-size-base: 16px;
-  
+
   /* Accessibility colors */
   --focus-ring-color: #0052ff;
   --focus-ring-width: 3px;
@@ -20,7 +20,7 @@
 }
 
 /* Base touch target sizes */
-button, 
+button,
 [role="button"],
 input[type="button"],
 input[type="submit"],
@@ -112,7 +112,7 @@ textarea:focus-visible,
 }
 
 .focus-ring:focus-visible::after {
-  content: '';
+  content: "";
   position: absolute;
   top: calc(-1 * var(--focus-ring-offset));
   left: calc(-1 * var(--focus-ring-offset));
@@ -194,7 +194,7 @@ textarea:focus-visible,
   textarea {
     border: 2px solid CanvasText;
   }
-  
+
   .focus-ring:focus-visible::after {
     border-color: CanvasText;
   }
@@ -248,4 +248,4 @@ textarea:focus-visible,
 
 .modal-buttons button {
   height: var(--button-height);
-} 
+}

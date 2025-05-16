@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { TiHome } from "react-icons/ti";
 import { FaChartLine, FaUsers, FaAngleDown } from "react-icons/fa6";
-import { FaFileAlt, FaProjectDiagram, FaTasks } from "react-icons/fa";
-import { GrTrigger } from "react-icons/gr";
+import { FaFileAlt, FaTasks } from "react-icons/fa";
 import { useMediaQuery } from "react-responsive";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { UserRole } from "@/constants/enums";
 
 interface SideBarProps {
   sidebarOpen: boolean;
@@ -61,7 +61,7 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
     : `relative bg-gray-900 text-white transition-all duration-300 ${desktopSidebarWidth}`;
 
   let sideBarMenuItems: SidebarLinkProps[];
-  if (userRole === "lab_admin") {
+  if (userRole === UserRole.LABADMIN) {
     sideBarMenuItems = [
       {
         name: "Dashboard",
@@ -96,25 +96,25 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
     ];
   } else {
     sideBarMenuItems = [
-     {
-      name: "Dashboard",
-      icon: <TiHome size={24} />,
-      to: "/dashboard",
-      isActive: pathname.includes("dashboard"),
-    },
-    {
-      name: "Members",
-      icon: <FaUsers size={22} />,
-      to: "/members",
-      isActive:
-        pathname.includes("members") || pathname.includes("member/invite"),
-    },
-    {
-      name: "Samples",
-      icon: <FaFileAlt size={22} />,
-      to: "/samples",
-      isActive: pathname.includes("samples") || pathname.includes("sample"),
-    },
+      {
+        name: "Dashboard",
+        icon: <TiHome size={24} />,
+        to: "/dashboard",
+        isActive: pathname.includes("dashboard"),
+      },
+      {
+        name: "Members",
+        icon: <FaUsers size={22} />,
+        to: "/members",
+        isActive:
+          pathname.includes("members") || pathname.includes("member/invite"),
+      },
+      {
+        name: "Samples",
+        icon: <FaFileAlt size={22} />,
+        to: "/samples",
+        isActive: pathname.includes("samples") || pathname.includes("sample"),
+      },
     ];
   }
 
@@ -136,8 +136,14 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
               priority
               className="h-10 w-10"
             />
-            <div className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-              <h1 className="text-lg font-semibold text-white">Accurate Testing Labs</h1>
+            <div
+              className={`transition-all duration-300 ${
+                sidebarOpen ? "opacity-100" : "opacity-0 hidden"
+              }`}
+            >
+              <h1 className="text-lg font-semibold text-white">
+                Accurate Testing Labs
+              </h1>
             </div>
           </div>
         </div>
@@ -162,7 +168,7 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
                     className={`w-full flex ${
                       sidebarOpen ? "justify-start" : "justify-center"
                     } items-center space-x-4 p-2 rounded-lg cursor-pointer 
-                  ${items.isActive && sidebarOpen ? "bg-gray-700" : ""}
+                  ${items.isActive ? "bg-gray-700" : ""}
                   `}
                   >
                     {items.icon}

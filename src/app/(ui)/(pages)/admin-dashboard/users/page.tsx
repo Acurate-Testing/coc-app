@@ -28,7 +28,8 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedTest, setSelectedTest] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
+    useState<boolean>(false);
 
   const fetchUsers = async () => {
     try {
@@ -78,7 +79,10 @@ export default function AdminUsersPage() {
     return (
       <div className="min-h-screen w-full">
         <div className="max-w-md mx-auto p-4">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
             <strong className="font-bold">Error!</strong>
             <span className="block sm:inline"> {error}</span>
           </div>
@@ -130,18 +134,36 @@ export default function AdminUsersPage() {
                   {selectedUser.full_name[0]}
                 </div>
                 <div>
-                  <div className="font-semibold text-lg">{selectedUser.full_name}</div>
-                  <div className="text-gray-400 text-sm">{selectedUser.email}</div>
+                  <div className="font-semibold text-lg">
+                    {selectedUser.full_name}
+                  </div>
+                  <div className="text-gray-400 text-sm">
+                    {selectedUser.email}
+                  </div>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {(selectedUser.accounts || ["Lab Corp", "City Water", "EnviroTech"]).map((acc) => (
-                      <span key={acc} className="bg-gray-100 text-gray-600 rounded-full px-3 py-1 text-xs font-medium">
+                    {(
+                      selectedUser.accounts || [
+                        "Lab Corp",
+                        "City Water",
+                        "EnviroTech",
+                      ]
+                    ).map((acc) => (
+                      <span
+                        key={acc}
+                        className="bg-gray-100 text-gray-600 rounded-full px-3 py-1 text-xs font-medium"
+                      >
                         {acc}
                       </span>
                     ))}
                   </div>
                 </div>
               </div>
-              <Button label="Edit User Access" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition">Edit User Access</Button>
+              <Button
+                label="Edit User Access"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
+              >
+                Edit User Access
+              </Button>
             </div>
             {/* Test Permissions */}
             <div className="bg-white rounded-xl shadow p-4">
@@ -158,32 +180,61 @@ export default function AdminUsersPage() {
               {/* Card view for mobile */}
               <div className="block sm:hidden">
                 {(selectedUser.assigned_tests || []).length === 0 ? (
-                  <div className="text-center py-8 text-gray-400 text-base font-medium">No tests assigned.</div>
+                  <div className="text-center py-8 text-gray-400 text-base font-medium">
+                    No tests assigned.
+                  </div>
                 ) : (
                   <div className="flex flex-col gap-4">
                     {selectedUser.assigned_tests?.map((test) => (
-                      <div key={test.id} className="rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-2 bg-white">
+                      <div
+                        key={test.id}
+                        className="rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-2 bg-white"
+                      >
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400 font-medium">Test Name</span>
-                          <span className="text-base font-semibold text-gray-700">{test.name}</span>
+                          <span className="text-xs text-gray-400 font-medium">
+                            Test Name
+                          </span>
+                          <span className="text-base font-semibold text-gray-700">
+                            {test.name}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400 font-medium">Code</span>
-                          <span className="text-base text-gray-700 font-medium">{test.code}</span>
+                          <span className="text-xs text-gray-400 font-medium">
+                            Code
+                          </span>
+                          <span className="text-base text-gray-700 font-medium">
+                            {test.code}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400 font-medium">Matrix Types</span>
+                          <span className="text-xs text-gray-400 font-medium">
+                            Matrix Types
+                          </span>
                           <span className="flex gap-2 flex-wrap">
-                            {test.matrix_types.map((mt) => (
-                              <span key={mt} className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium">
+                            {test?.matrix_types?.map((mt) => (
+                              <span
+                                key={mt}
+                                className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium"
+                              >
                                 {mt}
                               </span>
                             ))}
                           </span>
                         </div>
                         <div className="flex gap-2 justify-end mt-2">
-                          <Button label="" className="text-blue-600 hover:text-blue-800"><span className="sr-only">Edit</span>✏️</Button>
-                          <Button label="" className="text-red-500 hover:text-red-700" onClick={() => handleDeleteClick(test.id)}><span className="sr-only">Delete</span>🗑️</Button>
+                          <Button
+                            label=""
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <span className="sr-only">Edit</span>✏️
+                          </Button>
+                          <Button
+                            label=""
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => handleDeleteClick(test.id)}
+                          >
+                            <span className="sr-only">Delete</span>🗑️
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -195,26 +246,45 @@ export default function AdminUsersPage() {
                 <table className="w-full table-auto">
                   <thead>
                     <tr className="bg-gray-50 border-b">
-                      <th className="px-6 py-4 text-left font-semibold text-gray-700">Test Name</th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-700">Code</th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-700">Matrix Types</th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-700">Actions</th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                        Test Name
+                      </th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                        Code
+                      </th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                        Matrix Types
+                      </th>
+                      <th className="px-6 py-4 text-left font-semibold text-gray-700">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {(selectedUser.assigned_tests || []).length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="text-center py-8 text-gray-400 text-base font-medium">No tests assigned.</td>
+                        <td
+                          colSpan={4}
+                          className="text-center py-8 text-gray-400 text-base font-medium"
+                        >
+                          No tests assigned.
+                        </td>
                       </tr>
                     ) : (
                       selectedUser.assigned_tests?.map((test) => (
-                        <tr key={test.id} className="border-b hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={test.id}
+                          className="border-b hover:bg-gray-50 transition-colors"
+                        >
                           <td className="px-6 py-4">{test.name}</td>
                           <td className="px-6 py-4">{test.code}</td>
                           <td className="px-6 py-4">
                             <span className="flex gap-2 flex-wrap">
-                              {test.matrix_types.map((mt) => (
-                                <span key={mt} className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium">
+                              {test?.matrix_types?.map((mt) => (
+                                <span
+                                  key={mt}
+                                  className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium"
+                                >
                                   {mt}
                                 </span>
                               ))}
@@ -222,8 +292,19 @@ export default function AdminUsersPage() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex gap-2">
-                              <Button label="" className="text-blue-600 hover:text-blue-800"><span className="sr-only">Edit</span>✏️</Button>
-                              <Button label="" className="text-red-500 hover:text-red-700" onClick={() => handleDeleteClick(test.id)}><span className="sr-only">Delete</span>🗑️</Button>
+                              <Button
+                                label=""
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <span className="sr-only">Edit</span>✏️
+                              </Button>
+                              <Button
+                                label=""
+                                className="text-red-500 hover:text-red-700"
+                                onClick={() => handleDeleteClick(test.id)}
+                              >
+                                <span className="sr-only">Delete</span>🗑️
+                              </Button>
                             </div>
                           </td>
                         </tr>
@@ -238,10 +319,23 @@ export default function AdminUsersPage() {
               <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
                 <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
                   <div className="font-semibold text-lg mb-4">Assign Test</div>
-                  <div className="mb-4 text-gray-500 text-sm">(Test assignment UI goes here)</div>
+                  <div className="mb-4 text-gray-500 text-sm">
+                    (Test assignment UI goes here)
+                  </div>
                   <div className="flex justify-end gap-2">
-                    <Button label="Cancel" className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700" onClick={() => setShowAssignModal(false)}>Cancel</Button>
-                    <Button label="Assign" className="px-4 py-2 rounded-lg bg-blue-600 text-white">Assign</Button>
+                    <Button
+                      label="Cancel"
+                      className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700"
+                      onClick={() => setShowAssignModal(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      label="Assign"
+                      className="px-4 py-2 rounded-lg bg-blue-600 text-white"
+                    >
+                      Assign
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -260,4 +354,4 @@ export default function AdminUsersPage() {
       </div>
     </div>
   );
-} 
+}
