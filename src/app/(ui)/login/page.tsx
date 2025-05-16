@@ -7,7 +7,7 @@ import { errorToast } from "@/hooks/useCustomToast";
 
 // Dynamically import the form component
 const LoginForm = dynamic(
-  () => import("@/app/(ui)/login/components/LoginForm"),
+  () => import("@/app/(ui)/components/Auth/LoginForm"),
   {
     loading: () => (
       <div className="animate-pulse">
@@ -20,7 +20,7 @@ const LoginForm = dynamic(
 );
 
 // Dynamically import the header component
-const LoginHeader = dynamic(() => import("./components/LoginHeader"), {
+const LoginHeader = dynamic(() => import("../components/Auth/LoginHeader"), {
   loading: () => (
     <div className="animate-pulse">
       <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>

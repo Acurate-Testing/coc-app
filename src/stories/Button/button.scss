@@ -30,6 +30,9 @@
 .storybook-button--danger {
   color: white;
   background-color: #dc2626;
+  &:hover {
+    background-color: #b91c1c;
+  }
 }
 .storybook-button--outline-primary {
   color: var(--color-primary);
@@ -40,8 +43,8 @@
   }
 }
 .storybook-button--outline-gray {
-  color: var(--color-neutral-850);
-  border: 1px solid var(--color-neutral-100);
+  color: #4b5563;
+  border: 1px solid #e5e7eb;
   background-color: transparent;
   &:hover {
     background-color: #f9fafb;

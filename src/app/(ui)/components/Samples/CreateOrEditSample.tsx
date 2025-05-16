@@ -17,6 +17,7 @@ import {
 import LoadingSpinner from "../Common/LoadingSpinner";
 import { Sample } from "@/types/sample";
 import { Button } from "@/stories/Button/Button";
+import AddAnotherSampleModal from "./AddAnotherSampleModal";
 // type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
 interface Account {
@@ -700,7 +701,7 @@ export default function SampleForm() {
       </div>
       <div className="w-full min-h-[calc(100vh-218px)] mx-auto md:p-8 p-6">
         <main>{renderStep()}</main>
-        {showAddAnotherPopup && (
+        {/* {showAddAnotherPopup && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
               <div className="flex justify-between items-center border-b pb-3 mb-4">
@@ -738,19 +739,41 @@ export default function SampleForm() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
-      <div className="navigation-buttons">
-        <div className="px-4">
-          {currentStep === 3 ? (
-            <>
+      <div className="navigation-buttons px-4">
+        {currentStep === 3 ? (
+          editMode ? (
+            // Edit mode layout: Update + Previous in one row
+            <div className="flex flex-row-reverse gap-4">
               <Button
-                label={editMode ? "Update" : "Submit"}
+                label="Update"
                 size="large"
                 type="button"
-                className="w-full h-[50px] mb-3"
+                className="w-full h-[50px]"
                 onClick={handleSubmit}
               />
+              <Button
+                label="Previous"
+                size="large"
+                type="button"
+                variant="white"
+                className="w-full h-[50px] hover:bg-gray-100"
+                onClick={() => setCurrentStep(currentStep - 1)}
+              />
+            </div>
+          ) : (
+            // Non-edit mode layout: Submit alone, then Previous + Submit & Add Another
+            <>
+              <div className="mb-3">
+                <Button
+                  label="Submit"
+                  size="large"
+                  type="button"
+                  className="w-full h-[50px]"
+                  onClick={handleSubmit}
+                />
+              </div>
               <div className="flex gap-3">
                 <Button
                   label="Previous"
@@ -760,44 +783,51 @@ export default function SampleForm() {
                   className="w-full h-[50px] hover:bg-gray-100"
                   onClick={() => setCurrentStep(currentStep - 1)}
                 />
-                {!editMode && (
-                  <Button
-                    label="Submit & Add Another"
-                    type="button"
-                    size="large"
-                    variant="white"
-                    className="w-full h-[50px] hover:bg-gray-100"
-                    onClick={() => {
-                      handleSubmit();
-                      setShowAddAnotherPopup(true);
-                    }}
-                  />
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex gap-3">
-              {currentStep > 1 && (
                 <Button
-                  label="Previous"
-                  size="large"
+                  label="Submit & Add Another"
                   type="button"
+                  size="large"
                   variant="white"
                   className="w-full h-[50px] hover:bg-gray-100"
-                  onClick={() => setCurrentStep(currentStep - 1)}
+                  onClick={() => {
+                    setShowAddAnotherPopup(true);
+                    // handleSubmit();
+                  }}
                 />
-              )}
-
-              <Button
-                label="Next"
-                size="large"
-                className="w-full h-[50px]"
-                onClick={() => setCurrentStep(currentStep + 1)}
-              />
-            </div>
-          )}
-        </div>
+              </div>
+            </>
+          )
+        ) : (
+          // Standard layout for steps 1 and 2
+          <div className="flex gap-3">
+            <Button
+              label={currentStep > 1 ? "Previous" : "Cancel"}
+              size="large"
+              type="button"
+              variant="white"
+              className="w-full h-[50px] hover:bg-gray-100"
+              onClick={() =>
+                currentStep > 1
+                  ? setCurrentStep(currentStep - 1)
+                  : router.push("/samples")
+              }
+            />
+            <Button
+              label="Next"
+              size="large"
+              className="w-full h-[50px]"
+              onClick={() => setCurrentStep(currentStep + 1)}
+            />
+          </div>
+        )}
       </div>
+      <AddAnotherSampleModal
+        open={showAddAnotherPopup}
+        close={() => setShowAddAnotherPopup(false)}
+        onChooseOption={(retainPrevious) =>
+          retainPrevious ? handleAddAnother(retainPrevious) : handleSubmit()
+        }
+      />
     </>
   );
 }

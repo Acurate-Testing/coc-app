@@ -1,37 +1,35 @@
 "use-client";
 import React, { useEffect, useState } from "react";
-// import ProfileHeader from '../Users/ProfileHeader';
+import ProfileHeader from "./ProfileHeader";
 import { useMediaQuery } from "react-responsive";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import SideBar from "./SideBar";
-import ProfileHeader from "./ProfileHeader";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const { status } = useSession();
-  const pathname = usePathname();
   const isMobile = useMediaQuery({ maxWidth: 767 });
 
-  // const storedSidebarExpanded =
-  //   typeof window !== "undefined"
-  //     ? localStorage.getItem("sidebar-expanded")
-  //     : null;
+  const storedSidebarExpanded =
+    typeof window !== "undefined"
+      ? localStorage.getItem("sidebar-expanded")
+      : null;
 
-  // const [sidebarOpen, setSidebarOpen] = useState(
-  //   storedSidebarExpanded === null
-  //     ? !isMobile
-  //     : storedSidebarExpanded === "true"
-  // );
+  const [sidebarOpen, setSidebarOpen] = useState(
+    storedSidebarExpanded === null
+      ? !isMobile
+      : storedSidebarExpanded === "true"
+  );
 
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window === "undefined") return false;
+  // const [sidebarOpen, setSidebarOpen] = useState(() => {
+  //   if (typeof window === "undefined") return false;
 
-    const stored = localStorage.getItem("sidebar-expanded");
-    if (stored !== null) return stored === "true";
+  //   const stored = localStorage.getItem("sidebar-expanded");
+  //   if (stored !== null) return stored === "true";
 
-    return false; // force initial value to be false, even on desktop
-  });
+  //   return false; // force initial value to be false, even on desktop
+  // });
 
   useEffect(() => {
     if (status === "unauthenticated") {

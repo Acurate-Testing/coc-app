@@ -23,7 +23,10 @@ import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
 // Use the correct Sample type
 // type Sample = Database["public"]["Tables"]["samples"]["Row"];
 type Sample = Database["public"]["Tables"]["samples"]["Row"];
-interface Agency { id: string; name: string; }
+interface Agency {
+  id: string;
+  name: string;
+}
 
 interface ApiResponse {
   samples: Sample[];
@@ -46,7 +49,8 @@ export default function AdminSamplesPage() {
   const [totalSamples, setTotalSamples] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [selectedSample, setSelectedSample] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
+    useState<boolean>(false);
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [selectedAgency, setSelectedAgency] = useState<string>("");
 
@@ -165,13 +169,16 @@ export default function AdminSamplesPage() {
       setSelectedSample("");
       fetchSamples();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to delete sample");
+      setError(
+        error instanceof Error ? error.message : "Failed to delete sample"
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getAgencyName = (id: string | null) => agencies.find(a => a.id === id)?.name || id || "-";
+  const getAgencyName = (id: string | null) =>
+    agencies.find((a) => a.id === id)?.name || id || "-";
 
   if (status === "loading" || isLoading) {
     return <LoadingSpinner />;
@@ -180,7 +187,10 @@ export default function AdminSamplesPage() {
     return (
       <div className="min-h-screen w-full">
         <div className="max-w-md mx-auto p-4">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
             <strong className="font-bold">Error!</strong>
             <span className="block sm:inline"> {error}</span>
           </div>
@@ -199,7 +209,11 @@ export default function AdminSamplesPage() {
               <IoSearch className="text-themeColor pointer-events-none h-5 w-5 absolute top-1/2 transform -translate-y-1/2 left-3" />
               <input
                 id="sample-search"
-                className={`font-medium rounded-lg py-2.5 px-4 bg-white  ${!searchQuery && !(samples && samples.length) ? "cursor-not-allowed" : ""} text-base appearance-none block !pl-10 form-input`}
+                className={`font-medium rounded-lg py-2.5 px-4 bg-white  ${
+                  !searchQuery && !(samples && samples.length)
+                    ? "cursor-not-allowed"
+                    : ""
+                } text-base appearance-none block !pl-10 form-input`}
                 value={searchQuery}
                 type="search"
                 placeholder="Search"
@@ -264,7 +278,9 @@ export default function AdminSamplesPage() {
                         </div>
                         <div>
                           <Chip
-                            className={`${getStatusColor(sample?.status)} capitalize flex items-center justify-center py-1 w-fit rounded-full`}
+                            className={`${getStatusColor(
+                              sample?.status
+                            )} capitalize flex items-center justify-center py-1 w-fit rounded-full`}
                             value={getStatusLabel(sample?.status)}
                           />
                         </div>
@@ -286,7 +302,9 @@ export default function AdminSamplesPage() {
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
-                          icon={<FaLocationDot className="text-lg text-gray-600" />}
+                          icon={
+                            <FaLocationDot className="text-lg text-gray-600" />
+                          }
                         />
                         <Label
                           label={sample?.sample_location || "-"}
@@ -301,7 +319,9 @@ export default function AdminSamplesPage() {
                           icon={<GoClock className="text-lg text-gray-600" />}
                         />
                         <Label
-                          label={moment(sample?.created_at).format("YYYY-MM-DD hh:mm A")}
+                          label={moment(sample?.created_at).format(
+                            "YYYY-MM-DD hh:mm A"
+                          )}
                           className="text-lg"
                         />
                       </div>
@@ -363,4 +383,4 @@ export default function AdminSamplesPage() {
       />
     </>
   );
-} 
+}

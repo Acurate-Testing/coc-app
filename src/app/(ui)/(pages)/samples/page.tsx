@@ -124,12 +124,10 @@ export default function HomePage() {
   }, [status, currentPage, activeTab, limitPerPage]);
 
   useEffect(() => {
-    if (searchQuery !== "") {
-      const delayDebounceFn = setTimeout(() => {
-        fetchSamples();
-      }, 1000);
-      return () => clearTimeout(delayDebounceFn);
-    }
+    const delayDebounceFn = setTimeout(() => {
+      fetchSamples();
+    }, 1000);
+    return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
   const filteredSamples = samples.filter((sample: Sample) => {
@@ -234,7 +232,10 @@ export default function HomePage() {
                 id="type"
                 name="type"
                 value={activeTab}
-                onChange={(e) => setActiveTab(e.target.value)}
+                onChange={(e) => {
+                  setCurrentPage(0);
+                  setActiveTab(e.target.value);
+                }}
                 className="form-input bg-white"
               >
                 <option value="All">All</option>

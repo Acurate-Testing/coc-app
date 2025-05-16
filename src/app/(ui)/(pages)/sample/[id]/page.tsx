@@ -14,7 +14,7 @@ import {
   IoPrintOutline,
 } from "react-icons/io5";
 import { LuWaves } from "react-icons/lu";
-import { FaFilePdf, FaFingerprint } from "react-icons/fa";
+import { FaAngleLeft, FaFingerprint } from "react-icons/fa";
 import { PiRobotFill } from "react-icons/pi";
 import { Button } from "@/stories/Button/Button";
 import ReactDOM from "react-dom";
@@ -421,7 +421,14 @@ export default function InspectionDetailPage() {
 
   return (
     <div className="w-full md:p-8 p-6">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <Button
+          label="Back"
+          icon={<FaAngleLeft />}
+          variant="icon"
+          size="large"
+          onClick={() => router.back()}
+        />
         <Button
           variant="primary"
           size="large"

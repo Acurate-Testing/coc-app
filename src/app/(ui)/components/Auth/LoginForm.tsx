@@ -86,7 +86,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         <LoadingButton
           label="Signing in..."
           size="large"
-          className="h-[50px] mt-4"
+          className="w-full h-[50px] mt-4"
           disabled
         />
       ) : (
@@ -94,7 +94,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
           label="Sign in"
           size="large"
           type="submit"
-          className="h-[50px] mt-4"
+          className="w-full h-[50px] mt-4"
           disabled={isLoading}
         />
       )}
