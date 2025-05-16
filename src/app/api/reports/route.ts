@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
         y -= 20;
       }
 
-      reportData = await pdfDoc.save();
+      const pdfBytes = await pdfDoc.save();
+      reportData = Buffer.from(pdfBytes);
     } else {
       // Generate CSV report
       const headers = [

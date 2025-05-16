@@ -10,9 +10,8 @@ declare module "next-auth" {
       name?: string | null;
       image?: string | null;
       accounts?: any[];
-      role?: string;
-      agency_id?: string | null;
       role?: string | null;
+      agency_id?: string | null;
     };
   }
 }
@@ -118,10 +117,9 @@ const handler = NextAuth({
             id: user.id,
             email: user.email,
             name: LoggedInUserData?.full_name,
-            role: LoggedInUserData.role,
+            role: LoggedInUserData?.role,
             accounts: accounts,
             agency_id,
-            role: LoggedInUserData?.role,
           };
         } catch (error) {
           console.error("Authentication error:", error);
@@ -139,9 +137,8 @@ const handler = NextAuth({
       if (user) {
         token.id = user.id;
         token.accounts = (user as any).accounts || [];
-        token.role = (user as any).role ?? undefined;
-        token.agency_id = (user as any).agency_id ?? null;
         token.role = (user as any).role ?? null;
+        token.agency_id = (user as any).agency_id ?? null;
       }
       return token;
     },
@@ -152,7 +149,6 @@ const handler = NextAuth({
         session.user.accounts = (token.accounts as any[]) || [];
         session.user.agency_id =
           typeof token.agency_id === "string" ? token.agency_id : null;
-        session.user.role = typeof token.role === "string" ? token.role : null;
       }
       return session;
     },

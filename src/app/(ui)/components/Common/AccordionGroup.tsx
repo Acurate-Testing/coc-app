@@ -64,7 +64,7 @@ export default function AccordionGroup({ items }: AccordionGroupProps) {
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
-                        item.buttonAction();
+                        item.buttonAction?.();
                       }}
                       label={item?.buttonText}
                       size="large"
