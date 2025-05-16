@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
       `,
         { count: "exact" }
       )
+      .eq("agency_id", token.agency_id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);

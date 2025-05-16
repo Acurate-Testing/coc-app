@@ -3,16 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { errorToast } from "@/hooks/useCustomToast";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
@@ -38,7 +37,9 @@ export default function RegisterPage() {
       }
       router.push("/login");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Something went wrong");
+      errorToast(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -47,51 +48,56 @@ export default function RegisterPage() {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="card-shadow w-full max-w-md bg-white rounded-2xl mx-auto p-8">
+        <div className="shield-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
+          </svg>
+        </div>
         <h3 className="text-2xl font-semibold text-center mb-6">Register</h3>
-
-        {error && (
-          <div className="mb-4 p-3 text-red-700 bg-red-100 border border-red-300 rounded">
-            {error}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="name" className="block font-medium mb-1">
-              Name
-            </label>
+            <label htmlFor="name">Name</label>
             <input
               type="text"
               id="name"
               name="name"
+              placeholder="Enter your name"
               required
-              className="w-full h-[50px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
+              className="form-input mt-1"
             />
           </div>
 
           <div className="mb-4">
-            <label htmlFor="email" className="block font-medium mb-1">
-              Email address
-            </label>
+            <label htmlFor="email">Email address</label>
             <input
               type="email"
               id="email"
               name="email"
+              placeholder="Enter your email"
               required
-              className="w-full h-[50px] px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
+              className="form-input mt-1"
             />
           </div>
 
           <div className="mb-6">
-            <label htmlFor="password" className="block font-medium mb-1">
-              Password
-            </label>
+            <label htmlFor="password">Password</label>
             <input
               type="password"
               id="password"
               name="password"
+              placeholder="Enter password"
               required
-              className="w-full px-3 py-2 h-[50px] border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
+              className="form-input mt-1"
             />
           </div>
 
@@ -114,74 +120,5 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
-
-    // <div className="container mt-5">
-    //   <div className="row justify-content-center">
-    //     <div className="col-md-6">
-    //       <div className="card shadow">
-    //         <div className="card-header">
-    //           <h3 className="text-center">Register</h3>
-    //         </div>
-    //         <div className="card-body">
-    //           {error && (
-    //             <div className="alert alert-danger" role="alert">
-    //               {error}
-    //             </div>
-    //           )}
-    //           <form onSubmit={handleSubmit}>
-    //             <div className="mb-3">
-    //               <label htmlFor="name" className="form-label">
-    //                 Name
-    //               </label>
-    //               <input
-    //                 type="text"
-    //                 className="form-control"
-    //                 id="name"
-    //                 name="name"
-    //                 required
-    //               />
-    //             </div>
-    //             <div className="mb-3">
-    //               <label htmlFor="email" className="form-label">
-    //                 Email address
-    //               </label>
-    //               <input
-    //                 type="email"
-    //                 className="form-control"
-    //                 id="email"
-    //                 name="email"
-    //                 required
-    //               />
-    //             </div>
-    //             <div className="mb-3">
-    //               <label htmlFor="password" className="form-label">
-    //                 Password
-    //               </label>
-    //               <input
-    //                 type="password"
-    //                 className="form-control"
-    //                 id="password"
-    //                 name="password"
-    //                 required
-    //               />
-    //             </div>
-    //             <button
-    //               type="submit"
-    //               className="btn btn-primary w-100"
-    //               disabled={isLoading}
-    //             >
-    //               {isLoading ? "Loading..." : "Register"}
-    //             </button>
-    //           </form>
-    //           <div className="mt-3 text-center">
-    //             <p>
-    //               Already have an account? <Link href="/login">Login</Link>
-    //             </p>
-    //           </div>
-    //         </div>
-    //       </div>
-    //     </div>
-    //   </div>
-    // </div>
   );
 }
