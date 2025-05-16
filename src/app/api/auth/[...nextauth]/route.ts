@@ -12,6 +12,7 @@ declare module "next-auth" {
       accounts?: any[];
       role?: string;
       agency_id?: string | null;
+      role?: string | null;
     };
   }
 }
@@ -19,6 +20,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
+    role?: string | null;
   }
 }
 
@@ -119,6 +121,7 @@ const handler = NextAuth({
             role: LoggedInUserData.role,
             accounts: accounts,
             agency_id,
+            role: LoggedInUserData?.role,
           };
         } catch (error) {
           console.error("Authentication error:", error);
@@ -138,6 +141,7 @@ const handler = NextAuth({
         token.accounts = (user as any).accounts || [];
         token.role = (user as any).role ?? undefined;
         token.agency_id = (user as any).agency_id ?? null;
+        token.role = (user as any).role ?? null;
       }
       return token;
     },
@@ -148,6 +152,7 @@ const handler = NextAuth({
         session.user.accounts = (token.accounts as any[]) || [];
         session.user.agency_id =
           typeof token.agency_id === "string" ? token.agency_id : null;
+        session.user.role = typeof token.role === "string" ? token.role : null;
       }
       return session;
     },

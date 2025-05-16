@@ -5,13 +5,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Database } from "@/types/supabase";
 import { IoFlask, IoSearch } from "react-icons/io5";
-import LoadingSpinner from "../../components/Common/LoadingSpinner";
 import { Label } from "@/stories/Label/Label";
 import moment from "moment";
 import { Button } from "@/stories/Button/Button";
-import ConfirmationModal from "../../components/Common/ConfirmationModal";
+import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 import { LuPlus } from "react-icons/lu";
-import SampleOverview from "../../components/Samples/SampleOverview";
+import SampleOverview from "@/app/(ui)/components/Samples/SampleOverview";
 import { Card } from "@/stories/Card/Card";
 import { GoClock } from "react-icons/go";
 import { FaLocationDot } from "react-icons/fa6";
@@ -19,10 +18,12 @@ import { Pagination } from "@/stories/Pagination/Pagination";
 import { ImBin } from "react-icons/im";
 import { FiEdit } from "react-icons/fi";
 import { Chip } from "@material-tailwind/react";
-import { SampleStatus } from "@/constants/enums";
-import { useMediaQuery } from "react-responsive";
+import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
 
+// Use the correct Sample type
+// type Sample = Database["public"]["Tables"]["samples"]["Row"];
 type Sample = Database["public"]["Tables"]["samples"]["Row"];
+interface Agency { id: string; name: string; }
 
 interface ApiResponse {
   samples: Sample[];
@@ -32,10 +33,9 @@ interface ApiResponse {
   error?: string;
 }
 
-export default function HomePage() {
+export default function AdminSamplesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("All");
   const [samples, setSamples] = useState<Sample[]>([]);
@@ -46,37 +46,35 @@ export default function HomePage() {
   const [totalSamples, setTotalSamples] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [selectedSample, setSelectedSample] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
-    useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [selectedAgency, setSelectedAgency] = useState<string>("");
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    }
-  }, [status, router]);
+    // Fetch agencies for filter dropdown
+    fetch("/api/agencies")
+      .then((res) => res.json())
+      .then((data) => setAgencies(data?.agencies || []));
+  }, []);
 
   const fetchSamples = async () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      const response = await fetch(
-        `/api/samples?page=${currentPage}&limit=${limitPerPage}${
-          searchQuery ? `&search=${searchQuery}` : ""
-        }${activeTab !== "All" ? `&status=${activeTab}` : ""}
-        `
-      );
-      const data: any = await response.json();
-
-      if (response.status === 401) {
-        router.push("/login");
-        return;
-      }
-
+      const params = [
+        `page=${currentPage}`,
+        `limit=${limitPerPage}`,
+        searchQuery ? `search=${searchQuery}` : "",
+        activeTab !== "All" ? `status=${activeTab}` : "",
+        selectedAgency ? `agency=${selectedAgency}` : "",
+      ]
+        .filter(Boolean)
+        .join("&");
+      const response = await fetch(`/api/admin/samples?${params}`);
+      const data: ApiResponse = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch samples");
       }
-
       if (data.error) {
         throw new Error(data.error);
       }
@@ -84,12 +82,26 @@ export default function HomePage() {
       setSamples(data.samples);
       setTotalPages(data.totalPages);
     } catch (err) {
-      console.error("Error fetching samples:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch samples");
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchSamples();
+    }
+  }, [status, currentPage, activeTab, limitPerPage, selectedAgency]);
+
+  useEffect(() => {
+    if (searchQuery !== "") {
+      const delayDebounceFn = setTimeout(() => {
+        fetchSamples();
+      }, 1000);
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [searchQuery]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -113,7 +125,7 @@ export default function HomePage() {
       case "pending":
         return "Pending";
       case "in_coc":
-        return "In COC";
+        return "In Chain of Custody";
       case "submitted":
         return "Submitted";
       case "pass":
@@ -125,53 +137,12 @@ export default function HomePage() {
     }
   };
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchSamples();
-    }
-  }, [status, currentPage, activeTab, limitPerPage]);
-
-  useEffect(() => {
-    if (searchQuery !== "") {
-      const delayDebounceFn = setTimeout(() => {
-        fetchSamples();
-      }, 1000);
-      return () => clearTimeout(delayDebounceFn);
-    }
-  }, [searchQuery]);
-
-  const filteredSamples = samples.filter((sample: Sample) => {
-    const matchesSearch =
-      (sample.project_id?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-        false) ||
-      (sample.pws_id?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-        false) ||
-      (sample.matrix_type?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-        false);
-
-    if (activeTab === "All") return matchesSearch;
-    return matchesSearch && sample.status === activeTab.toLowerCase();
-  });
-
-  if (status === "loading" || isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen w-full">
-        <div className="max-w-md mx-auto p-4">
-          <div
-            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
-            role="alert"
-          >
-            <strong className="font-bold">Error!</strong>
-            <span className="block sm:inline"> {error}</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleEditClick = (e: any, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedSample(id);
+    router.push(`/sample/edit/${id}`);
+  };
 
   const handleDeleteClick = (e: any, id: string) => {
     e.preventDefault();
@@ -183,52 +154,52 @@ export default function HomePage() {
   const handleDeleteSample = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/samples?id=${selectedSample}`, {
+      const response = await fetch(`/api/admin/samples?id=${selectedSample}`, {
         method: "DELETE",
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to delete sample");
       }
-
-      // Close the confirmation dialog
       setOpenConfirmDeleteDialog(false);
       setSelectedSample("");
-
-      // Refresh the samples list
       fetchSamples();
     } catch (error) {
-      console.error("Error deleting sample:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to delete sample"
-      );
+      setError(error instanceof Error ? error.message : "Failed to delete sample");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getAgencyName = (id: string | null) => agencies.find(a => a.id === id)?.name || id || "-";
+
+  if (status === "loading" || isLoading) {
+    return <LoadingSpinner />;
+  }
+  if (error) {
+    return (
+      <div className="min-h-screen w-full">
+        <div className="max-w-md mx-auto p-4">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">Error!</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {!isMobile && <SampleOverview />}
-      <div className="relative bg-gray-50">
-        <button
-          onClick={() => router.push("/sample/add")}
-          className="fixed bottom-24 right-8 bg-blue-600 text-white p-4 rounded-full shadow-xl z-50"
-        >
-          <LuPlus size={30} />
-        </button>
-      </div>
-      <div className="w-full md:p-8 p-6 md:!pt-0">
+      <SampleOverview />
+      <div className="w-full md:p-8 p-6 !pt-0">
         <div className="flex gap-4 items-center">
           <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="relative">
               <IoSearch className="text-themeColor pointer-events-none h-5 w-5 absolute top-1/2 transform -translate-y-1/2 left-3" />
               <input
                 id="sample-search"
-                className={`font-medium rounded-lg py-2.5 px-4 bg-white  ${
-                  !searchQuery && !samples.length ? "cursor-not-allowed" : ""
-                } text-base appearance-none block !pl-10 form-input`}
+                className={`font-medium rounded-lg py-2.5 px-4 bg-white  ${!searchQuery && !(samples && samples.length) ? "cursor-not-allowed" : ""} text-base appearance-none block !pl-10 form-input`}
                 value={searchQuery}
                 type="search"
                 placeholder="Search"
@@ -237,10 +208,25 @@ export default function HomePage() {
                   setCurrentPage(0);
                   setSearchQuery(value);
                 }}
-                disabled={!searchQuery && !samples.length}
+                disabled={!searchQuery && !(samples && samples.length)}
               />
             </div>
-            <div />
+            <div>
+              <select
+                id="agency"
+                name="agency"
+                value={selectedAgency}
+                onChange={(e) => setSelectedAgency(e.target.value)}
+                className="form-input bg-white"
+              >
+                <option value="">All Agencies</option>
+                {agencies.map((agency) => (
+                  <option key={agency.id} value={agency.id}>
+                    {agency.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <select
                 id="type"
@@ -250,26 +236,26 @@ export default function HomePage() {
                 className="form-input bg-white"
               >
                 <option value="All">All</option>
-                <option value={SampleStatus.Pending}>Pending</option>
-                <option value={SampleStatus.InCOC}>In COC</option>
-                <option value={SampleStatus.Submitted}>Submitted</option>
-                <option value={SampleStatus.Pass}>Pass</option>
-                <option value={SampleStatus.Fail}>Fail</option>
+                <option value="pending">Pending</option>
+                <option value="in_coc">In COC</option>
+                <option value="submitted">Submitted</option>
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
               </select>
             </div>
           </div>
         </div>
         <div className="overflow-x-auto">
-          {samples.length > 0 ? (
+          {samples?.length > 0 ? (
             <>
               {samples.map((sample) => (
                 <div key={sample.id} className="mb-4">
                   <Card
                     onClick={() => router.push(`/sample/${sample.id}`)}
-                    className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between cursor-pointer"
+                    className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between"
                   >
                     <div>
-                      <div className="flex md:flex-row flex-col-reverse md:gap-4 gap-1">
+                      <div className="flex gap-4">
                         <div>
                           <Label
                             label={`#${sample.project_id || "N/A"}`}
@@ -278,9 +264,7 @@ export default function HomePage() {
                         </div>
                         <div>
                           <Chip
-                            className={`${getStatusColor(
-                              sample?.status
-                            )} capitalize flex items-center justify-center py-1 w-fit rounded-full`}
+                            className={`${getStatusColor(sample?.status)} capitalize flex items-center justify-center py-1 w-fit rounded-full`}
                             value={getStatusLabel(sample?.status)}
                           />
                         </div>
@@ -302,9 +286,7 @@ export default function HomePage() {
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
-                          icon={
-                            <FaLocationDot className="text-lg text-gray-600" />
-                          }
+                          icon={<FaLocationDot className="text-lg text-gray-600" />}
                         />
                         <Label
                           label={sample?.sample_location || "-"}
@@ -319,27 +301,25 @@ export default function HomePage() {
                           icon={<GoClock className="text-lg text-gray-600" />}
                         />
                         <Label
-                          label={moment(sample?.created_at).format(
-                            "YYYY-MM-DD hh:mm A"
-                          )}
+                          label={moment(sample?.created_at).format("YYYY-MM-DD hh:mm A")}
                           className="text-lg"
                         />
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button
-                        className="md:min-w-[110px]"
+                        className="min-w-[110px]"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/sample/edit/${sample.id}`);
                         }}
-                        label={isMobile ? "" : "Edit"}
+                        label="Edit"
                         icon={<FiEdit className="text-lg" />}
                       />
                       <Button
-                        className="md:min-w-[110px]"
+                        className="min-w-[110px]"
                         onClick={(e) => handleDeleteClick(e, sample.id)}
-                        label={isMobile ? "" : "Delete"}
+                        label="Delete"
                         variant="danger"
                         icon={<ImBin className="text-lg" />}
                       />
@@ -348,7 +328,7 @@ export default function HomePage() {
                 </div>
               ))}
               {totalPages && (
-                <div>
+                <div className="p-5">
                   <Pagination
                     activePage={currentPage || 0}
                     setActivePage={setCurrentPage}
@@ -372,7 +352,6 @@ export default function HomePage() {
           )}
         </div>
       </div>
-
       <ConfirmationModal
         open={openConfirmDeleteDialog}
         processing={isLoading}
@@ -384,4 +363,4 @@ export default function HomePage() {
       />
     </>
   );
-}
+} 

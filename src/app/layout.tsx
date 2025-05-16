@@ -2,14 +2,46 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "./(ui)/styles/custom-style.scss";
-import { NextAuthProvider } from "./providers";
-import { Slide, ToastContainer } from "react-toastify";
+import "./(ui)/styles/glove-friendly.css";
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap', // Optimize font loading
+  preload: true,
+});
+
+// Dynamically import the auth provider with no SSR
+const NextAuthProvider = dynamic(
+  () => import('./providers'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-screen flex justify-center items-center">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    )
+  }
+);
+
+// Create a client component for ToastContainer
+const ToastContainerWrapper = dynamic(
+  () => import('./components/ToastContainerWrapper'),
+  { 
+    ssr: false,
+    loading: () => null
+  }
+);
 
 export const metadata: Metadata = {
-  title: "Next.js Auth App",
-  description: "Next.js application with SQLite and authentication",
+  title: "Accurate Testing Labs",
+  description: "Professional laboratory testing services for drinking water quality and environmental analysis",
+  viewport: "width=device-width, initial-scale=1",
+  themeColor: "#1B4B82",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -19,9 +51,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <ToastContainer position="top-center" newestOnTop transition={Slide} />
-        <NextAuthProvider>{children}</NextAuthProvider>
+      <body className={`${inter.className} bg-light text-dark`}>
+        <a href="#main-content" className="skip-to-main">
+          Skip to main content
+        </a>
+        <NextAuthProvider>
+          <Suspense fallback={null}>
+            <ToastContainerWrapper />
+          </Suspense>
+          <main id="main-content" className="min-h-screen">
+            {children}
+          </main>
+        </NextAuthProvider>
       </body>
     </html>
   );

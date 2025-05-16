@@ -7,6 +7,7 @@ import { FaFileAlt, FaProjectDiagram, FaTasks } from "react-icons/fa";
 import { GrTrigger } from "react-icons/gr";
 import { useMediaQuery } from "react-responsive";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 
 interface SideBarProps {
   sidebarOpen: boolean;
@@ -29,6 +30,8 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
   const router = useRouter();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [reportsExpanded, setReportsExpanded] = useState(false);
+  const { data: session } = useSession();
+  const userRole = session?.user?.role;
 
   // Close the sidebar when clicking outside (only on mobile)
   useEffect(() => {
@@ -48,7 +51,7 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
   }, [sidebarOpen, setSidebarOpen, isMobile]);
 
   // For desktop: when collapsed, use a narrow width (w-20) that shows only icons.
-  const desktopSidebarWidth = sidebarOpen ? "w-64" : "w-0";
+  const desktopSidebarWidth = sidebarOpen ? "w-64" : "w-20";
 
   // Adjust sidebar classes based on device type and sidebar state
   const sidebarClasses = isMobile
@@ -57,8 +60,43 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
       }`
     : `relative bg-gray-900 text-white transition-all duration-300 ${desktopSidebarWidth}`;
 
-  const sideBarMenuItems: SidebarLinkProps[] = [
-    {
+  let sideBarMenuItems: SidebarLinkProps[];
+  if (userRole === "lab_admin") {
+    sideBarMenuItems = [
+      {
+        name: "Dashboard",
+        icon: <TiHome size={24} />,
+        to: "/admin-dashboard",
+        isActive: pathname === "/admin-dashboard",
+      },
+      {
+        name: "Samples",
+        icon: <FaFileAlt size={22} />,
+        to: "/admin-dashboard/samples",
+        isActive: pathname === "/admin-dashboard/samples",
+      },
+      {
+        name: "Tests",
+        icon: <FaTasks size={22} />,
+        to: "/admin-dashboard/tests",
+        isActive: pathname === "/admin-dashboard/tests",
+      },
+      {
+        name: "Users",
+        icon: <FaUsers size={22} />,
+        to: "/admin-dashboard/users",
+        isActive: pathname === "/admin-dashboard/users",
+      },
+      {
+        name: "Settings",
+        icon: <FaChartLine size={22} />,
+        to: "/admin-dashboard/settings",
+        isActive: pathname === "/admin-dashboard/settings",
+      },
+    ];
+  } else {
+    sideBarMenuItems = [
+     {
       name: "Dashboard",
       icon: <TiHome size={24} />,
       to: "/dashboard",
@@ -77,7 +115,8 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
       to: "/samples",
       isActive: pathname.includes("samples") || pathname.includes("sample"),
     },
-  ];
+    ];
+  }
 
   return (
     <>
@@ -87,24 +126,22 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
       )}
 
       <aside ref={sidebarRef} className={sidebarClasses}>
-        {/* <div className="px-6 pt-5 pb-6 text-2xl font-bold cursor-pointer">
-          {sidebarOpen ? (
+        <div className="px-6 pt-5 pb-6">
+          <div className="flex items-center space-x-3">
             <Image
-              src="/logo.svg"
-              width={150}
-              height={40}
-              alt="SwiftFlow Logo"
-            />
-          ) : (
-            <Image
-              src="mobile_logo.svg"
+              src="/logo-at.png"
+              alt="Accurate Testing Labs Logo"
               width={40}
               height={40}
-              alt="SwiftFlow Logo"
+              priority
+              className="h-10 w-10"
             />
-          )}
-        </div> */}
-        <nav className="mt-20">
+            <div className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
+              <h1 className="text-lg font-semibold text-white">Accurate Testing Labs</h1>
+            </div>
+          </div>
+        </div>
+        <nav className="mt-4">
           <ul className="space-y-2 px-4">
             {sideBarMenuItems
               .filter((item) => !item.hide)
