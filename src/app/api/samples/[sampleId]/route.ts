@@ -92,7 +92,6 @@ export async function PUT(
       "sample_collected_at",
       "temperature",
       "notes",
-      "status",
       "pass_fail_notes",
       "attachment_url",
       "created_at",
@@ -143,17 +142,41 @@ export async function PUT(
         })
       );
 
-      const { data: testSamplesData, error: testSampleError } = await supabase
+      // Step 1: Fetch existing entries for this sample_id
+      const { data: existingEntries, error: fetchError } = await supabase
         .from("sample_test_types")
-        .insert(testTypeEntries)
-        .select();
+        .select("test_type_id")
+        .eq("sample_id", data.id);
 
-      if (testSampleError) {
-        console.error("Error inserting test types:", testSampleError);
+      if (fetchError) {
+        console.error("Error fetching existing test types:", fetchError);
         return NextResponse.json(
-          { error: "Failed to associate test types with sample" },
+          { error: "Failed to fetch existing test types" },
           { status: 500 }
         );
+      }
+
+      // Step 2: Filter out test types that already exist
+      const existingIds = new Set(
+        (existingEntries || []).map((entry) => entry.test_type_id)
+      );
+      const newEntries = testTypeEntries.filter(
+        (entry: any) => !existingIds.has(entry.test_type_id)
+      );
+
+      if (newEntries.length > 0) {
+        // Step 3: Insert only new test_type entries
+        const { error: insertError } = await supabase
+          .from("sample_test_types")
+          .insert(newEntries);
+
+        if (insertError) {
+          console.error("Error inserting test types:", insertError);
+          return NextResponse.json(
+            { error: "Failed to associate new test types with sample" },
+            { status: 500 }
+          );
+        }
       }
     }
 
