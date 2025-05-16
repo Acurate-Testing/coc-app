@@ -36,7 +36,7 @@ export default function SampleForm() {
     "Account & Sample Info",
     "Location & Time",
     "Temperature & Notes",
-    // "Notes",
+    "Review Details",
   ];
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -668,43 +668,112 @@ export default function SampleForm() {
           </div>
         );
 
-      // case 4:
-      //   return (
-      //     <div>
-      //       <div className="mb-3">
-      //         <label>Pass/Fail Notes</label>
-      //         <textarea
-      //           rows={4}
-      //           value={formData.pass_fail_notes ?? ""}
-      //           onChange={(e) =>
-      //             setFormData({ ...formData, pass_fail_notes: e.target.value })
-      //           }
-      //           placeholder="Enter pass/fail notes"
-      //           className="form-input !h-auto mt-1"
-      //         />
-      //       </div>
-      //     </div>
-      //   );
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">Account & Sample Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Account Number</p>
+                  <p className="font-medium">{userAccounts.find(acc => acc.id === formData.account_id)?.name || formData.account_id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Matrix Type</p>
+                  <p className="font-medium">{formData.matrix_type}</p>
+                </div>
+                {formData.matrix_type === MatrixType.PotableWater && (
+                  <div>
+                    <p className="text-sm text-gray-600">PWS ID</p>
+                    <p className="font-medium">{formData.pws_id}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-gray-600">Project ID</p>
+                  <p className="font-medium">{formData.project_id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Sample Type</p>
+                  <p className="font-medium">{formData.sample_type}</p>
+                </div>
+                {(formData.matrix_type === MatrixType.PotableWater || formData.matrix_type === MatrixType.Wastewater) && (
+                  <div>
+                    <p className="text-sm text-gray-600">Source</p>
+                    <p className="font-medium">{formData.source}</p>
+                  </div>
+                )}
+                {formData.matrix_type === MatrixType.PotableWater && (
+                  <div>
+                    <p className="text-sm text-gray-600">Sample Privacy</p>
+                    <p className="font-medium">{formData.sample_privacy}</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
-      // case 5:
-      //   return (
-      //     <div className="form-section">
-      //       <h2 className="text-xl font-semibold mb-4">Pass/Fail Notes</h2>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">Location & Time Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">GPS Location</p>
+                  <p className="font-medium">
+                    {formData.latitude ? `${formData.latitude}° N, ${formData.longitude}° W` : 'Not available'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Date/Timestamp</p>
+                  <p className="font-medium">
+                    {formData.created_at ? new Date(formData.created_at).toLocaleString() : 'Not available'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Sample Location</p>
+                  <p className="font-medium">{formData.sample_location}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">County</p>
+                  <p className="font-medium">{formData.county}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-gray-600">Selected Tests</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {selectedTests.map((test) => (
+                      <span key={test.id} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                        {test.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      //       <div className="mb-3">
-      //         <label>Pass/Fail Notes</label>
-      //         <textarea
-      //           className="form-control"
-      //           rows={4}
-      //           value={formData.pass_fail_notes ?? ""}
-      //           onChange={(e) =>
-      //             setFormData({ ...formData, pass_fail_notes: e.target.value })
-      //           }
-      //           placeholder="Enter pass/fail notes"
-      //         />
-      //       </div>
-      //     </div>
-      //   );
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold mb-3">Temperature & Notes</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Temperature</p>
+                  <p className="font-medium">{formData.temperature ? `${formData.temperature}°C` : 'Not recorded'}</p>
+                </div>
+                {formData.matrix_type === MatrixType.PotableWater && (
+                  <>
+                    <div>
+                      <p className="text-sm text-gray-600">Compliance</p>
+                      <p className="font-medium">{formData.compliance || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Chlorine Residual</p>
+                      <p className="font-medium">{formData.chlorine_residual || 'Not recorded'}</p>
+                    </div>
+                  </>
+                )}
+                <div className="col-span-2">
+                  <p className="text-sm text-gray-600">Remarks</p>
+                  <p className="font-medium mt-1">{formData.notes || 'No remarks'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
 
       default:
         return null;
@@ -779,7 +848,7 @@ export default function SampleForm() {
         )} */}
       </div>
       <div className="navigation-buttons px-4">
-        {currentStep === 3 ? (
+        {currentStep === 4 ? (
           editMode ? (
             // Edit mode layout: Update + Previous in one row
             <div className="flex flex-row-reverse gap-4">
@@ -835,7 +904,7 @@ export default function SampleForm() {
             </>
           )
         ) : (
-          // Standard layout for steps 1 and 2
+          // Standard layout for steps 1, 2, and 3
           <div className="flex gap-3">
             <Button
               label={currentStep > 1 ? "Previous" : "Cancel"}
