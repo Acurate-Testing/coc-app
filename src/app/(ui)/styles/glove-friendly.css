@@ -1,0 +1,251 @@
+/* Glove-friendly styles */
+:root {
+  --touch-target-min: 60px;
+  --input-height: 60px;
+  --button-height: 60px;
+  --spacing-base: 16px;
+  --border-radius: 12px;
+  --font-size-base: 16px;
+
+  /* Accessibility colors */
+  --focus-ring-color: #0052ff;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+  --error-color: #dc2626;
+  --success-color: #16a34a;
+  --warning-color: #d97706;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #6b7280;
+}
+
+/* Base touch target sizes */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.btn,
+.button {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  padding: var(--spacing-base) 24px;
+  font-size: var(--font-size-base);
+  border-radius: var(--border-radius);
+  position: relative; /* For focus ring positioning */
+}
+
+/* Form inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+input[type="number"],
+select,
+textarea {
+  height: var(--input-height);
+  font-size: var(--font-size-base);
+  padding: 0 20px;
+  border-radius: var(--border-radius);
+  position: relative; /* For focus ring positioning */
+}
+
+/* Icon buttons */
+.icon-button {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative; /* For focus ring positioning */
+}
+
+/* Navigation buttons */
+.navigation-buttons {
+  padding: var(--spacing-base);
+  gap: var(--spacing-base);
+}
+
+.navigation-buttons button {
+  height: var(--button-height);
+}
+
+/* Search inputs */
+.search-container .form-control {
+  height: var(--input-height);
+  font-size: var(--font-size-base);
+  padding-left: 60px;
+}
+
+/* Form controls */
+.form-control {
+  height: var(--input-height);
+  font-size: var(--font-size-base);
+  padding: 0 20px;
+  border-radius: var(--border-radius);
+}
+
+/* Touch feedback */
+button:active,
+[role="button"]:active,
+.btn:active {
+  transform: scale(0.98);
+  transition: transform 0.1s ease;
+}
+
+/* High contrast focus states */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
+
+/* Focus ring for custom elements */
+.focus-ring {
+  position: relative;
+}
+
+.focus-ring:focus-visible::after {
+  content: "";
+  position: absolute;
+  top: calc(-1 * var(--focus-ring-offset));
+  left: calc(-1 * var(--focus-ring-offset));
+  right: calc(-1 * var(--focus-ring-offset));
+  bottom: calc(-1 * var(--focus-ring-offset));
+  border: var(--focus-ring-width) solid var(--focus-ring-color);
+  border-radius: calc(var(--border-radius) + var(--focus-ring-offset));
+  pointer-events: none;
+}
+
+/* Error states */
+.has-error {
+  border-color: var(--error-color);
+}
+
+.error-message {
+  color: var(--error-color);
+  font-size: var(--font-size-base);
+  margin-top: 4px;
+}
+
+/* Success states */
+.has-success {
+  border-color: var(--success-color);
+}
+
+.success-message {
+  color: var(--success-color);
+  font-size: var(--font-size-base);
+  margin-top: 4px;
+}
+
+/* Warning states */
+.has-warning {
+  border-color: var(--warning-color);
+}
+
+.warning-message {
+  color: var(--warning-color);
+  font-size: var(--font-size-base);
+  margin-top: 4px;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip to main content link */
+.skip-to-main {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--focus-ring-color);
+  color: white;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.2s ease;
+}
+
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* High contrast mode */
+@media (forced-colors: active) {
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    border: 2px solid CanvasText;
+  }
+
+  .focus-ring:focus-visible::after {
+    border-color: CanvasText;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Spacing utilities */
+.gap-touch {
+  gap: var(--spacing-base);
+}
+
+.p-touch {
+  padding: var(--spacing-base);
+}
+
+.m-touch {
+  margin: var(--spacing-base);
+}
+
+/* Status indicators */
+.status-badge {
+  padding: 8px 16px;
+  font-size: var(--font-size-base);
+  border-radius: var(--border-radius);
+}
+
+/* Bottom navigation */
+.bottom-nav {
+  padding: var(--spacing-base);
+}
+
+.nav-item {
+  padding: var(--spacing-base);
+  min-height: var(--touch-target-min);
+}
+
+/* Modal buttons */
+.modal-buttons {
+  gap: var(--spacing-base);
+  padding: var(--spacing-base);
+}
+
+.modal-buttons button {
+  height: var(--button-height);
+}

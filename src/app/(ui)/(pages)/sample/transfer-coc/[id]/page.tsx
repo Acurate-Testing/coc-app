@@ -298,7 +298,7 @@ export default function TransferCOCPage() {
                 onChange={handlePhotoUpload}
                 className="hidden"
               />
-              <div className="cursor-pointer bg-themeColor hover:bg-blue-700 text-white py-3 w-full text-center rounded-lg flex justify-center items-center gap-2 font-semibold h-[50px]">
+              <div className="cursor-pointer bg-blue-600 text-white py-3 w-full text-center rounded-lg flex justify-center items-center gap-2 font-semibold h-[50px]">
                 <BiCamera className="w-6 h-6" />
                 Take Photo
               </div>

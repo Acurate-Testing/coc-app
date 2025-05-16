@@ -19,6 +19,7 @@ import { PiRobotFill } from "react-icons/pi";
 import { Button } from "@/stories/Button/Button";
 import ReactDOM from "react-dom";
 import { errorToast } from "@/hooks/useCustomToast";
+import { UserRole } from "@/constants/enums";
 
 export default function InspectionDetailPage() {
   const { data: session, status } = useSession();
@@ -226,7 +227,11 @@ export default function InspectionDetailPage() {
                 <div className="bg-gray-50 p-4 rounded-lg shadow-sm flex justify-between items-start">
                   <div>
                     <h3 className="font-semibold text-gray-800">
-                      {item?.received_by_user?.role || "Member"}
+                      {item?.received_by_user?.role === UserRole.LABADMIN
+                        ? "Lab Admin"
+                        : item?.received_by_user?.role === UserRole.AGENCY
+                        ? "Admin"
+                        : "Member"}
                     </h3>
                     <p className="text-sm text-gray-500">
                       {moment(item.timestamp).format("YYYY-MM-DD hh:mm A")}
@@ -240,20 +245,26 @@ export default function InspectionDetailPage() {
                       /> */}
                       <div className="flex items-center justify-start gap-4">
                         <div className="w-10 h-10 rounded-full flex items-center justify-center text-themeColor text-sm font-medium uppercase bg-gray-300">
-                          {session?.user?.name &&
-                            (session?.user?.name.includes(" ")
-                              ? session?.user?.name
+                          {item.received_by_user.full_name &&
+                            (item.received_by_user.full_name.includes(" ")
+                              ? item.received_by_user.full_name
                                   .split(" ")
                                   .map((n: string) => n.charAt(0).toUpperCase())
                                   .join("")
-                              : session?.user?.name.slice(0, 2).toUpperCase())}
+                              : item.received_by_user.full_name
+                                  .slice(0, 2)
+                                  .toUpperCase())}
                         </div>
                         <div>
                           <p className="font-semibold text-gray-800">
                             {item.received_by_user.full_name}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {item?.received_by_user?.role || "Member"}
+                            {item?.received_by_user?.role === UserRole.LABADMIN
+                              ? "Lab Admin"
+                              : item?.received_by_user?.role === UserRole.AGENCY
+                              ? "Admin"
+                              : "Member"}
                           </p>
                         </div>
                       </div>
@@ -261,7 +272,7 @@ export default function InspectionDetailPage() {
                   </div>
 
                   {/* PDF Icon */}
-                  <FaFilePdf className="text-red-600 text-2xl mt-1" />
+                  {/* <FaFilePdf className="text-red-600 text-2xl mt-1" /> */}
                 </div>
               </div>
             ))
