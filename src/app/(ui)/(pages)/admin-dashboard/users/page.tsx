@@ -6,6 +6,7 @@ import { Button } from "@/stories/Button/Button";
 import { Card } from "@/stories/Card/Card";
 import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
+import AssignTestModal from "@/app/(ui)/components/Users/AssignTestModal";
 
 // Use the correct User type
 type User = Database["public"]["Tables"]["users"]["Row"] & {
@@ -56,8 +57,8 @@ export default function AdminUsersPage() {
 
   const filteredUsers = users.filter(
     (u) =>
-      u.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+      (u.full_name?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (u.email?.toLowerCase() || "").includes(search.toLowerCase())
   );
 
   const handleDeleteClick = (testId: string) => {
@@ -314,32 +315,15 @@ export default function AdminUsersPage() {
                 </table>
               </div>
             </div>
-            {/* Assign Test Modal (stub) */}
-            {showAssignModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-                <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-                  <div className="font-semibold text-lg mb-4">Assign Test</div>
-                  <div className="mb-4 text-gray-500 text-sm">
-                    (Test assignment UI goes here)
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      label="Cancel"
-                      className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700"
-                      onClick={() => setShowAssignModal(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      label="Assign"
-                      className="px-4 py-2 rounded-lg bg-blue-600 text-white"
-                    >
-                      Assign
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
+            <AssignTestModal
+              open={showAssignModal}
+              close={() => setShowAssignModal(false)}
+              userId={selectedUser.id}
+              assignedTestIds={
+                selectedUser.assigned_tests?.map((t) => t.id) || []
+              }
+              onAssigned={fetchUsers}
+            />
             <ConfirmationModal
               open={openConfirmDeleteDialog}
               processing={isLoading}
