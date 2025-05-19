@@ -54,7 +54,6 @@ export default function AdminUsersPage() {
     fetchUsers();
     // eslint-disable-next-line
   }, []);
-
   const filteredUsers = users.filter((u) =>
     (u.full_name ?? "")
       .toLowerCase()
