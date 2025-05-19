@@ -4,26 +4,27 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { User } from "@/types/user";
+import moment from "moment";
 import { Sample } from "@/types/sample";
 import SignaturePad from "react-signature-canvas";
+import { useMediaQuery } from "react-responsive";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { Button } from "@/stories/Button/Button";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import LoadingSpinner from "../../../../components/Common/LoadingSpinner";
-import moment from "moment";
 import { BiCamera, BiCheck, BiPencil, BiX } from "react-icons/bi";
 
 export default function TransferCOCPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const params = useParams();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [selectedUser, setSelectedUser] = useState("");
   const [error, setError] = useState("");
   const [sampleData, setSampleData] = useState<Partial<Sample> | null>(null);
-  console.log("sampleData++++", sampleData);
   const [isEditing, setIsEditing] = useState(false);
   const [timestamp, setTimestamp] = useState(new Date());
   const [tempTimestamp, setTempTimestamp] = useState(new Date());
@@ -146,49 +147,51 @@ export default function TransferCOCPage() {
     <>
       <div className="bg-white md:px-8 px-6 py-4">
         <div className="flex items-center justify-between mb-2">
-          <div className="w-full grid grid-cols-1 gap-y-3 text-sm">
-            <div className="flex items-center justify-between">
+          <div className="w-full grid grid-cols-1 gap-y-3">
+            <div className="flex md:flex-row flex-col md:items-center justify-between">
               <div className="text-gray-500">Sample ID</div>
-              <div className="font-semibold text-gray-900">{params?.id}</div>
+              <div className="font-semibold text-gray-900 pt-1">
+                {params?.id}
+              </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex md:flex-row flex-col md:items-center justify-between">
               <div className="text-gray-500">Timestamp</div>
               <div className="text-gray-900">
                 {!isEditing ? (
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-800">
+                    <span className="text-gray-800">
                       {moment(timestamp).format("YYYY-MM-DD hh:mm A")}
                     </span>
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="text-themeColor hover:bg-gray-100 p-1.5 border rounded-lg"
+                      className="text-themeColor hover:bg-gray-100 py-1.5 !px-0 border rounded-xl"
                     >
-                      <BiPencil className="w-6 h-6" />
+                      <BiPencil className="w-6 h-6 mx-auto" />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <input
                       type="datetime-local"
                       value={moment(tempTimestamp).format("YYYY-MM-DDTHH:mm")}
                       onChange={(e) =>
                         setTempTimestamp(new Date(e.target.value))
                       }
-                      className="border rounded-lg px-3 py-1 h-11 text-sm"
+                      className="form-input mt-1 !px-2 max-w-[220px]"
                     />
                     <button
                       onClick={handleConfirm}
-                      className="text-green-600 hover:bg-gray-100 p-1.5 border rounded-lg"
+                      className="text-green-600 hover:bg-gray-100 py-1.5 !px-0 border rounded-xl"
                       title="Save"
                     >
-                      <BiCheck className="w-6 h-6" />
+                      <BiCheck className="w-6 h-6 mx-auto" />
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
-                      className="text-red-600 hover:bg-gray-100 p-1.5 border rounded-lg"
+                      className="text-red-600 hover:bg-gray-100 py-1.5 !px-0 border rounded-xl"
                       title="Cancel"
                     >
-                      <BiX className="w-6 h-6" />
+                      <BiX className="w-6 h-6 mx-auto" />
                     </button>
                   </div>
                 )}
@@ -249,7 +252,7 @@ export default function TransferCOCPage() {
             </div>
             <div className="flex items-center justify-between gap-4 mt-4">
               <Button
-                label="Clear Signature"
+                label={isMobile ? "Clear" : "Clear Signature"}
                 variant="outline-primary"
                 size="large"
                 disabled={
@@ -260,7 +263,7 @@ export default function TransferCOCPage() {
               />
               {sigPadRef.current ? (
                 <Button
-                  label="Upload Signature"
+                  label={isMobile ? "Upload" : "Upload Signature"}
                   size="large"
                   disabled={sigPadRef.current.isEmpty()}
                   onClick={saveSignature}

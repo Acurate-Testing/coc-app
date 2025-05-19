@@ -5,6 +5,8 @@ import { encrypt } from "@/lib/encryption";
 import { SampleStatus } from "@/constants/enums";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { sendEmail } from "@/lib/email";
+import { sampleDetailTemplate } from "@/lib/emailTemplates";
 
 export async function GET(
   request: NextRequest,
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create transfer record
-    const { data, error } = await supabase
+    const { data: transfer, error } = await supabase
       .from("coc_transfers")
       .insert({
         sample_id: sampleId,
@@ -96,14 +98,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    const newStatus =
+      received_by === "59398b60-0d7c-43a7-b2c1-4f0c259c1199"
+        ? SampleStatus.Submitted
+        : SampleStatus.InCOC;
     // Update sample status
     const { error: updateError } = await supabase
       .from("samples")
       .update({
-        status:
-          received_by === "59398b60-0d7c-43a7-b2c1-4f0c259c1199"
-            ? SampleStatus.Submitted
-            : SampleStatus.InCOC,
+        status: newStatus,
       })
       .eq("id", sampleId);
 
@@ -111,7 +114,51 @@ export async function POST(request: NextRequest) {
       console.error("Failed to update sample status:", updateError);
     }
 
-    return NextResponse.json({ transfer: data });
+    const { data: updatedSampleData, error: updatedSampleError } =
+      await supabase
+        .from("samples")
+        .select(
+          `
+      *,
+      account:accounts(name),
+      agency:agencies(name),
+      test_types:test_types(id,name),
+        coc_transfers(
+          id,
+          transferred_by,
+          received_by,
+          timestamp,
+          latitude,
+          longitude,
+          signature,
+          received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email,role)
+        )
+      `
+        )
+        .eq("id", sampleId)
+        .is("deleted_at", null)
+        .order("timestamp", { foreignTable: "coc_transfers", ascending: false })
+        .single();
+
+    if (updatedSampleError) {
+      console.error("Failed to update sample status:", updateError);
+    }
+
+    if (
+      received_by === "59398b60-0d7c-43a7-b2c1-4f0c259c1199" &&
+      updatedSampleData
+    ) {
+      const htmlEmailData = await sampleDetailTemplate(updatedSampleData);
+
+      sendEmail({
+        to: "manish.s@brilworks.com",
+        subject: "Sample form Submitted.",
+        html: htmlEmailData,
+        text: "",
+      });
+    }
+
+    return NextResponse.json({ transfer });
   } catch (error) {
     console.error("Create COC transfer error:", error);
     return NextResponse.json(

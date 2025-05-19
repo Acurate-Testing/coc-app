@@ -12,7 +12,10 @@ if (!process.env.EMAIL_PROVIDER) {
   throw new Error("Missing EMAIL_PROVIDER environment variable");
 }
 
-if (process.env.EMAIL_PROVIDER === "sendgrid" && !process.env.SENDGRID_API_KEY) {
+if (
+  process.env.EMAIL_PROVIDER === "sendgrid" &&
+  !process.env.SENDGRID_API_KEY
+) {
   throw new Error("Missing SENDGRID_API_KEY environment variable");
 }
 

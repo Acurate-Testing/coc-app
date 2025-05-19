@@ -48,7 +48,7 @@ export interface PaginationProps {
  * Primary UI component for user interaction
  */
 export const Pagination = ({
-  className,
+  className = "",
   numberOfPage,
   activePage,
   setActivePage,
@@ -96,42 +96,42 @@ export const Pagination = ({
       <div
         className={`storybook-pagination flex flex-col justify-center items-center gap-6 w-full text-themePrimary ${className}`}
       >
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-4 items-center justify-between">
           <Label
             label={`${startRecord} - ${endRecord} of ${numberOfRecords}`}
           />
-          <button
-            // variant="text"
-            className="flex items-center gap-2 rounded-full hover:bg-[#222F3E1F] text-colorBlack py-2 px-0"
-            onClick={prev}
-            disabled={activePage === 0}
-          >
-            {/* <ChevronLeftIcon className="h-5 w-8" /> */}
-            <FaAngleLeft className="h-5 w-8" />
-          </button>
-
           <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="1"
-              max={numberOfPage}
-              value={inputValue}
-              onChange={(e) => {
-                setInputValue(parseInt(e.target.value, 10));
-              }}
-              className="w-fit px-0 form-input text-center rounded-none !border-b border-0 border-themePrimary text-themePrimary hover:border-themePrimary focus:border-themePrimary"
-            />
-            <span className="text-themePrimary">of {numberOfPage}</span>
+            <button
+              // variant="text"
+              className="flex items-center gap-2 rounded-full hover:bg-gray-200 text-black py-2 px-0 justify-center"
+              onClick={prev}
+              disabled={activePage === 0}
+            >
+              <FaAngleLeft className="h-5 w-8" />
+            </button>
+
+            <div className="flex items-center gap-2 py-1">
+              <input
+                type="number"
+                min="1"
+                max={numberOfPage}
+                value={inputValue}
+                onChange={(e) => {
+                  setInputValue(parseInt(e.target.value, 10));
+                }}
+                className="w-fit px-0 form-input text-center"
+              />
+              <span>of {numberOfPage}</span>
+            </div>
+            <button
+              // variant="text"
+              className="flex items-center gap-2 rounded-full hover:bg-gray-200 py-2 px-0"
+              onClick={next}
+              disabled={activePage === numberOfPage - 1}
+            >
+              <FaAngleRight className="h-5 w-8" />
+            </button>
           </div>
-          <button
-            // variant="text"
-            className="flex items-center gap-2 rounded-full hover:bg-hoverGray text-colorBlack py-2 px-0"
-            onClick={next}
-            disabled={activePage === numberOfPage - 1}
-          >
-            {/* <ChevronRightIcon className="h-5 w-8" /> */}
-            <FaAngleRight className="h-5 w-8" />
-          </button>
         </div>
         {/* <div className="flex items-center justify-center w-full gap-2">
           <Label label="Items per page" />
@@ -158,29 +158,27 @@ export const Pagination = ({
   // Desktop UI
   return (
     <div
-      className={`storybook-pagination flex justify-between items-center gap-4 w-full text-themePrimary ${className}`}
+      className={`storybook-pagination flex justify-between items-center gap-4 w-full text-themePrimary px-4 ${className}`}
     >
       <Label label={`${startRecord} - ${endRecord} of ${numberOfRecords}`} />
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4">
         <button
           // variant="text"
-          className="flex items-center gap-2 rounded-full hover:bg-hoverGray text-colorBlack py-2 px-0"
+          className="flex items-center gap-2 rounded-full hover:bg-gray-200 py-2 px-0"
           onClick={() => setActivePage(0)}
           disabled={activePage === 0}
         >
-          {/* <ChevronDoubleLeftIcon className="h-5 w-8" /> */}
           <FaAnglesLeft className="h-5 w-8" />
         </button>
         <button
           // variant="text"
-          className="flex items-center gap-2 rounded-full hover:bg-hoverGray text-colorBlack py-2 px-0"
+          className="flex items-center gap-2 rounded-full hover:bg-gray-200 py-2 px-0"
           onClick={prev}
           disabled={activePage === 0}
         >
-          {/* <ChevronLeftIcon className="h-5 w-8" /> */}
           <FaAngleLeft className="h-5 w-8" />
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 py-1">
           <input
             type="number"
             min="1"
@@ -189,23 +187,22 @@ export const Pagination = ({
             onChange={(e) => {
               setInputValue(parseInt(e.target.value, 10));
             }}
-            className="w-fit px-0 form-input text-center rounded-none !border-b border-0 border-themePrimary text-themePrimary hover:border-themePrimary focus:border-themePrimary"
+            className="w-fit px-0 form-input text-center"
           />
           <Label label="of" />
           <Label label={numberOfPage} />
         </div>
         <button
           // variant="text"
-          className="flex items-center gap-2 rounded-full hover:bg-hoverGray text-colorBlack py-2 px-0"
+          className="flex items-center gap-2 rounded-full hover:bg-gray-200 py-2 px-0"
           onClick={next}
           disabled={activePage === numberOfPage - 1}
         >
-          {/* <ChevronRightIcon className="h-5 w-8" /> */}
           <FaAngleRight className="h-5 w-8" />
         </button>
         <button
           // variant="text"
-          className="flex items-center gap-2 rounded-full hover:bg-hoverGray text-colorBlack py-2 px-0"
+          className="flex items-center gap-2 rounded-full hover:bg-gray-200 py-2 px-0"
           onClick={() => setActivePage(numberOfPage - 1)}
           disabled={activePage === numberOfPage - 1}
         >
@@ -213,7 +210,8 @@ export const Pagination = ({
           <FaAnglesRight className="h-5 w-8" />
         </button>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-14"></div>
+      {/* <div className="flex items-center gap-2">
         <Label label="Items per page" />
         <select
           value={itemsPerPage}
@@ -230,7 +228,7 @@ export const Pagination = ({
             </option>
           ))}
         </select>
-      </div>
+      </div> */}
     </div>
   );
 };

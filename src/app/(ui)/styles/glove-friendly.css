@@ -1,6 +1,6 @@
 /* Glove-friendly styles */
 :root {
-  --touch-target-min: 60px;
+  --touch-target-min: 56px;
   --input-height: 60px;
   --button-height: 60px;
   --spacing-base: 16px;
@@ -32,7 +32,7 @@ input[type="reset"],
   padding: var(--spacing-base) 24px;
   font-size: var(--font-size-base);
   border-radius: var(--border-radius);
-  position: relative; /* For focus ring positioning */
+  /* position: relative; For focus ring positioning */
 }
 
 /* Form inputs */
@@ -48,7 +48,7 @@ textarea {
   font-size: var(--font-size-base);
   padding: 0 20px;
   border-radius: var(--border-radius);
-  position: relative; /* For focus ring positioning */
+  /* position: relative; For focus ring positioning */
 }
 
 /* Icon buttons */

@@ -8,17 +8,21 @@ import {
   County,
   MatrixType,
   PrivacyPolicy,
+  SampleStatus,
   SampleType,
 } from "@/constants/enums";
 import {
+  otherSampleTypeOptions,
   potableSourcesOptions,
+  potableWaterSampleTypeOptions,
   wastewaterSourcesOptions,
 } from "@/constants/utils";
 import LoadingSpinner from "../Common/LoadingSpinner";
-import { Sample } from "@/types/sample";
+import { Sample, sampleInitialValues } from "@/types/sample";
 import { Button } from "@/stories/Button/Button";
 import AddAnotherSampleModal from "./AddAnotherSampleModal";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
+import moment from "moment";
 // type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
 interface Account {
@@ -48,32 +52,8 @@ export default function SampleForm() {
   const [showAddAnotherPopup, setShowAddAnotherPopup] =
     useState<boolean>(false);
   const [userAccounts, setUserAccounts] = useState<Account[]>([]);
-  const [formData, setFormData] = useState<Partial<Sample>>({
-    project_id: "",
-    agency_id: null,
-    account_id: null,
-    created_by: null,
-    pws_id: "",
-    source: "",
-    matrix_type: "",
-    sample_type: "",
-    chlorine_residual: "",
-    address: "",
-    sample_privacy: null,
-    compliance: null,
-    sample_location: "",
-    coc_transfers: [],
-    test_types: [],
-    latitude: undefined,
-    longitude: undefined,
-    temperature: undefined,
-    notes: "",
-    status: "pending",
-    pass_fail_notes: "",
-    attachment_url: "",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
+  const [formData, setFormData] =
+    useState<Partial<Sample>>(sampleInitialValues);
 
   const [testTypes, setTestTypes] = useState<TestType[]>([]);
   const [selectedTests, setSelectedTests] = useState<TestType[]>([]);
@@ -86,6 +66,11 @@ export default function SampleForm() {
     if (formData.matrix_type === MatrixType.Wastewater)
       return wastewaterSourcesOptions;
     return [];
+  };
+  const getFilteredSampleTypes = () => {
+    if (formData.matrix_type === MatrixType.PotableWater)
+      return potableWaterSampleTypeOptions;
+    return otherSampleTypeOptions;
   };
 
   const fetchTestTypes = async () => {
@@ -135,8 +120,8 @@ export default function SampleForm() {
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (position) => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
+        const lat = Number(position.coords.latitude.toFixed(2));
+        const lon = Number(position.coords.longitude.toFixed(2));
 
         // Set the coordinates in your state
         setFormData((prev) => ({
@@ -315,52 +300,27 @@ export default function SampleForm() {
     if (retainDetails) {
       // Retain specific details
       const retainedData = {
+        project_id: formData.project_id,
+        agency_id: session?.user?.agency_id,
+        account_id: formData.project_id || "",
+        created_by: session?.user?.id,
         matrix_type: formData.matrix_type,
+        matrix_name: formData.matrix_name,
         latitude: formData.latitude,
         longitude: formData.longitude,
+        address: formData.address,
         sample_collected_at: formData.sample_collected_at,
         temperature: formData.temperature,
         notes: formData.notes,
-        pass_fail_notes: formData.pass_fail_notes,
       };
       setFormData({
         ...formData,
         ...retainedData,
-        account_id: "",
         pws_id: "",
-        project_id: "",
-        agency_id: "",
-        created_by: "",
-        status: "pending",
-        updated_at: new Date().toISOString(),
       });
     } else {
       // Start fresh
-      setFormData({
-        project_id: "",
-        agency_id: null,
-        account_id: null,
-        created_by: null,
-        pws_id: "",
-        source: "",
-        matrix_type: "",
-        sample_type: "",
-        chlorine_residual: "",
-        sample_privacy: null,
-        compliance: null,
-        sample_location: "",
-        coc_transfers: [],
-        test_types: [],
-        latitude: undefined,
-        longitude: undefined,
-        temperature: undefined,
-        notes: "",
-        status: "pending",
-        pass_fail_notes: "",
-        attachment_url: "",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+      setFormData(sampleInitialValues);
     }
     setCurrentStep(1);
     setShowAddAnotherPopup(false);
@@ -389,23 +349,6 @@ export default function SampleForm() {
                 ))}
               </select>
             </div>
-            {/* <div className="mb-3">
-                <label>Transfer COC</label>
-                <select
-                  className="form-input bg-white mt-1"
-                  value={formData?.coc_transfers}
-                  onChange={(e) =>
-                    setFormData({ ...formData, coc_transfers: e.target.value })
-                  }
-                >
-                  <option value="">Select COC</option>
-                  {userList.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user?.full_name} ({user?.email})
-                    </option>
-                  ))}
-                </select>
-              </div> */}
 
             <div className="mb-3">
               <label>Matrix Type *</label>
@@ -424,6 +367,23 @@ export default function SampleForm() {
                 ))}
               </select>
             </div>
+            {formData?.matrix_type === MatrixType.Other ? (
+              <div className="mb-3">
+                <label>Matrix Name</label>
+                <input
+                  type="text"
+                  className="form-input mt-1"
+                  value={formData.matrix_name ?? ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, matrix_name: e.target.value })
+                  }
+                  placeholder="Enter other Matrix type"
+                />
+              </div>
+            ) : (
+              ""
+            )}
+
             {formData?.matrix_type === MatrixType.PotableWater ? (
               <div className="mb-3">
                 <label>PWS ID</label>
@@ -463,10 +423,11 @@ export default function SampleForm() {
                 }
               >
                 <option value="">Select Sample Type</option>
-                <option value={SampleType.Composite}>
-                  {SampleType.Composite}
-                </option>
-                <option value={SampleType.Grab}>{SampleType.Grab}</option>
+                {getFilteredSampleTypes().map((sampleType) => (
+                  <option key={sampleType} value={sampleType}>
+                    {sampleType}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -545,7 +506,7 @@ export default function SampleForm() {
             </div>
             <div className="mb-3">
               <label>Current GPS Location</label>
-              <div className=" mt-1">
+              <div className="form-input h-auto bg-white mt-1">
                 {formData.address ? formData.address : ""}
                 {/* {formData.latitude
                   ? `${formData.latitude.toFixed(
@@ -555,13 +516,31 @@ export default function SampleForm() {
               </div>
             </div>
 
-            <div className="mb-3">
+            {/* <div className="mb-3">
               <label>Sample Date</label>
-              <div className="form-input mt-1">
+              <div className="form-input bg-white mt-1 pt-4">
                 {formData.created_at
                   ? new Date(formData.created_at).toLocaleString()
                   : ""}
               </div>
+            </div> */}
+            <div className="mb-3">
+              <label htmlFor="sampleDate">Sample Date</label>
+              <input
+                type="datetime-local"
+                id="sampleDate"
+                name="sampleDate"
+                className="form-input mt-1 w-full"
+                value={moment(formData.sample_collected_at).format(
+                  "YYYY-MM-DDTHH:mm"
+                )}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    sample_collected_at: new Date(e.target.value).toISOString(),
+                  }))
+                }
+              />
             </div>
 
             <div className="mb-3">
@@ -670,13 +649,21 @@ export default function SampleForm() {
 
       case 4:
         return (
+          //This is to show preview
           <div className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Account & Sample Information</h3>
+            <div className="bg-white p-4 rounded-xl">
+              <h3 className="text-lg font-semibold mb-3">
+                Account & Sample Information
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Account Number</p>
-                  <p className="font-medium">{userAccounts.find(acc => acc.id === formData.account_id)?.name || formData.account_id}</p>
+                  <p className="font-medium">
+                    {userAccounts.find((acc) => acc.id === formData.account_id)
+                      ?.name ||
+                      formData.account_id ||
+                      "-"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Matrix Type</p>
@@ -685,50 +672,61 @@ export default function SampleForm() {
                 {formData.matrix_type === MatrixType.PotableWater && (
                   <div>
                     <p className="text-sm text-gray-600">PWS ID</p>
-                    <p className="font-medium">{formData.pws_id}</p>
+                    <p className="font-medium">{formData.pws_id || "-"}</p>
                   </div>
                 )}
                 <div>
                   <p className="text-sm text-gray-600">Project ID</p>
-                  <p className="font-medium">{formData.project_id}</p>
+                  <p className="font-medium">{formData.project_id || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Sample Type</p>
-                  <p className="font-medium">{formData.sample_type}</p>
+                  <p className="font-medium">{formData.sample_type || "-"}</p>
                 </div>
-                {(formData.matrix_type === MatrixType.PotableWater || formData.matrix_type === MatrixType.Wastewater) && (
+                {(formData.matrix_type === MatrixType.PotableWater ||
+                  formData.matrix_type === MatrixType.Wastewater) && (
                   <div>
                     <p className="text-sm text-gray-600">Source</p>
-                    <p className="font-medium">{formData.source}</p>
+                    <p className="font-medium">{formData.source || "-"}</p>
                   </div>
                 )}
                 {formData.matrix_type === MatrixType.PotableWater && (
                   <div>
                     <p className="text-sm text-gray-600">Sample Privacy</p>
-                    <p className="font-medium">{formData.sample_privacy}</p>
+                    <p className="font-medium">
+                      {formData.sample_privacy || "-"}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Location & Time Information</h3>
+            <div className="bg-white p-4 rounded-xl">
+              <h3 className="text-lg font-semibold mb-3">
+                Location & Time Information
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">GPS Location</p>
                   <p className="font-medium">
-                    {formData.latitude ? `${formData.latitude}° N, ${formData.longitude}° W` : 'Not available'}
+                    {formData.latitude
+                      ? `${formData.latitude}° N, ${formData.longitude}° W`
+                      : "Not available"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Date/Timestamp</p>
                   <p className="font-medium">
-                    {formData.created_at ? new Date(formData.created_at).toLocaleString() : 'Not available'}
+                    {formData.created_at
+                      ? new Date(formData.created_at).toLocaleString()
+                      : "Not available"}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Sample Location</p>
-                  <p className="font-medium">{formData.sample_location}</p>
+                  <p className="font-medium">
+                    {formData.sample_location || "-"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">County</p>
@@ -738,7 +736,10 @@ export default function SampleForm() {
                   <p className="text-sm text-gray-600">Selected Tests</p>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {selectedTests.map((test) => (
-                      <span key={test.id} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                      <span
+                        key={test.id}
+                        className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm"
+                      >
                         {test.name}
                       </span>
                     ))}
@@ -747,28 +748,40 @@ export default function SampleForm() {
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-lg font-semibold mb-3">Temperature & Notes</h3>
+            <div className="bg-white p-4 rounded-xl">
+              <h3 className="text-lg font-semibold mb-3">
+                Temperature & Notes
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">Temperature</p>
-                  <p className="font-medium">{formData.temperature ? `${formData.temperature}°C` : 'Not recorded'}</p>
+                  <p className="font-medium">
+                    {formData.temperature
+                      ? `${formData.temperature}°C`
+                      : "Not recorded"}
+                  </p>
                 </div>
                 {formData.matrix_type === MatrixType.PotableWater && (
                   <>
                     <div>
                       <p className="text-sm text-gray-600">Compliance</p>
-                      <p className="font-medium">{formData.compliance || 'Not specified'}</p>
+                      <p className="font-medium">
+                        {formData.compliance || "Not specified"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Chlorine Residual</p>
-                      <p className="font-medium">{formData.chlorine_residual || 'Not recorded'}</p>
+                      <p className="font-medium">
+                        {formData.chlorine_residual || "Not recorded"}
+                      </p>
                     </div>
                   </>
                 )}
                 <div className="col-span-2">
                   <p className="text-sm text-gray-600">Remarks</p>
-                  <p className="font-medium mt-1">{formData.notes || 'No remarks'}</p>
+                  <p className="font-medium mt-1">
+                    {formData.notes || "No remarks"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -805,47 +818,14 @@ export default function SampleForm() {
           ))}
         </div>
       </div>
-      <div className="w-full min-h-[calc(100vh-218px)] mx-auto md:p-8 p-6">
+      <div
+        className={`w-full ${
+          currentStep === 4 && !editMode
+            ? "min-h-[calc(100vh-300px)]"
+            : "min-h-[calc(100vh-228px)]"
+        } mx-auto md:p-8 p-6`}
+      >
         <main>{renderStep()}</main>
-        {/* {showAddAnotherPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-              <div className="flex justify-between items-center border-b pb-3 mb-4">
-                <h2 className="text-lg font-semibold">Add Another Sample</h2>
-                <button onClick={() => setShowAddAnotherPopup(false)}>
-                  <i className="bi bi-x text-xl text-gray-500 hover:text-gray-700"></i>
-                </button>
-              </div>
-              <p className="text-center text-sm mb-4">
-                Would you like to add a new sample using the same details as the
-                previous one or start fresh?
-              </p>
-              <div className="flex flex-col gap-3">
-                <button
-                  className="bg-green-600 text-white py-2 rounded hover:bg-green-700"
-                  onClick={() => handleAddAnother(true)}
-                >
-                  <i className="bi bi-clipboard mr-2"></i> Retain Previous
-                  Details
-                </button>
-                <button
-                  className="border border-gray-300 py-2 rounded hover:bg-gray-100"
-                  onClick={() => handleAddAnother(false)}
-                >
-                  <i className="bi bi-file-earmark mr-2"></i> Start Fresh
-                </button>
-              </div>
-              <div className="text-center mt-4">
-                <button
-                  className="text-sm text-gray-500 hover:underline"
-                  onClick={() => setShowAddAnotherPopup(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )} */}
       </div>
       <div className="navigation-buttons px-4">
         {currentStep === 4 ? (

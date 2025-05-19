@@ -19,7 +19,7 @@ import { PiRobotFill } from "react-icons/pi";
 import { Button } from "@/stories/Button/Button";
 import ReactDOM from "react-dom";
 import { errorToast } from "@/hooks/useCustomToast";
-import { UserRole } from "@/constants/enums";
+import { MatrixType } from "@/constants/enums";
 import { ImBin } from "react-icons/im";
 import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 
@@ -64,8 +64,11 @@ export default function InspectionDetailPage() {
         }
         const data = await response.json();
         if (data.sample) {
-          // setSpecificSample(data.sample);
           setFormData(data.sample);
+          handleGetLocation(
+            Number(data.sample.latitude.toFixed(2)),
+            Number(data.sample.longitude.toFixed(2))
+          );
         }
         setIsLoading(false);
       } catch (error) {
@@ -92,12 +95,7 @@ export default function InspectionDetailPage() {
         throw new Error(data.error || "Failed to delete sample");
       }
 
-      // Close the confirmation dialog
       setOpenConfirmDeleteDialog(false);
-      // setSelectedSample("");
-
-      // Refresh the samples list
-      // fetchSamples();
       router.push("/samples");
     } catch (error) {
       console.error("Error deleting sample:", error);
@@ -106,6 +104,24 @@ export default function InspectionDetailPage() {
       );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGetLocation = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+      );
+      const data = await response.json();
+
+      if (data && data.display_name) {
+        setFormData((prev) => ({
+          ...prev,
+          address: data.display_name, // Add this to your formData state
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to get address:", error);
     }
   };
 
@@ -134,19 +150,27 @@ export default function InspectionDetailPage() {
           </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-500">Matrix Type</div>
-            <div className="text-gray-900">{formData.matrix_type}</div>
+
+            <div className="text-gray-900">
+              {formData.matrix_type}{" "}
+              {formData.matrix_type === MatrixType.Other
+                ? `(${formData.matrix_name})`
+                : ""}
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-500">Sample Type</div>
-            <div className="text-gray-900">{formData.sample_type}</div>
+            <div className="text-gray-900">{formData.sample_type || "-"}</div>
           </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-500">Sample Privacy</div>
-            <div className="text-gray-900">{formData.sample_privacy}</div>
+            <div className="text-gray-900">
+              {formData.sample_privacy || "-"}
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-500">Compliance</div>
-            <div className="text-gray-900">{formData.compliance}</div>
+            <div className="text-gray-900">{formData.compliance || "-"}</div>
           </div>
         </div>
       ),
@@ -159,15 +183,19 @@ export default function InspectionDetailPage() {
         <div className="grid grid-cols-1 gap-y-3 text-sm">
           <div className="flex items-center justify-between">
             <div className="text-gray-500">Source</div>
-            <div className="font-semibold text-gray-900">{formData.source}</div>
+            <div className="font-semibold text-gray-900">
+              {formData.source || "-"}
+            </div>
           </div>
           <div className="flex items-center justify-between">
-            <div className="text-gray-500">Location</div>
-            <div className="text-gray-900">{formData.sample_location}</div>
+            <div className="text-gray-500">Sample Location</div>
+            <div className="text-gray-900">
+              {formData.sample_location || "-"}
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-500">County</div>
-            <div className="text-gray-900">{formData.county}</div>
+            <div className="text-gray-900">{formData.county || "-"}</div>
           </div>
         </div>
       ),
@@ -181,16 +209,18 @@ export default function InspectionDetailPage() {
           <div className="flex items-center justify-between">
             <div className="text-gray-500">Project ID</div>
             <div className="font-semibold text-gray-900">
-              {formData.project_id}
+              {formData.project_id || "-"}
             </div>
           </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-500">PWS ID</div>
-            <div className="text-gray-900">{formData.pws_id}</div>
+            <div className="text-gray-900">{formData.pws_id || "-"}</div>
           </div>
           <div className="flex items-center justify-between">
             <div className="text-gray-500">Chlorine Residual</div>
-            <div className="text-gray-900">{formData.chlorine_residual}</div>
+            <div className="text-gray-900">
+              {formData.chlorine_residual || "-"}
+            </div>
           </div>
         </div>
       ),
@@ -223,15 +253,18 @@ export default function InspectionDetailPage() {
       content: (
         <div className="grid grid-cols-1 gap-y-3 text-sm">
           <div className="flex items-center justify-between gap-10">
-            <div className="text-gray-500">GPS Location</div>
+            <div className="text-gray-500">Current GPS Location</div>
             <div className="md:max-w-[unset] max-w-[120px] break-all font-semibold text-themeColor">
-              ${formData.latitude}° N, ${formData.longitude}° W
+              {/* ${formData.latitude}° N, ${formData.longitude}° W */}
+              {formData.address}
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <div className="text-gray-500">Timestamp</div>
+            <div className="text-gray-500">Sample Date</div>
             <div className="text-gray-900">
-              {moment(formData?.created_at).format("YYYY-MM-DD hh:mm A")}
+              {moment(formData?.sample_collected_at).format(
+                "YYYY-MM-DD hh:mm A"
+              )}
             </div>
           </div>
         </div>
@@ -253,14 +286,12 @@ export default function InspectionDetailPage() {
       buttonText: "+ COC",
       buttonAction: handleCOCModalOpen,
       content: (
-        <div className="relative border-l-2 border-blue-500 ml-4 space-y-6">
+        <div className="relative border-l-2 border-themeColor ml-4 space-y-6">
           {formData?.coc_transfers && formData.coc_transfers.length > 0 ? (
             formData?.coc_transfers.map((item, index) => (
               <div key={index} className="relative pl-6">
-                {/* Blue dot */}
-                <span className="absolute left-[-0.45rem] top-2.5 w-3 h-3 rounded-full bg-blue-600 border-2 border-white"></span>
+                <span className="absolute left-[-0.55rem] top-4 w-4 h-4 rounded-full bg-themeColor border-2 border-white"></span>
 
-                {/* Card */}
                 <div className="bg-gray-50 p-4 rounded-lg shadow-sm flex justify-between items-start">
                   <div>
                     <p className="text-sm text-gray-500">
@@ -272,38 +303,7 @@ export default function InspectionDetailPage() {
                         {item.received_by_user.full_name}
                       </span>
                     </h3>
-
-                    {/* <div className="flex items-center gap-3 mt-4">
-                  
-                      <div className="flex items-center justify-start gap-4">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-themeColor text-sm font-medium uppercase bg-gray-300">
-                          {item.received_by_user.full_name &&
-                            (item.received_by_user.full_name.includes(" ")
-                              ? item.received_by_user.full_name
-                                  .split(" ")
-                                  .map((n: string) => n.charAt(0).toUpperCase())
-                                  .join("")
-                              : item.received_by_user.full_name
-                                  .slice(0, 2)
-                                  .toUpperCase())}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-800">
-                            {item.received_by_user.full_name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {item?.received_by_user?.role === UserRole.LABADMIN
-                              ? "Lab Admin"
-                              : item?.received_by_user?.role === UserRole.AGENCY
-                              ? "Admin"
-                              : "Member"}
-                          </p>
-                        </div>
-                      </div>
-                    </div> */}
                   </div>
-
-                  {/* PDF Icon */}
                   {/* <FaFilePdf className="text-red-600 text-2xl mt-1" /> */}
                 </div>
               </div>
@@ -333,6 +333,7 @@ export default function InspectionDetailPage() {
 
     // Process each accordion item
     accordionData.forEach((item) => {
+      if (item.id === "acc8") return;
       const itemDiv = document.createElement("div");
       itemDiv.className = "mb-4";
 
@@ -441,11 +442,7 @@ export default function InspectionDetailPage() {
                 body { padding: 20px; }
               }
             </style>
-            <script>
-              window.onafterprint = function() {
-                window.close();
-              };
-            </script>
+            
           </head>
           <body>
             ${container.innerHTML}
@@ -456,6 +453,12 @@ export default function InspectionDetailPage() {
       printWindow.print();
     }
   };
+
+  // <script>
+  //             window.onafterprint = function() {
+  //               window.close();
+  //             };
+  //           </script>
 
   if (status === "loading" || isLoading) {
     return <LoadingSpinner />;
@@ -485,7 +488,6 @@ export default function InspectionDetailPage() {
         processing={isLoading}
         onConfirm={handleDeleteSample}
         setOpenModal={() => {
-          // setSelectedSample("");
           setOpenConfirmDeleteDialog(false);
         }}
       />

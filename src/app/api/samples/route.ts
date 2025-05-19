@@ -12,12 +12,12 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const page = Number(searchParams.get("page"));
-    const limit = Number(searchParams.get("limit")) || 10;
+    const limit = 10;
     const search = searchParams.get("search") || "";
     const agencyId = searchParams.get("agencyId");
     const status = searchParams.get("status");
     // const testType = searchParams.get("testType");
-    const offset = page * limit;
+    const offset = page * 10;
 
     let query = supabase
       .from("samples")
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         agency:agencies(name),
         account:accounts(name),
         sample_test_types(
-          test_type:test_types(id, name)
+          test_types(id, name)
         )
       `,
         { count: "exact" }
@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
       "created_by",
       "pws_id",
       "matrix_type",
+      "matrix_name",
       "sample_privacy",
       "compliance",
       "chlorine_residual",

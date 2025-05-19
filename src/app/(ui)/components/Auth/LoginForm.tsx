@@ -31,7 +31,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
       <div>
         <label htmlFor="email">Email address</label>
         <div className="relative mt-1">
-          <span className="absolute left-4 top-1/2 text-gray-500 transform -translate-y-1/2">
+          <span className="absolute left-4 top-1/2 text-gray-500 transform -translate-y-1/2 z-[1]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -58,7 +58,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
       <div>
         <label htmlFor="password">Password</label>
         <div className="relative mt-1">
-          <span className="absolute left-4 top-1/2 text-gray-500 transform -translate-y-1/2">
+          <span className="absolute left-4 top-1/2 text-gray-500 transform -translate-y-1/2 z-[1]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
