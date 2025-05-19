@@ -9,6 +9,7 @@ import { FiEdit } from "react-icons/fi";
 import { ImBin } from "react-icons/im";
 import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
+import AddEditTestModal from "@/app/(ui)/components/Tests/AddEditTestModal";
 
 // Use the correct Test type
 type Test = Database["public"]["Tables"]["test_types"]["Row"];
@@ -200,19 +201,12 @@ export default function AdminTestsPage() {
           )}
         </div>
       </div>
-      {/* Add/Edit Test Modal (stub) */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-            <div className="font-semibold text-lg mb-4">{editTest ? "Edit Test" : "Add Test"}</div>
-            <div className="mb-4 text-gray-500 text-sm">(Test form UI goes here)</div>
-            <div className="flex justify-end gap-2">
-              <button className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{editTest ? "Update" : "Add"}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AddEditTestModal
+        open={showModal}
+        test={editTest}
+        onSaved={fetchTests}
+        close={() => setShowModal(false)}
+      />
       <ConfirmationModal
         open={openConfirmDeleteDialog}
         processing={isLoading}
