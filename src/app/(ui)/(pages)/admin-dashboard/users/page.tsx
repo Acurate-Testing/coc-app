@@ -54,11 +54,13 @@ export default function AdminUsersPage() {
     fetchUsers();
     // eslint-disable-next-line
   }, []);
-
-  const filteredUsers = users.filter(
-    (u) =>
-      (u.full_name?.toLowerCase() || "").includes(search.toLowerCase()) ||
-      (u.email?.toLowerCase() || "").includes(search.toLowerCase())
+  const filteredUsers = users.filter((u) =>
+    (u.full_name ?? "")
+      .toLowerCase()
+      .includes(search.toLowerCase()) ||
+    (u.email ?? "")
+      .toLowerCase()
+      .includes(search.toLowerCase())
   );
 
   const handleDeleteClick = (testId: string) => {
@@ -114,7 +116,7 @@ export default function AdminUsersPage() {
               onClick={() => setSelectedUser(user)}
             >
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold">
-                {user.full_name[0]}
+                {(user.full_name ?? "")[0] || "?"}
               </div>
               <div>
                 <div className="font-medium text-sm">{user.full_name}</div>
@@ -132,7 +134,7 @@ export default function AdminUsersPage() {
             <div className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold">
-                  {selectedUser.full_name[0]}
+                  {(selectedUser.full_name ?? "")[0] || "?"}
                 </div>
                 <div>
                   <div className="font-semibold text-lg">
