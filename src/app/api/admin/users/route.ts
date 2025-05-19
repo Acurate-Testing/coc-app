@@ -20,12 +20,27 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "userId and testIds[] are required" }, { status: 400 });
   }
   // Remove existing assignments
-  await supabase.from("user_test_types").delete().eq("user_id", userId);
-  // Add new assignments
-  const inserts = testIds.map((testId: number) => ({ user_id: userId, test_type_id: testId }));
-  const { error } = await supabase.from("user_test_types").insert(inserts);
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const { error: deleteError } = await supabase
+    .from("user_test_types")
+    .delete()
+    .eq("user_id", userId);
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
+
+  // Add new assignments if any are provided
+  if (testIds.length > 0) {
+    const inserts = testIds.map((testId: string) => ({
+      user_id: userId,
+      test_type_id: testId,
+    }));
+    const { error: insertError } = await supabase
+      .from("user_test_types")
+      .insert(inserts);
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+  }
+
   return NextResponse.json({ success: true });
-} 
+}
