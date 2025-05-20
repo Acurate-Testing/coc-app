@@ -83,11 +83,11 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           <div className="mb-4 p-2 bg-red-50 text-red-600 rounded">{error}</div>
         )}
         <div className="mb-4">
-          <label className="text-colorBlack font-medium mb-1 pl-0.5">Name</label>
+          <label className="pl-0.5">Name</label>
           <input
             ref={inputRef}
             type="text"
-            className="form-input"
+            className="form-input mt-1"
             value={form.name}
             onChange={(e) => {
               setForm({ ...form, name: e.target.value });
@@ -97,14 +97,15 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           />
         </div>
         <div className="mb-4">
-          <label className="text-colorBlack font-medium mb-1 pl-0.5">Description</label>
+          <label className="pl-0.5">Description</label>
           <textarea
-            className="form-input !h-28 resize-none"
+            rows={4}
+            className="form-input h-auto resize-none mt-1"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </div>
-        <div className="flex justify-end space-x-4 pt-4">
+        <div className="flex justify-end space-x-4">
           {isSaving ? (
             <LoadingButton
               className="!min-w-fit"

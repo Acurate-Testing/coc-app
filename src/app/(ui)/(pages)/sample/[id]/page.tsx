@@ -442,7 +442,11 @@ export default function InspectionDetailPage() {
                 body { padding: 20px; }
               }
             </style>
-            
+              <script>
+              window.onafterprint = function() {
+                window.close();
+              };
+            </script>
           </head>
           <body>
             ${container.innerHTML}
@@ -453,12 +457,6 @@ export default function InspectionDetailPage() {
       printWindow.print();
     }
   };
-
-  // <script>
-  //             window.onafterprint = function() {
-  //               window.close();
-  //             };
-  //           </script>
 
   if (status === "loading" || isLoading) {
     return <LoadingSpinner />;

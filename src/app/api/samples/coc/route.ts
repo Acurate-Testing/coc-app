@@ -146,12 +146,13 @@ export async function POST(request: NextRequest) {
 
     if (
       received_by === "59398b60-0d7c-43a7-b2c1-4f0c259c1199" &&
-      updatedSampleData
+      updatedSampleData &&
+      process.env.MAILGUN_VERIFIED_EMAIL
     ) {
       const htmlEmailData = await sampleDetailTemplate(updatedSampleData);
 
       sendEmail({
-        to: "manish.s@brilworks.com",
+        to: process.env.MAILGUN_VERIFIED_EMAIL,
         subject: "Sample form Submitted.",
         html: htmlEmailData,
         text: "",

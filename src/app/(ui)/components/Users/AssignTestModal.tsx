@@ -25,7 +25,9 @@ const AssignTestModal: FC<AssignTestModalProps> = ({
   onAssigned,
 }) => {
   const [tests, setTests] = useState<Test[]>([]);
-  const [selected, setSelected] = useState<{ label: string; value: string }[]>([]);
+  const [selected, setSelected] = useState<{ label: string; value: string }[]>(
+    []
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -77,23 +79,35 @@ const AssignTestModal: FC<AssignTestModalProps> = ({
       panelClassName="!max-w-md"
     >
       <div className="mb-4">
-        <label className="mb-2 block">Select Tests</label>
+        <label>Select Tests</label>
         <MultiSelect
           className="z-2 w-full mt-1"
           options={tests.map((t) => ({ label: t.name, value: t.id }))}
           value={selected}
           onChange={setSelected}
           labelledBy="Select Test(s)"
-          overrideStrings={{ selectSomeItems: "Select Test(s)", search: "Search Test(s)" }}
+          overrideStrings={{
+            selectSomeItems: "Select Test(s)",
+            search: "Search Test(s)",
+          }}
         />
       </div>
-      <div className="flex justify-end space-x-4 pt-4">
+      <div className="flex justify-end space-x-4">
         {isSaving ? (
           <LoadingButton label="Saving..." className="!min-w-fit" />
         ) : (
           <>
-            <Button variant="white" label="Cancel" className="!min-w-fit" onClick={close} />
-            <Button label="Assign" className="!min-w-fit" onClick={handleAssign} />
+            <Button
+              variant="white"
+              label="Cancel"
+              className="!min-w-fit"
+              onClick={close}
+            />
+            <Button
+              label="Assign"
+              className="!min-w-fit"
+              onClick={handleAssign}
+            />
           </>
         )}
       </div>

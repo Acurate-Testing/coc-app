@@ -42,8 +42,6 @@ export async function GET(
       .order("timestamp", { foreignTable: "coc_transfers", ascending: false })
       .single();
 
-    console.log("SampleData***********************", data);
-
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }

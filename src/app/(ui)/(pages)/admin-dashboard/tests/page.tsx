@@ -28,13 +28,13 @@ export default function AdminTestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
-  const [limitPerPage, setLimitPerPage] = useState(10);
   const [totalTests, setTotalTests] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editTest, setEditTest] = useState<Test | null>(null);
   const [selectedTest, setSelectedTest] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
+    useState<boolean>(false);
 
   const fetchTests = async () => {
     try {
@@ -42,7 +42,6 @@ export default function AdminTestsPage() {
       setError(null);
       const params = [
         `page=${currentPage}`,
-        `limit=${limitPerPage}`,
         searchQuery ? `search=${searchQuery}` : "",
       ]
         .filter(Boolean)
@@ -64,7 +63,7 @@ export default function AdminTestsPage() {
 
   useEffect(() => {
     fetchTests();
-  }, [currentPage, limitPerPage]);
+  }, [currentPage]);
 
   useEffect(() => {
     if (searchQuery !== "") {
@@ -101,7 +100,9 @@ export default function AdminTestsPage() {
       setSelectedTest("");
       fetchTests();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to delete test");
+      setError(
+        error instanceof Error ? error.message : "Failed to delete test"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +115,10 @@ export default function AdminTestsPage() {
     return (
       <div className="min-h-screen w-full">
         <div className="max-w-md mx-auto p-4">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
             <strong className="font-bold">Error!</strong>
             <span className="block sm:inline"> {error}</span>
           </div>
@@ -126,11 +130,16 @@ export default function AdminTestsPage() {
   return (
     <>
       <div className="p-4 sm:p-8 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tests</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Tests
+          </h1>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
-            onClick={() => { setEditTest(null); setShowModal(true); }}
+            onClick={() => {
+              setEditTest(null);
+              setShowModal(true);
+            }}
           >
             + Add Test
           </button>
@@ -158,8 +167,12 @@ export default function AdminTestsPage() {
                   <Card className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between">
                     <div>
                       <div className="font-semibold text-lg">{test.name}</div>
-                      <div className="text-gray-500 text-sm mb-2">{test.description || "-"}</div>
-                      <div className="text-xs text-gray-400">Code: {test.id}</div>
+                      <div className="text-gray-500 text-sm mb-2">
+                        {test.description || "-"}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Code: {test.id}
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button
@@ -179,15 +192,14 @@ export default function AdminTestsPage() {
                   </Card>
                 </div>
               ))}
-              {totalPages && (
+              {totalPages > 0 && (
                 <div className="p-5">
                   <Pagination
                     activePage={currentPage || 0}
                     setActivePage={setCurrentPage}
                     numberOfPage={totalPages}
                     numberOfRecords={totalTests}
-                    itemsPerPage={limitPerPage || 10}
-                    setItemsPerPage={setLimitPerPage}
+                    itemsPerPage={10}
                   />
                 </div>
               )}
@@ -218,4 +230,4 @@ export default function AdminTestsPage() {
       />
     </>
   );
-} 
+}
