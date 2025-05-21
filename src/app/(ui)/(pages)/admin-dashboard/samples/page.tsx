@@ -64,7 +64,7 @@ export default function AdminSamplesPage() {
       .then((data) => setAgencies(data?.agencies || []));
   }, []);
 
-  const fetchSamples = async () => {
+const fetchSamples = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -85,30 +85,11 @@ export default function AdminSamplesPage() {
       if (data.error) {
         throw new Error(data.error);
       }
-
-      let samplesData = [];
-      if (Array.isArray(data.samples)) {
-        samplesData = data.samples;
-      } else if (Array.isArray(data)) {
-        samplesData = data;
-      } else if (typeof data === 'object' && data !== null) {
-        // If samples might be directly on data or nested in another property
-        samplesData = Array.isArray(data.data)
-          ? data.data
-          : Array.isArray(data.items)
-          ? data.items
-          : [];
-      }
-
-      setTotalSamples(data.total || samplesData.length || 0);
-      setSamples(samplesData);
-      setTotalPages(
-        data.totalPages || Math.ceil((data.total || samplesData.length) / limitPerPage) || 0,
-      );
+      setTotalSamples(data.total);
+      setSamples(data.samples);
+      setTotalPages(data.totalPages);
     } catch (err) {
-      console.error('Error fetching samples:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch samples');
-      setSamples([]);
+      setError(err instanceof Error ? err.message : "Failed to fetch samples");
     } finally {
       setIsLoading(false);
     }
