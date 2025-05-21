@@ -177,9 +177,9 @@ export default function AdminUsersPage() {
         </div>
       </div>
       {/* Main Panel */}
-      <div className="flex-1 p-2 sm:p-8 bg-gray-50">
+      <div className="flex-1 p-2 sm:p-8 bg-gray-50 overflow-auto">
         {selectedUser && (
-          <div className="max-w-3xl mx-auto">
+          <div className="w-full mx-auto">
             {/* User Info */}
             <div className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-4">
@@ -195,15 +195,11 @@ export default function AdminUsersPage() {
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {(
-                      selectedUser.accounts || [
-                        "Lab Corp",
-                        "City Water",
-                        "EnviroTech",
-                      ]
+                      selectedUser.accounts || []
                     ).map((acc) => (
                       <span
                         key={acc}
-                        className="bg-gray-100 text-gray-600 rounded-full px-3 py-1 text-xs font-medium"
+                        className="bg-gray-200 text-gray-600 rounded-full px-3 py-1 text-xs font-medium"
                       >
                         {acc}
                       </span>
@@ -212,8 +208,8 @@ export default function AdminUsersPage() {
                 </div>
               </div>
               <Button
+                variant="outline-primary"
                 label="Edit User Access"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
                 onClick={() => setShowEditAccessModal(true)}
               >
                 Edit User Access
@@ -239,7 +235,7 @@ export default function AdminUsersPage() {
                     No tests assigned.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {selectedUser.assigned_tests?.map((test) => (
                       <div
                         key={test.id}
@@ -253,7 +249,7 @@ export default function AdminUsersPage() {
                           variant="icon"
                           className="text-red-500 hover:text-red-700"
                           onClick={() => handleDeleteClick(test.id)}
-                          icon={<FaTrash style={{ color: 'red' }} />}
+                          icon={<FaTrash style={{ color: 'red', height: '1.5em', width: '1.5em'}} />}
                         >
                           <span className="sr-only">Delete</span>
                         </Button>
