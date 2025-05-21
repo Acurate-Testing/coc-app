@@ -1,28 +1,25 @@
 "use client";
 
+import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
+import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
+import SampleOverview from "@/app/(ui)/components/Samples/SampleOverview";
+import { SampleStatus } from "@/constants/enums";
+import { Button } from "@/stories/Button/Button";
+import { Card } from "@/stories/Card/Card";
+import { Label } from "@/stories/Label/Label";
+import { Pagination } from "@/stories/Pagination/Pagination";
+import { Database } from "@/types/supabase";
+import { Chip } from "@material-tailwind/react";
+import moment from "moment";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Database } from "@/types/supabase";
-import { IoFlask, IoSearch } from "react-icons/io5";
-import { Label } from "@/stories/Label/Label";
-import moment from "moment";
-import { Button } from "@/stories/Button/Button";
-import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
-import { LuPlus } from "react-icons/lu";
-import SampleOverview from "@/app/(ui)/components/Samples/SampleOverview";
-import { Card } from "@/stories/Card/Card";
-import { GoClock } from "react-icons/go";
 import { FaLocationDot } from "react-icons/fa6";
-import { Pagination } from "@/stories/Pagination/Pagination";
+import { FiDownload, FiEdit } from "react-icons/fi";
+import { GoClock } from "react-icons/go";
 import { ImBin } from "react-icons/im";
-import { FiEdit } from "react-icons/fi";
-import { Chip } from "@material-tailwind/react";
-import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
-import { SampleStatus } from "@/constants/enums";
+import { IoFlask, IoSearch } from "react-icons/io5";
 
-// Use the correct Sample type
-// type Sample = Database["public"]["Tables"]["samples"]["Row"];
 type Sample = Database["public"]["Tables"]["samples"]["Row"];
 interface Agency {
   id: string;
@@ -56,15 +53,15 @@ export default function AdminSamplesPage() {
     useState<boolean>(false);
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [selectedAgency, setSelectedAgency] = useState<string>("");
+  const [isExporting, setIsExporting] = useState<boolean>(false);
 
   useEffect(() => {
-    // Fetch agencies for filter dropdown
     fetch("/api/agencies")
       .then((res) => res.json())
       .then((data) => setAgencies(data?.agencies || []));
   }, []);
 
-const fetchSamples = async () => {
+  const fetchSamples = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -119,7 +116,7 @@ const fetchSamples = async () => {
       case "submitted":
         return '!bg-[#E9D5FF] !text-[#7E22CE]';
       case "pass":
-        return "!bg-[#d1fae5] !text-[ #065f46]";
+        return "!bg-[#d1fae5] !text-[#065f46]";
       case "fail":
         return "!bg-[#fee2e2] !text-[#dc2626]";
       default:
@@ -180,6 +177,41 @@ const fetchSamples = async () => {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      const params = [
+        searchQuery ? `search=${searchQuery}` : "",
+        activeTab !== "All" ? `status=${activeTab}` : "",
+        selectedAgency ? `agency=${selectedAgency}` : "",
+      ]
+        .filter(Boolean)
+        .join("&");
+
+      const response = await fetch(`/api/samples/export?${params}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to export samples");
+      }
+
+      const blob = await response.blob();
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `samples-export-${moment().format('YYYY-MM-DD')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export samples");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const getAgencyName = (id: string | null) =>
     agencies.find((a) => a.id === id)?.name || id || "-";
 
@@ -234,7 +266,7 @@ const fetchSamples = async () => {
                 onChange={(e) => setSelectedAgency(e.target.value)}
                 className='form-input bg-white'
               >
-                <option value=''>All Agencies</option>
+                <option value=''>All Users</option>
                 {agencies.map((agency) => (
                   <option key={agency.id} value={agency.id}>
                     {agency.name}
@@ -242,19 +274,27 @@ const fetchSamples = async () => {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="flex gap-2">
               <select
                 id='type'
                 name='type'
                 value={activeTab}
                 onChange={(e) => setActiveTab(e.target.value)}
-                className='form-input bg-white'
+                className='form-input bg-white flex-1'
               >
                 <option value='All'>All</option>
                 <option value={SampleStatus.Submitted}>Submitted</option>
                 <option value={SampleStatus.Pass}>Pass</option>
                 <option value={SampleStatus.Fail}>Fail</option>
               </select>
+              <Button
+                className="primary"
+                label="Export CSV"
+                onClick={handleExportCSV}
+                disabled={isExporting || !samples.length}
+                // loading={isExporting}
+                icon={<FiDownload className="text-lg" />}
+              />
             </div>
           </div>
         </div>
@@ -265,7 +305,7 @@ const fetchSamples = async () => {
                 <div key={sample.id} className='mb-4'>
                   <Card
                     onClick={() => router.push(`/sample/${sample.id}`)}
-                    className='p-4 bg-white !shadow-none rounded-xl flex items-start justify-between'
+                    className='p-4 bg-white !shadow-none rounded-xl flex items-start justify-between cursor-pointer'
                   >
                     <div>
                       <div className='flex gap-4'>

@@ -1,12 +1,21 @@
 "use client";
+import AccordionGroup from "@/app/(ui)/components/Common/AccordionGroup";
+import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
+import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
+import Modal from "@/app/(ui)/components/Common/Modal";
+import TextArea from "@/app/(ui)/components/Form/TextArea";
+import { MatrixType, SampleStatus, UserRole } from "@/constants/enums";
+import { errorToast, successToast } from "@/hooks/useCustomToast";
+import { Button } from "@/stories/Button/Button";
+import { Sample } from "@/types/sample";
+import { User } from "@/types/user";
+import moment from "moment";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import LoadingSpinner from "../../../components/Common/LoadingSpinner";
-import { User } from "@/types/user";
-import { Sample } from "@/types/sample";
-import moment from "moment";
-import AccordionGroup from "@/app/(ui)/components/Common/AccordionGroup";
+import ReactDOM from "react-dom";
+import { FaAngleLeft, FaFingerprint } from "react-icons/fa";
+import { ImBin } from "react-icons/im";
 import {
   IoChatbubble,
   IoFlask,
@@ -14,14 +23,8 @@ import {
   IoPrintOutline,
 } from "react-icons/io5";
 import { LuWaves } from "react-icons/lu";
-import { FaAngleLeft, FaFingerprint } from "react-icons/fa";
+import { MdOutlineUpdate } from "react-icons/md";
 import { PiRobotFill } from "react-icons/pi";
-import { Button } from "@/stories/Button/Button";
-import ReactDOM from "react-dom";
-import { errorToast } from "@/hooks/useCustomToast";
-import { MatrixType } from "@/constants/enums";
-import { ImBin } from "react-icons/im";
-import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 
 export default function InspectionDetailPage() {
   const { data: session, status } = useSession();
@@ -33,6 +36,12 @@ export default function InspectionDetailPage() {
   const [formData, setFormData] = useState<Partial<Sample>>({});
   const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
     useState<boolean>(false);
+  const [openStatusUpdateModal, setOpenStatusUpdateModal] = useState<boolean>(false);
+  const [statusNotes, setStatusNotes] = useState<string>("");
+  const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
+  const [selectedStatus, setSelectedStatus] = useState<'pass' | 'fail' | null>(null);
+
+  const isLabAdmin = session?.user?.role === UserRole.LABADMIN;
 
   const fetchUserList = async () => {
     try {
@@ -133,158 +142,235 @@ export default function InspectionDetailPage() {
     router.push(`/sample/transfer-coc/${sampleId}`);
   };
 
-  const accordionData = [
-    {
-      id: "acc1",
-      title: "Basic Information",
-      icon: (
-        <IoInformationCircleOutline size={22} color="var(--color-primary)" />
-      ),
-      content: (
-        <div className="grid grid-cols-1 gap-y-3 text-sm">
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Sample ID</div>
-            <div className="font-semibold text-gray-900 truncate md:max-w-[unset] max-w-[160px]">
-              {formData.id}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Matrix Type</div>
+  const handleUpdateStatus = () => {
+    // Pre-select the status based on current sample status
+    if (formData.status === SampleStatus.Pass) {
+      setSelectedStatus('pass');
+    } else if (formData.status === SampleStatus.Fail) {
+      setSelectedStatus('fail');
+    } else {
+      setSelectedStatus(null);
+    }
+    
+    setStatusNotes(formData.pass_fail_notes || "");
+    setOpenStatusUpdateModal(true);
+  };
 
-            <div className="text-gray-900">
-              {formData.matrix_type}{" "}
-              {formData.matrix_type === MatrixType.Other
-                ? `(${formData.matrix_name})`
-                : ""}
+  const handleSaveStatus = async () => {
+    if (!selectedStatus) {
+      errorToast("Please select a status");
+      return;
+    }
+
+    try {
+      setUpdatingStatus(true);
+      const response = await fetch(`/api/samples/${sampleId}/change-status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: selectedStatus,
+          notes: statusNotes
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to update sample status");
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        status: selectedStatus === "pass" ? SampleStatus.Pass : SampleStatus.Fail,
+        pass_fail_notes: statusNotes,
+      }));
+
+      successToast(`Sample status updated to ${selectedStatus}`);
+      setOpenStatusUpdateModal(false);
+      setStatusNotes("");
+      setSelectedStatus(null);
+      
+      fetchSampleData();
+    } catch (error) {
+      console.error("Error updating sample status:", error);
+      errorToast(
+        error instanceof Error ? error.message : "Failed to update sample status"
+      );
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleCancelStatusUpdate = () => {
+    setOpenStatusUpdateModal(false);
+    setStatusNotes("");
+    setSelectedStatus(null);
+  };
+
+  const getAccordionData = () => {
+    let data = [
+      {
+        id: "acc1",
+        title: "Basic Information",
+        icon: (
+          <IoInformationCircleOutline size={22} color="var(--color-primary)" />
+        ),
+        content: (
+          <div className="grid grid-cols-1 gap-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Sample ID</div>
+              <div className="font-semibold text-gray-900 truncate md:max-w-[unset] max-w-[160px]">
+                {formData.id}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Status</div>
+              <div className={`font-semibold ${
+                formData.status === SampleStatus.Pass ? 'text-green-600' : 
+                formData.status === SampleStatus.Fail ? 'text-red-600' : 'text-gray-900'
+              }`}>
+                {formData.status || "Pending"}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Matrix Type</div>
+
+              <div className="text-gray-900">
+                {formData.matrix_type}{" "}
+                {formData.matrix_type === MatrixType.Other
+                  ? `(${formData.matrix_name})`
+                  : ""}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Sample Type</div>
+              <div className="text-gray-900">{formData.sample_type || "-"}</div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Sample Privacy</div>
+              <div className="text-gray-900">
+                {formData.sample_privacy || "-"}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Compliance</div>
+              <div className="text-gray-900">{formData.compliance || "-"}</div>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Sample Type</div>
-            <div className="text-gray-900">{formData.sample_type || "-"}</div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Sample Privacy</div>
-            <div className="text-gray-900">
-              {formData.sample_privacy || "-"}
+        ),
+      },
+      {
+        id: "acc2",
+        title: "Source Information",
+        icon: <LuWaves size={22} color="var(--color-primary)" />,
+        content: (
+          <div className="grid grid-cols-1 gap-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Source</div>
+              <div className="font-semibold text-gray-900">
+                {formData.source || "-"}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Sample Location</div>
+              <div className="text-gray-900">
+                {formData.sample_location || "-"}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">County</div>
+              <div className="text-gray-900">{formData.county || "-"}</div>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Compliance</div>
-            <div className="text-gray-900">{formData.compliance || "-"}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "acc2",
-      title: "Source Information",
-      icon: <LuWaves size={22} color="var(--color-primary)" />,
-      content: (
-        <div className="grid grid-cols-1 gap-y-3 text-sm">
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Source</div>
-            <div className="font-semibold text-gray-900">
-              {formData.source || "-"}
+        ),
+      },
+      {
+        id: "acc3",
+        title: "Identifiers",
+        icon: <FaFingerprint size={22} color="var(--color-primary)" />,
+        content: (
+          <div className="grid grid-cols-1 gap-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Project ID</div>
+              <div className="font-semibold text-gray-900">
+                {formData.project_id || "-"}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">PWS ID</div>
+              <div className="text-gray-900">{formData.pws_id || "-"}</div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Chlorine Residual</div>
+              <div className="text-gray-900">
+                {formData.chlorine_residual || "-"}
+              </div>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Sample Location</div>
-            <div className="text-gray-900">
-              {formData.sample_location || "-"}
-            </div>
+        ),
+      },
+      {
+        id: "acc4",
+        title: "Test Selection",
+        icon: <IoFlask size={22} color="var(--color-primary)" />,
+        content: (
+          <div className="flex flex-wrap gap-2">
+            {formData?.test_types?.length ? (
+              formData?.test_types.map((test, index) => (
+                <span
+                  key={test.id}
+                  className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-full text-sm"
+                >
+                  {test.name}
+                </span>
+              ))
+            ) : (
+              <span className="text-gray-500">No tests selected</span>
+            )}
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">County</div>
-            <div className="text-gray-900">{formData.county || "-"}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "acc3",
-      title: "Identifiers",
-      icon: <FaFingerprint size={22} color="var(--color-primary)" />,
-      content: (
-        <div className="grid grid-cols-1 gap-y-3 text-sm">
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Project ID</div>
-            <div className="font-semibold text-gray-900">
-              {formData.project_id || "-"}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">PWS ID</div>
-            <div className="text-gray-900">{formData.pws_id || "-"}</div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Chlorine Residual</div>
-            <div className="text-gray-900">
-              {formData.chlorine_residual || "-"}
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "acc4",
-      title: "Test Selection",
-      icon: <IoFlask size={22} color="var(--color-primary)" />,
-      content: (
-        <div className="flex flex-wrap gap-2">
-          {formData?.test_types?.length ? (
-            formData?.test_types.map((test, index) => (
-              <span
-                key={test.id}
-                className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-full text-sm"
-              >
-                {test.name}
-              </span>
-            ))
-          ) : (
-            <span className="text-gray-500">No tests selected</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      id: "acc5",
-      title: "System Fields",
-      icon: <PiRobotFill size={22} color="var(--color-primary)" />,
-      content: (
-        <div className="grid grid-cols-1 gap-y-3 text-sm">
-          <div className="flex items-center justify-between gap-10">
-            <div className="text-gray-500">Current GPS Location</div>
-            <div className="md:max-w-[unset] max-w-[120px] break-all font-semibold text-themeColor">
+        ),
+      },
+      {
+        id: "acc5",
+        title: "System Fields",
+        icon: <PiRobotFill size={22} color="var(--color-primary)" />,
+        content: (
+          <div className="grid grid-cols-1 gap-y-3 text-sm">
+            <div className="flex items-center justify-between gap-10">
+              <div className="text-gray-500">Current GPS Location</div>
+              <div className="md:max-w-[unset] max-w-[120px] break-all font-semibold text-themeColor">
               {/* ${formData.latitude}° N, ${formData.longitude}° W */}
-              {formData.address}
+                {formData.address}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Sample Date</div>
+              <div className="text-gray-900">
+                {moment(formData?.sample_collected_at).format(
+                  "YYYY-MM-DD hh:mm A"
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-500">Sample Date</div>
-            <div className="text-gray-900">
-              {moment(formData?.sample_collected_at).format(
-                "YYYY-MM-DD hh:mm A"
-              )}
-            </div>
+        ),
+      },
+      {
+        id: "acc6",
+        title: "Remarks",
+        icon: <IoChatbubble size={22} color="var(--color-primary)" />,
+        content: (
+          <div className="text-gray-500">
+            {formData?.notes || "No remarks available"}
           </div>
-        </div>
-      ),
-    },
-    {
-      id: "acc6",
-      title: "Remarks",
-      icon: <IoChatbubble size={22} color="var(--color-primary)" />,
-      content: (
-        <div className="text-gray-500">
-          {formData?.notes || "No remarks available"}
-        </div>
-      ),
-    },
-    {
+        ),
+      },
+    ];
+
+    const cocItem = {
       id: "acc7",
       title: "Chain of Custody",
-      buttonText: "+ COC",
-      buttonAction: handleCOCModalOpen,
+      ...(isLabAdmin ? {} : { buttonText: "+ COC", buttonAction: handleCOCModalOpen }),
       content: (
         <div className="relative border-l-2 border-themeColor ml-4 space-y-6">
           {formData?.coc_transfers && formData.coc_transfers.length > 0 ? (
@@ -313,8 +399,9 @@ export default function InspectionDetailPage() {
           )}
         </div>
       ),
-    },
-    {
+    };
+
+    const deleteItem = {
       id: "acc8",
       title: "Action",
       buttonText: "Delete",
@@ -323,16 +410,23 @@ export default function InspectionDetailPage() {
       buttonAction: handleDeleteClick,
       content: "",
       initiallyOpen: false,
-    },
-  ];
+    };
+
+    const accordionData = [
+      ...data,
+      cocItem,
+      ...(isLabAdmin ? [] : [deleteItem]),
+    ];
+
+    return accordionData;
+  };
 
   const handlePrint = () => {
     // Create a container for the print content
     const container = document.createElement("div");
     container.className = "w-full md:p-8 p-6";
 
-    // Process each accordion item
-    accordionData.forEach((item) => {
+    getAccordionData().forEach((item) => {
       if (item.id === "acc8") return;
       const itemDiv = document.createElement("div");
       itemDiv.className = "mb-4";
@@ -344,8 +438,8 @@ export default function InspectionDetailPage() {
       const headerContent = document.createElement("div");
       headerContent.className = "px-4 py-3 flex items-center gap-2 text-lg";
 
-      // Add icon if exists
-      if (item.icon) {
+      // Only render icon if it exists
+      if ("icon" in item && item.icon) {
         const iconDiv = document.createElement("div");
         const tempIconDiv = document.createElement("div");
         ReactDOM.render(item.icon, tempIconDiv);
@@ -470,17 +564,28 @@ export default function InspectionDetailPage() {
           icon={<FaAngleLeft />}
           variant="icon"
           size="large"
-          onClick={() => router.push("/samples")}
+          onClick={() => router.push(isLabAdmin ? "/admin-dashboard/samples" : "/samples")}
         />
-        <Button
-          variant="primary"
-          size="large"
-          label="Print"
-          icon={<IoPrintOutline size={20} />}
-          onClick={handlePrint}
-        />
+        <div className="flex gap-3">
+          {isLabAdmin && (
+            <Button
+              variant="outline-primary"
+              size="large"
+              label="Update Status"
+              icon={<MdOutlineUpdate size={20} />}
+              onClick={handleUpdateStatus}
+            />
+          )}
+          <Button
+            variant="primary"
+            size="large"
+            label="Print"
+            icon={<IoPrintOutline size={20} />}
+            onClick={handlePrint}
+          />
+        </div>
       </div>
-      <AccordionGroup items={accordionData} />
+      <AccordionGroup items={getAccordionData()} />
       <ConfirmationModal
         open={openConfirmDeleteDialog}
         processing={isLoading}
@@ -489,6 +594,73 @@ export default function InspectionDetailPage() {
           setOpenConfirmDeleteDialog(false);
         }}
       />
+      
+      <Modal
+        open={openStatusUpdateModal}
+        title="Update Sample Status"
+        onClose={handleCancelStatusUpdate}
+        size="md"
+      >
+        <div className="p-6">
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Status</label>
+            <div className="flex gap-4">
+              <div 
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
+                  selectedStatus === 'pass' 
+                    ? 'border-green-500 bg-green-50' 
+                    : 'border-gray-300'
+                }`} 
+                onClick={() => setSelectedStatus('pass')}
+              >
+                <div className={`w-4 h-4 rounded-full mr-2 ${
+                  selectedStatus === 'pass' ? 'bg-green-500' : 'bg-gray-200'
+                }`}></div>
+                <span>Pass</span>
+              </div>
+              
+              <div 
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
+                  selectedStatus === 'fail' 
+                    ? 'border-red-500 bg-red-50' 
+                    : 'border-gray-300'
+                }`} 
+                onClick={() => setSelectedStatus('fail')}
+              >
+                <div className={`w-4 h-4 rounded-full mr-2 ${
+                  selectedStatus === 'fail' ? 'bg-red-500' : 'bg-gray-200'
+                }`}></div>
+                <span>Fail</span>
+              </div>
+            </div>
+          </div>
+          
+          <TextArea
+            label="Notes"
+            placeholder="Enter notes about the sample status"
+            value={statusNotes}
+            onChange={(e) => setStatusNotes(e.target.value)}
+            rows={4}
+          />
+          
+          <div className="flex justify-end mt-6 gap-4">
+            <Button
+              variant="outline-primary"
+              size="large"
+              label="Cancel"
+              onClick={handleCancelStatusUpdate}
+            />
+            <Button
+              variant="primary"
+              size="large"
+              label="Save"
+              disabled={updatingStatus || !selectedStatus}
+              onClick={handleSaveStatus}
+              // loading={updatingStatus}
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
