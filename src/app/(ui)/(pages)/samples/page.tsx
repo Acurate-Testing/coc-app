@@ -86,7 +86,7 @@ export default function HomePage() {
       case "in_coc":
         return "!bg-[#DBEAFE] !text-[#1D4ED8]";
       case "submitted":
-        return "!bg-[#D1FAE5] !text-[#047857]";
+        return '!bg-[#E9D5FF] !text-[#7E22CE]';
       case "pass":
         return "!bg-[#d1fae5] !text-[ #065f46]";
       case "fail":

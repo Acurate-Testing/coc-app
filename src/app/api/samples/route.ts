@@ -1,57 +1,85 @@
-import { NextRequest, NextResponse } from "next/server";
+import { SampleStatus, UserRole } from '@/constants/enums';
+import { authOptions } from '@/lib/auth-options';
 import { supabase } from "@/lib/supabase";
-import { getToken } from "next-auth/jwt";
-import { TestType } from "@/types/sample";
+import { TestType } from '@/types/sample';
+import { getServerSession } from 'next-auth';
+import { getToken } from 'next-auth/jwt';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const token = await getToken({ req: request });
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = Number(searchParams.get("page"));
-    const limit = 10;
+    const page = Number(searchParams.get("page") || 0);
+    const limit = Number(searchParams.get("limit") || 10);
     const search = searchParams.get("search") || "";
-    const agencyId = searchParams.get("agencyId");
-    const status = searchParams.get("status");
-    // const testType = searchParams.get("testType");
-    const offset = page * 10;
+    const status = searchParams.get("status") || "";
+    const agency = searchParams.get("agency") || "";
+    const offset = page * limit;
 
-    let query = supabase
-      .from("samples")
-      .select(
-        `
+    const isAgency = session.user.role === UserRole.AGENCY;
+    const isLabAdmin = session.user.role === UserRole.LABADMIN;
+
+    let baseSelect = `
+      *,
+      account:accounts(name),
+      sample_test_types(
+        test_types(id, name)
+      )
+    `;
+
+    if (isAgency || isLabAdmin) {
+      baseSelect = `
         *,
         agency:agencies(name),
         account:accounts(name),
         sample_test_types(
           test_types(id, name)
         )
-      `,
-        { count: "exact" }
-      )
-      .eq("agency_id", token.agency_id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
+      `;
+    }
+
+    let query = supabase
+      .from('samples')
+      .select(baseSelect, { count: 'exact' })
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
+    // Apply search filter if provided
     if (search) {
-      query = query.or(`project_id.ilike.%${search}%,pws_id.ilike.%${search}%`);
+      query = query.or(`project_id.ilike.%${search}%,pws_id.ilike.%${search}%,matrix_type.ilike.%${search}%`);
     }
-
-    if (agencyId) {
-      query = query.eq("agency_id", agencyId);
+    if (isLabAdmin) {
+      // Lab admin can only see submitted, pass, or fail samples
+      query = query.in('status', [SampleStatus.Submitted, SampleStatus.Pass, SampleStatus.Fail]);
+      
+      // Apply additional status filter if provided
+      if (status && status !== "All") {
+        query = query.eq('status', status.toLowerCase());
+      }
+      
+      // Lab admin can also filter by agency
+      if (agency) {
+        query = query.eq('agency_id', agency);
+      }
+    } else {
+      // Regular users can only see their agency's samples
+      query = query.eq('agency_id', token.agency_id);
+      
+      // Apply status filter if provided
+      if (status && status !== "All") {
+        query = query.eq('status', status.toLowerCase());
+      }
     }
-
-    if (status) {
-      query = query.eq("status", status);
-    }
-
-    // if (testType) {
-    //   query = query.contains("test_types", [{ id: testType }]);
-    // }
 
     const { data, error, count } = await query;
 
@@ -151,8 +179,8 @@ export async function POST(request: NextRequest) {
     if (sampleData.test_types.length > 0) {
       const testTypeEntries = sampleData.test_types.map(
         (testType: TestType) => ({
-          sample_id: data.id,
-          test_type_id: testType.id,
+        sample_id: data.id,
+        test_type_id: testType.id,
         })
       );
 

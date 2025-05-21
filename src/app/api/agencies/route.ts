@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { requireAuth } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireAuth(request);
-    if (session instanceof NextResponse) return session;
-
+const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const { data: agencies, error } = await supabase
       .from("agencies")
       .select("id, name")
