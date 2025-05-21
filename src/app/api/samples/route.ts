@@ -58,19 +58,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       query = query.or(`project_id.ilike.%${search}%,pws_id.ilike.%${search}%,matrix_type.ilike.%${search}%`);
     }
-    
-    // Apply role-based filters
-    if (isAgency) {
-      // Agency role can see everything and filter by agency
-      if (agency) {
-        query = query.eq('agency_id', agency);
-      }
-      
-      // Apply status filter if provided for agency role
-      if (status && status !== "All") {
-        query = query.eq('status', status.toLowerCase());
-      }
-    } else if (isLabAdmin) {
+    if (isLabAdmin) {
       // Lab admin can only see submitted, pass, or fail samples
       query = query.in('status', [SampleStatus.Submitted, SampleStatus.Pass, SampleStatus.Fail]);
       
