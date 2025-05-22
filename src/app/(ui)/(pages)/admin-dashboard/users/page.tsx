@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Database } from "@/types/supabase";
-import { Button } from "@/stories/Button/Button";
-import { Card } from "@/stories/Card/Card";
 import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
 import AssignTestModal from "@/app/(ui)/components/Users/AssignTestModal";
+import EditUserAccessPopover from "@/app/(ui)/components/Users/EditUserAccessPopover";
+import { Button } from "@/stories/Button/Button";
+import { useEffect, useState } from "react";
+import { FaTrash } from "react-icons/fa"; // Add this import for the trash icon
+import { ImSpinner8 } from "react-icons/im";
 
 // Use the correct User type
-type User = Database["public"]["Tables"]["users"]["Row"] & {
+type User = {
+  id: string;
+  name: string;
+  contact_email: string;
   accounts?: string[];
   assigned_tests?: AssignedTest[];
 };
@@ -25,9 +29,11 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showEditAccessModal, setShowEditAccessModal] = useState(false);
   const [selectedTest, setSelectedTest] = useState<string>("");
   const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
     useState<boolean>(false);
@@ -42,11 +48,21 @@ export default function AdminUsersPage() {
         throw new Error(data.error || "Failed to fetch users");
       }
       setUsers(data || []);
-      if (!selectedUser && data && data.length > 0) setSelectedUser(data[0]);
+      
+      // Update the selectedUser with fresh data if one is already selected
+      if (selectedUser) {
+        const updatedSelectedUser = data.find((user: User) => user.id === selectedUser.id);
+        if (updatedSelectedUser) {
+          setSelectedUser(updatedSelectedUser);
+        }
+      } else if (data && data.length > 0) {
+        setSelectedUser(data[0]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch users");
     } finally {
       setIsLoading(false);
+      setIsInitialLoading(false);
     }
   };
 
@@ -54,11 +70,12 @@ export default function AdminUsersPage() {
     fetchUsers();
     // eslint-disable-next-line
   }, []);
+
   const filteredUsers = users.filter((u) =>
-    (u.full_name ?? "")
+    (u.name ?? "")
       .toLowerCase()
       .includes(search.toLowerCase()) ||
-    (u.email ?? "")
+    (u.contact_email ?? "")
       .toLowerCase()
       .includes(search.toLowerCase())
   );
@@ -69,13 +86,38 @@ export default function AdminUsersPage() {
   };
 
   const handleDeleteTest = async () => {
-    // Implement API call to unassign/delete test from user
-    setOpenConfirmDeleteDialog(false);
-    setSelectedTest("");
-    // Optionally refetch users or update state
+    try {
+      setIsLoading(true);
+      
+      // Update the URL to match the actual API route
+      const response = await fetch(`/api/admin/users`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: selectedUser?.id,
+          testId: selectedTest
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to remove test access");
+      }
+
+      // Update the UI by fetching fresh user data
+      fetchUsers();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to remove test access");
+    } finally {
+      setIsLoading(false);
+      setOpenConfirmDeleteDialog(false);
+      setSelectedTest("");
+    }
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return <LoadingSpinner />;
   }
   if (error) {
@@ -104,7 +146,15 @@ export default function AdminUsersPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 relative">
+          {isLoading && (
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+              <div className="flex items-center gap-2">
+                <ImSpinner8 className="animate-spin text-blue-600" />
+                <span className="text-sm font-medium text-gray-600">Loading users...</span>
+              </div>
+            </div>
+          )}
           {filteredUsers.map((user) => (
             <button
               key={user.id}
@@ -116,44 +166,40 @@ export default function AdminUsersPage() {
               onClick={() => setSelectedUser(user)}
             >
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold">
-                {(user.full_name ?? "")[0] || "?"}
+                {(user.name ?? "")[0] || "?"}
               </div>
               <div>
-                <div className="font-medium text-sm">{user.full_name}</div>
-                <div className="text-xs text-gray-400">{user.email}</div>
+                <div className="font-medium text-sm">{user.name}</div>
+                <div className="text-xs text-gray-400">{user.contact_email}</div>
               </div>
             </button>
           ))}
         </div>
       </div>
       {/* Main Panel */}
-      <div className="flex-1 p-2 sm:p-8 bg-gray-50">
+      <div className="flex-1 p-2 sm:p-8 bg-gray-50 overflow-auto">
         {selectedUser && (
-          <div className="max-w-3xl mx-auto">
+          <div className="w-full mx-auto">
             {/* User Info */}
             <div className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold">
-                  {(selectedUser.full_name ?? "")[0] || "?"}
+                  {(selectedUser.name ?? "")[0] || "?"}
                 </div>
                 <div>
                   <div className="font-semibold text-lg">
-                    {selectedUser.full_name}
+                    {selectedUser.name}
                   </div>
                   <div className="text-gray-400 text-sm">
-                    {selectedUser.email}
+                    {selectedUser.contact_email}
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {(
-                      selectedUser.accounts || [
-                        "Lab Corp",
-                        "City Water",
-                        "EnviroTech",
-                      ]
+                      selectedUser.accounts || []
                     ).map((acc) => (
                       <span
                         key={acc}
-                        className="bg-gray-100 text-gray-600 rounded-full px-3 py-1 text-xs font-medium"
+                        className="bg-gray-200 text-gray-600 rounded-full px-3 py-1 text-xs font-medium"
                       >
                         {acc}
                       </span>
@@ -162,8 +208,9 @@ export default function AdminUsersPage() {
                 </div>
               </div>
               <Button
+                variant="outline-primary"
                 label="Edit User Access"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
+                onClick={() => setShowEditAccessModal(true)}
               >
                 Edit User Access
               </Button>
@@ -180,142 +227,39 @@ export default function AdminUsersPage() {
                   + Assign Test
                 </Button>
               </div>
-              {/* Card view for mobile */}
-              <div className="block sm:hidden">
+              
+              {/* Responsive card grid for all screen sizes */}
+              <div className="w-full">
                 {(selectedUser.assigned_tests || []).length === 0 ? (
                   <div className="text-center py-8 text-gray-400 text-base font-medium">
                     No tests assigned.
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {selectedUser.assigned_tests?.map((test) => (
                       <div
                         key={test.id}
-                        className="rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-2 bg-white"
+                        className="rounded-xl border border-gray-200 shadow-sm p-4 flex items-center justify-between bg-white"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400 font-medium">
-                            Test Name
-                          </span>
-                          <span className="text-base font-semibold text-gray-700">
-                            {test.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400 font-medium">
-                            Code
-                          </span>
-                          <span className="text-base text-gray-700 font-medium">
-                            {test.code}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400 font-medium">
-                            Matrix Types
-                          </span>
-                          <span className="flex gap-2 flex-wrap">
-                            {test?.matrix_types?.map((mt) => (
-                              <span
-                                key={mt}
-                                className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium"
-                              >
-                                {mt}
-                              </span>
-                            ))}
-                          </span>
-                        </div>
-                        <div className="flex gap-2 justify-end mt-2">
-                          <Button
-                            label=""
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            <span className="sr-only">Edit</span>✏️
-                          </Button>
-                          <Button
-                            label=""
-                            className="text-red-500 hover:text-red-700"
-                            onClick={() => handleDeleteClick(test.id)}
-                          >
-                            <span className="sr-only">Delete</span>🗑️
-                          </Button>
-                        </div>
+                        <span className="text-base font-semibold text-gray-700">
+                          {test.name}
+                        </span>
+                        <Button
+                          label=""
+                          variant="icon"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => handleDeleteClick(test.id)}
+                          icon={<FaTrash style={{ color: 'red', height: '1.5em', width: '1.5em'}} />}
+                        >
+                          <span className="sr-only">Delete</span>
+                        </Button>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-              {/* Table view for desktop */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full table-auto">
-                  <thead>
-                    <tr className="bg-gray-50 border-b">
-                      <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                        Test Name
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                        Code
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                        Matrix Types
-                      </th>
-                      <th className="px-6 py-4 text-left font-semibold text-gray-700">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(selectedUser.assigned_tests || []).length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="text-center py-8 text-gray-400 text-base font-medium"
-                        >
-                          No tests assigned.
-                        </td>
-                      </tr>
-                    ) : (
-                      selectedUser.assigned_tests?.map((test) => (
-                        <tr
-                          key={test.id}
-                          className="border-b hover:bg-gray-50 transition-colors"
-                        >
-                          <td className="px-6 py-4">{test.name}</td>
-                          <td className="px-6 py-4">{test.code}</td>
-                          <td className="px-6 py-4">
-                            <span className="flex gap-2 flex-wrap">
-                              {test?.matrix_types?.map((mt) => (
-                                <span
-                                  key={mt}
-                                  className="bg-green-100 text-green-700 rounded-full px-2 py-0.5 text-xs font-medium"
-                                >
-                                  {mt}
-                                </span>
-                              ))}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex gap-2">
-                              <Button
-                                label=""
-                                className="text-blue-600 hover:text-blue-800"
-                              >
-                                <span className="sr-only">Edit</span>✏️
-                              </Button>
-                              <Button
-                                label=""
-                                className="text-red-500 hover:text-red-700"
-                                onClick={() => handleDeleteClick(test.id)}
-                              >
-                                <span className="sr-only">Delete</span>🗑️
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              
+              {/* Remove the old table view - this comment is just for clarity */}
             </div>
             <AssignTestModal
               open={showAssignModal}
@@ -326,6 +270,13 @@ export default function AdminUsersPage() {
               }
               onAssigned={fetchUsers}
             />
+            <EditUserAccessPopover
+              open={showEditAccessModal}
+              close={() => setShowEditAccessModal(false)}
+              userId={selectedUser.id}
+              existingAccounts={selectedUser.accounts || []}
+              onUpdated={fetchUsers}
+            />
             <ConfirmationModal
               open={openConfirmDeleteDialog}
               processing={isLoading}
@@ -334,6 +285,8 @@ export default function AdminUsersPage() {
                 setSelectedTest("");
                 setOpenConfirmDeleteDialog(false);
               }}
+              message="Are you sure you want to remove this test access?"
+              buttonText="Remove"
             />
           </div>
         )}
