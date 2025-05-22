@@ -25,6 +25,7 @@ export async function GET(
       account:accounts(name),
       agency:agencies(name),
       test_types:test_types(id,name),
+      created_by_user:users(id, full_name),
         coc_transfers(
           id,
           transferred_by,

@@ -5,9 +5,12 @@ export const sampleDetailTemplate = async (sampleData: any) => {
   const sectionStyle =
     "margin-bottom: 1rem; background: #fff; border-radius: 12px;";
   const headerStyle =
-    "padding: 12px 16px; display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; color: #2563EB; border-bottom: 1px solid #eee;";
+    "padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 600; color: #2563EB; border-bottom: 1px solid #eee;";
+  const buttonStyle = 
+    "background-color: #2563EB; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; text-decoration: none; font-weight: normal;";
   const contentStyle = "padding: 12px 16px;";
   const labelStyle = "color: #6B7280; font-size: 14px;";
+   const firstLabelWidth = "width: 435px;";
   const valueStyle = "color: #111827; font-size: 14px; font-weight: 600;";
   const rowStyle =
     "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
@@ -24,9 +27,12 @@ export const sampleDetailTemplate = async (sampleData: any) => {
       value || "-"
     }</span></div>`;
 
-  const renderSection = (title: string, content: string) =>
+  const renderSection = (title: string, content: string, buttonLink?: { url: string, text: string }) =>
     `<div style=\"${sectionStyle}\">
-      <div style=\"${headerStyle}\">${title}</div>
+      <div style=\"${headerStyle}\">
+        <span style=\"${buttonLink ? `${firstLabelWidth}` : ''}\">${title}</span>
+        ${buttonLink ? `<a href="${buttonLink.url}" style="${buttonStyle}" target="_blank">${buttonLink.text}</a>` : ''}
+      </div>
       <div style=\"${contentStyle}\">${content}</div>
     </div>`;
 
@@ -72,7 +78,8 @@ export const sampleDetailTemplate = async (sampleData: any) => {
           renderRow("Sample Type", sampleData.sample_type),
           renderRow("Sample Privacy", sampleData.sample_privacy),
           renderRow("Compliance", sampleData.compliance),
-        ].join("")
+        ].join(""),
+        { url: `${process.env.NEXT_PUBLIC_APP_URL}/sample/${sampleData.id}` || '#', text: "View Full Report" }
       )}
 
       ${renderSection(

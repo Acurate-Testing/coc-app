@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 export async function GET() {
   const { data, error } = await supabase
     .from("agencies")
-    .select("id, name, contact_email, assigned_tests:test_types(id, name), accounts(name)")
+    .select("id, name, contact_email, assigned_tests:test_types(id, name,test_code,matrix_type), accounts(name)")
     .is("deleted_at", null);
     
   if (error) {
