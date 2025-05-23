@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
     let baseSelect = `
       *,
       account:accounts(name),
+      creator:users!created_by(id, full_name,email),
       sample_test_types(
         test_types(id, name)
       )
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
         *,
         agency:agencies(name),
         account:accounts(name),
+        creator:users!created_by(id, full_name,email),
         sample_test_types(
           test_types(id, name)
         )

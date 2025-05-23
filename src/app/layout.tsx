@@ -49,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-light text-dark`}>
+      <body className={`${inter.className} bg-light text-light`}>
         <NextAuthProvider>
           <Suspense fallback={null}>
             <ToastContainerWrapper />

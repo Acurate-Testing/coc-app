@@ -1,10 +1,11 @@
 "use client";
-import { FC, useEffect, useRef, useState } from "react";
-import { Modal } from "@/stories/Modal/Modal";
+import { MatrixType } from "@/constants/enums";
+import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { Button } from "@/stories/Button/Button";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
-import { successToast, errorToast } from "@/hooks/useCustomToast";
+import { Modal } from "@/stories/Modal/Modal";
 import { Database } from "@/types/supabase";
+import { FC, useEffect, useRef, useState } from "react";
 
 type Test = Database["public"]["Tables"]["test_types"]["Row"];
 
@@ -22,7 +23,12 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
   test,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState({ name: "", description: "" });
+  const [form, setForm] = useState({ 
+    name: "", 
+    description: "",
+    test_code: "",
+    matrix_type: MatrixType.PotableWater
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +37,8 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
       setForm({
         name: test?.name || "",
         description: test?.description || "",
+        test_code: test?.test_code || "",
+        matrix_type: test?.matrix_type || MatrixType.PotableWater,
       });
       setError(null);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -40,6 +48,11 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
   const handleSave = async () => {
     if (!form.name.trim()) {
       setError("Name is required");
+      return;
+    }
+    
+    if (!form.test_code.trim()) {
+      setError("Test code is required");
       return;
     }
 
@@ -71,7 +84,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
       open={open}
       close={close}
       staticModal
-      panelClassName="!max-w-md"
+      panelClassName="lg:!max-w-[65%] sm:!max-w-[65%] !max-w-[100%]"
     >
       <form
         onSubmit={(e) => {
@@ -83,7 +96,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           <div className="mb-4 p-2 bg-red-50 text-red-600 rounded">{error}</div>
         )}
         <div className="mb-4">
-          <label className="pl-0.5">Name</label>
+          <label className="pl-0.5">Test Name</label>
           <input
             ref={inputRef}
             type="text"
@@ -97,6 +110,19 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           />
         </div>
         <div className="mb-4">
+          <label className="pl-0.5">Test Code</label>
+          <input
+            type="text"
+            className="form-input mt-1"
+            value={form.test_code}
+            onChange={(e) => {
+              setForm({ ...form, test_code: e.target.value });
+              setError(null);
+            }}
+            required
+          />
+        </div>
+        <div className="mb-4">
           <label className="pl-0.5">Description</label>
           <textarea
             rows={4}
@@ -104,6 +130,27 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
+        </div>
+        <div className="mb-4">
+          <label className="pl-0.5 block mb-2">Matrix Type</label>
+          <div className=" grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-4">
+            {Object.values(MatrixType).map((type) => (
+              <div 
+                key={type}
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
+                  form.matrix_type === type 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-300'
+                }`}
+                onClick={() => setForm({ ...form, matrix_type: type })}
+              >
+                <div className={`w-4 h-4 rounded-full mr-2 ${
+                  form.matrix_type === type ? 'bg-blue-500' : 'bg-gray-200'
+                }`}></div>
+                <span>{type}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="flex justify-end space-x-4">
           {isSaving ? (

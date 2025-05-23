@@ -1,4 +1,4 @@
-import { PrivacyPolicy, SampleStatus, UserRole } from "@/constants/enums";
+import { MatrixType, PrivacyPolicy, SampleStatus, UserRole } from "@/constants/enums";
 
 export type Json =
   | string
@@ -75,6 +75,8 @@ export interface Database {
           created_by: string | null;
           created_at: string;
           deleted_at: string | null;
+          test_code: string | null;
+          matrix_type: MatrixType | null;
         };
         Insert: {
           id?: string;
@@ -83,6 +85,8 @@ export interface Database {
           created_by?: string | null;
           created_at?: string;
           deleted_at?: string | null;
+          test_code: string | null;
+          matrix_type: MatrixType | null;
         };
         Update: {
           id?: string;
@@ -91,6 +95,8 @@ export interface Database {
           created_by?: string | null;
           created_at?: string;
           deleted_at?: string | null;
+          test_code: string | null;
+          matrix_type: MatrixType | null;
         };
       };
       users: {

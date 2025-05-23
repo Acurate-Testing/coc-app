@@ -5,9 +5,11 @@ import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
 import AssignTestModal from "@/app/(ui)/components/Users/AssignTestModal";
 import EditUserAccessPopover from "@/app/(ui)/components/Users/EditUserAccessPopover";
 import { Button } from "@/stories/Button/Button";
-import { useEffect, useState } from "react";
-import { FaTrash } from "react-icons/fa"; // Add this import for the trash icon
+import { useEffect, useState, useRef } from "react";
+import { FaTrash } from "react-icons/fa";
 import { ImSpinner8 } from "react-icons/im";
+import { FiMoreVertical } from "react-icons/fi";
+import { createPortal } from "react-dom";
 
 // Use the correct User type
 type User = {
@@ -21,8 +23,8 @@ type User = {
 interface AssignedTest {
   id: string;
   name: string;
-  code: string;
-  matrix_types: string[];
+  test_code: string;
+  matrix_type: string[];
 }
 
 export default function AdminUsersPage() {
@@ -35,8 +37,29 @@ export default function AdminUsersPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showEditAccessModal, setShowEditAccessModal] = useState(false);
   const [selectedTest, setSelectedTest] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
-    useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [isMounted, setIsMounted] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenActionMenu(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuRef]);
 
   const fetchUsers = async () => {
     try {
@@ -48,8 +71,7 @@ export default function AdminUsersPage() {
         throw new Error(data.error || "Failed to fetch users");
       }
       setUsers(data || []);
-      
-      // Update the selectedUser with fresh data if one is already selected
+
       if (selectedUser) {
         const updatedSelectedUser = data.find((user: User) => user.id === selectedUser.id);
         if (updatedSelectedUser) {
@@ -88,8 +110,7 @@ export default function AdminUsersPage() {
   const handleDeleteTest = async () => {
     try {
       setIsLoading(true);
-      
-      // Update the URL to match the actual API route
+
       const response = await fetch(`/api/admin/users`, {
         method: "DELETE",
         headers: {
@@ -106,7 +127,6 @@ export default function AdminUsersPage() {
         throw new Error(data.error || "Failed to remove test access");
       }
 
-      // Update the UI by fetching fresh user data
       fetchUsers();
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to remove test access");
@@ -115,6 +135,31 @@ export default function AdminUsersPage() {
       setOpenConfirmDeleteDialog(false);
       setSelectedTest("");
     }
+  };
+
+  const toggleActionMenu = (
+    testId: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const button = event.currentTarget;
+    menuButtonRefs.current.set(testId, button);
+
+    if (openActionMenu === testId) {
+      setOpenActionMenu(null);
+      return;
+    }
+
+    const rect = button.getBoundingClientRect();
+    const isNearRightEdge = window.innerWidth - rect.right < 200;
+    const isNearBottomEdge = window.innerHeight - rect.bottom < 150;
+
+    const position = {
+      top: isNearBottomEdge ? rect.top - 150 : rect.bottom + 5,
+      left: isNearRightEdge ? rect.left - 150 : rect.left,
+    };
+
+    setMenuPosition(position);
+    setOpenActionMenu(testId);
   };
 
   if (isInitialLoading) {
@@ -228,38 +273,67 @@ export default function AdminUsersPage() {
                 </Button>
               </div>
               
-              {/* Responsive card grid for all screen sizes */}
+              {/* Table view for tests, similar to tests page */}
               <div className="w-full">
                 {(selectedUser.assigned_tests || []).length === 0 ? (
                   <div className="text-center py-8 text-gray-400 text-base font-medium">
                     No tests assigned.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {selectedUser.assigned_tests?.map((test) => (
-                      <div
-                        key={test.id}
-                        className="rounded-xl border border-gray-200 shadow-sm p-4 flex items-center justify-between bg-white"
-                      >
-                        <span className="text-base font-semibold text-gray-700">
-                          {test.name}
-                        </span>
-                        <Button
-                          label=""
-                          variant="icon"
-                          className="text-red-500 hover:text-red-700"
-                          onClick={() => handleDeleteClick(test.id)}
-                          icon={<FaTrash style={{ color: 'red', height: '1.5em', width: '1.5em'}} />}
-                        >
-                          <span className="sr-only">Delete</span>
-                        </Button>
+                  <div className="overflow-x-auto w-full">
+                    <div className="rounded-xl overflow-hidden shadow">
+                      <div className="w-full overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Test Name
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Test Code
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Matrix Type
+                              </th>
+                              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {selectedUser.assigned_tests?.map((test) => (
+                              <tr key={test.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="font-medium text-gray-900">{test.name}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-gray-500">{test.test_code || "-"}</div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="text-gray-500">
+                                    {test.matrix_type || "-"}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                  <div>
+                                    <button
+                                      ref={(el: any) => el && menuButtonRefs.current.set(test.id, el)}
+                                      onClick={(e) => toggleActionMenu(test.id, e)}
+                                      className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+                                    >
+                                      <FiMoreVertical className="h-5 w-5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 )}
               </div>
-              
-              {/* Remove the old table view - this comment is just for clarity */}
             </div>
             <AssignTestModal
               open={showAssignModal}
@@ -291,6 +365,37 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+      
+      {/* Dropdown menu portal */}
+      {isMounted &&
+        openActionMenu &&
+        createPortal(
+          <div
+            className="fixed z-50"
+            style={{
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+            }}
+            ref={menuRef}
+          >
+            <div className="mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+              <div className="py-1" role="menu" aria-orientation="vertical">
+                <button
+                  onClick={() => {
+                    handleDeleteClick(openActionMenu);
+                    setOpenActionMenu(null);
+                  }}
+                  className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-700 w-full text-left"
+                  role="menuitem"
+                >
+                  <FaTrash className="mr-3 h-5 w-5" />
+                  Remove Access
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

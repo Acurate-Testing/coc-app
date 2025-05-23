@@ -40,6 +40,10 @@ export interface Sample {
   sample_test_types?: {
     test_types: TestType;
   }[];
+  created_by_user?: {
+    id: string;
+    full_name: string;
+  }
 }
 
 export const sampleInitialValues: Partial<Sample> = {

@@ -225,6 +225,10 @@ export default function InspectionDetailPage() {
               </div>
             </div>
             <div className="flex items-center justify-between">
+              <div className="text-gray-500">Created By</div>
+              <div className="text-gray-900">{formData.created_by_user?.full_name || "-"}</div>
+            </div>
+            <div className="flex items-center justify-between">
               <div className="text-gray-500">Status</div>
               <div className={`font-semibold ${
                 formData.status === SampleStatus.Pass ? 'text-green-600' : 

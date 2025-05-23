@@ -13,14 +13,24 @@ import { Chip } from "@material-tailwind/react";
 import moment from "moment";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaLocationDot } from "react-icons/fa6";
-import { FiDownload, FiEdit } from "react-icons/fi";
+import { FiDownload, FiEdit, FiUser } from "react-icons/fi";
 import { GoClock } from "react-icons/go";
 import { ImBin } from "react-icons/im";
 import { IoFlask, IoSearch } from "react-icons/io5";
+import { useMediaQuery } from "react-responsive";
 
-type Sample = Database["public"]["Tables"]["samples"]["Row"];
+type BaseSample = Database["public"]["Tables"]["samples"]["Row"];
+
+// Extended Sample type with creator information
+interface Sample extends BaseSample {
+  creator?: {
+    full_name: string;
+    email: string;
+  };
+}
+
 interface Agency {
   id: string;
   name: string;
@@ -39,6 +49,7 @@ interface ApiResponse {
 export default function AdminSamplesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("All");
   const [samples, setSamples] = useState<Sample[]>([]);
@@ -215,6 +226,9 @@ export default function AdminSamplesPage() {
   const getAgencyName = (id: string | null) =>
     agencies.find((a) => a.id === id)?.name || id || "-";
 
+  // Memoize the SampleOverview to prevent re-renders on pagination/filtering changes
+  const memoizedSampleOverview = useMemo(() => <SampleOverview />, []);
+
   if (status === "loading" || isLoading) {
     return <LoadingSpinner />;
   }
@@ -236,15 +250,15 @@ export default function AdminSamplesPage() {
 
   return (
     <>
-      <SampleOverview />
+      {!isMobile && memoizedSampleOverview}
       <div className='w-full md:p-8 p-6 !pt-0'>
         <div className='flex gap-4 items-center'>
-          <div className='w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'>
-            <div className='relative'>
+          <div className='w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
+            <div className='relative col-span-1'>
               <IoSearch className='text-themeColor pointer-events-none h-5 w-5 absolute top-1/2 transform -translate-y-1/2 left-3' />
               <input
                 id='sample-search'
-                className={`font-medium rounded-lg py-2.5 px-4 bg-white  ${
+                className={`font-medium rounded-lg py-2.5 px-4 bg-white w-full ${
                   !searchQuery && !(samples && samples.length) ? 'cursor-not-allowed' : ''
                 } text-base appearance-none block !pl-10 form-input`}
                 value={searchQuery}
@@ -258,13 +272,13 @@ export default function AdminSamplesPage() {
                 disabled={!searchQuery && !(samples && samples.length)}
               />
             </div>
-            <div>
+            <div className='col-span-1'>
               <select
                 id='agency'
                 name='agency'
                 value={selectedAgency}
                 onChange={(e) => setSelectedAgency(e.target.value)}
-                className='form-input bg-white'
+                className='form-input bg-white w-full'
               >
                 <option value=''>All Users</option>
                 {agencies.map((agency) => (
@@ -274,19 +288,21 @@ export default function AdminSamplesPage() {
                 ))}
               </select>
             </div>
-            <div className="flex gap-2">
+            <div className="col-span-1">
               <select
                 id='type'
                 name='type'
                 value={activeTab}
                 onChange={(e) => setActiveTab(e.target.value)}
-                className='form-input bg-white flex-1'
+                className='form-input bg-white w-full'
               >
                 <option value='All'>All</option>
                 <option value={SampleStatus.Submitted}>Submitted</option>
                 <option value={SampleStatus.Pass}>Pass</option>
                 <option value={SampleStatus.Fail}>Fail</option>
               </select>
+            </div>
+            <div className="col-span-1 flex items-center justify-start lg:justify-end">
               <Button
                 className="primary"
                 label="Export CSV"
@@ -342,17 +358,34 @@ export default function AdminSamplesPage() {
                         />
                         <Label label={sample?.sample_location || '-'} className='text-lg' />
                       </div>
+                        <div className="flex items-center md:gap-4 gap-2">
+                          <Button
+                            className="md:!min-w-fit !p-3 !cursor-default"
+                            label=""
+                            variant="icon"
+                            icon={<GoClock className="text-lg text-gray-600" />}
+                          />
+                          <Label
+                            label={moment(sample?.created_at).format(
+                              "YYYY-MM-DD hh:mm A"
+                            )}
+                            className="text-lg"
+                          />
+                        </div>
+                      {/* creator information */}
                       <div className="flex items-center md:gap-4 gap-2">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
-                          icon={<GoClock className="text-lg text-gray-600" />}
+                          icon={<FiUser className="text-lg text-gray-600" />}
                         />
                         <Label
-                          label={moment(sample?.created_at).format(
-                            "YYYY-MM-DD hh:mm A"
-                          )}
+                          label={sample?.creator?.full_name 
+                            ? `Created by: ${sample.creator.full_name}` 
+                            : sample?.creator?.email 
+                              ? `Created by: ${sample.creator.email}` 
+                              : "Created by: -"}
                           className="text-lg"
                         />
                       </div>
