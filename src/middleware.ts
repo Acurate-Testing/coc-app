@@ -19,7 +19,9 @@ export async function middleware(request: NextRequest) {
     const isAuthRoute = request.nextUrl.pathname.startsWith("/api/auth/");
     const isPublicRoute = request.nextUrl.pathname.startsWith("/_next") || 
                          request.nextUrl.pathname.startsWith("/static") ||
-                         request.nextUrl.pathname.startsWith("/favicon.ico");
+                         request.nextUrl.pathname.startsWith("/favicon.ico") ||
+                         request.nextUrl.pathname === "/manifest.json" ||
+                         request.nextUrl.pathname.startsWith("/logo-at.png");
 
     // Allow public routes to pass through
     if (isPublicRoute) {
@@ -92,8 +94,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - manifest.json (web app manifest)
      * - public folder
      */
-    "/((?!_next/static|_next/image|favicon.ico|public/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|logo-at.png|public/).*)",
   ],
 };
