@@ -49,6 +49,8 @@ export default function AccordionGroup({ items }: AccordionGroupProps) {
             onPointerLeaveCapture={() => {}}
             open={openStates[item.id]}
             className="bg-white rounded-xl"
+            onResize={() => {}}
+            onResizeCapture={() => {}}
           >
             <AccordionHeader
               className="px-4"
@@ -56,6 +58,8 @@ export default function AccordionGroup({ items }: AccordionGroupProps) {
               onPointerEnterCapture={() => {}}
               onPointerLeaveCapture={() => {}}
               onClick={() => toggleOpen(item.id)}
+              onResize={() => {}}
+              onResizeCapture={() => {}}
             >
               <div className="w-full flex items-center justify-between gap-2 text-lg">
                 <div className="flex items-center gap-2">

@@ -11,7 +11,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test:watch": "npx jest --watch",
-    "test:coverage": "npx jest --coverage"
+    "test:coverage": "npx jest --coverage",
+    "generate-icons": "node scripts/generate-pwa-icons.js"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -40,7 +41,8 @@
     "react-signature-canvas": "^1.1.0-alpha.2",
     "react-toastify": "^11.0.3",
     "react-tooltip": "5.28.1",
-    "sass": "1.88.0"
+    "sass": "1.88.0",
+    "sharp": "^0.32.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

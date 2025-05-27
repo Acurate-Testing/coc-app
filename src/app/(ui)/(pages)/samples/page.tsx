@@ -29,7 +29,7 @@ export default function HomePage() {
   const router = useRouter();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState(SampleStatus.Submitted);
+  const [activeTab, setActiveTab] = useState<SampleStatus | "All">("All");
   const [samples, setSamples] = useState<Partial<Sample>[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -192,7 +192,7 @@ export default function HomePage() {
                 value={activeTab}
                 onChange={(e) => {
                   setCurrentPage(0);
-                  setActiveTab(e.target.value);
+                  setActiveTab(e.target.value as SampleStatus | "All");
                 }}
                 className="form-input h-[60px] md:h-full bg-white"
               >

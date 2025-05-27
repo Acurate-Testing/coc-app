@@ -32,7 +32,7 @@ input[type="reset"],
   padding: var(--spacing-base) 24px;
   font-size: var(--font-size-base);
   border-radius: var(--border-radius);
-  /* position: relative; For focus ring positioning */
+  position: relative;
 }
 
 /* Form inputs */
@@ -48,7 +48,7 @@ textarea {
   font-size: var(--font-size-base);
   padding: 0 20px;
   border-radius: var(--border-radius);
-  /* position: relative; For focus ring positioning */
+  position: relative;
 }
 
 /* Icon buttons */
@@ -59,7 +59,7 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative; /* For focus ring positioning */
+  position: relative;
 }
 
 /* Navigation buttons */
@@ -208,6 +208,10 @@ textarea:focus-visible,
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  .storybook-button__loading {
+    animation: none !important;
+  }
 }
 
 /* Spacing utilities */
@@ -248,4 +252,59 @@ textarea:focus-visible,
 
 .modal-buttons button {
   height: var(--button-height);
+}
+
+/* Loading states */
+.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Focus visible polyfill */
+.js-focus-visible :focus:not(.focus-visible) {
+  outline: none;
+}
+
+.js-focus-visible .focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Keyboard focus indicator */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Disabled states */
+[disabled],
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Error focus states */
+.has-error:focus-visible {
+  outline-color: var(--error-color);
+}
+
+/* Success focus states */
+.has-success:focus-visible {
+  outline-color: var(--success-color);
+}
+
+/* Warning focus states */
+.has-warning:focus-visible {
+  outline-color: var(--warning-color);
 }
