@@ -27,7 +27,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
     name: "", 
     description: "",
     test_code: "",
-    matrix_type: MatrixType.PotableWater
+    matrix_types: [MatrixType.PotableWater]
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
         name: test?.name || "",
         description: test?.description || "",
         test_code: test?.test_code || "",
-        matrix_type: test?.matrix_type || MatrixType.PotableWater,
+        matrix_types: test?.matrix_types || [MatrixType.PotableWater],
       });
       setError(null);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -132,20 +132,25 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           />
         </div>
         <div className="mb-4">
-          <label className="pl-0.5 block mb-2">Matrix Type</label>
-          <div className=" grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-4">
+          <label className="pl-0.5 block mb-2">Matrix Types</label>
+          <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-4">
             {Object.values(MatrixType).map((type) => (
               <div 
                 key={type}
                 className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
-                  form.matrix_type === type 
+                  form.matrix_types.includes(type)
                     ? 'border-blue-500 bg-blue-50' 
                     : 'border-gray-300'
                 }`}
-                onClick={() => setForm({ ...form, matrix_type: type })}
+                onClick={() => {
+                  const newMatrixTypes = form.matrix_types.includes(type)
+                    ? form.matrix_types.filter(t => t !== type)
+                    : [...form.matrix_types, type];
+                  setForm({ ...form, matrix_types: newMatrixTypes });
+                }}
               >
                 <div className={`w-4 h-4 rounded-full mr-2 ${
-                  form.matrix_type === type ? 'bg-blue-500' : 'bg-gray-200'
+                  form.matrix_types.includes(type) ? 'bg-blue-500' : 'bg-gray-200'
                 }`}></div>
                 <span>{type}</span>
               </div>

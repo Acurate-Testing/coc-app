@@ -76,7 +76,7 @@ export interface Database {
           created_at: string;
           deleted_at: string | null;
           test_code: string | null;
-          matrix_type: MatrixType | null;
+          matrix_types: string[];
         };
         Insert: {
           id?: string;
@@ -85,8 +85,8 @@ export interface Database {
           created_by?: string | null;
           created_at?: string;
           deleted_at?: string | null;
-          test_code: string | null;
-          matrix_type: MatrixType | null;
+          test_code?: string | null;
+          matrix_types?: string[];
         };
         Update: {
           id?: string;
@@ -95,8 +95,8 @@ export interface Database {
           created_by?: string | null;
           created_at?: string;
           deleted_at?: string | null;
-          test_code: string | null;
-          matrix_type: MatrixType | null;
+          test_code?: string | null;
+          matrix_types?: string[];
         };
       };
       users: {

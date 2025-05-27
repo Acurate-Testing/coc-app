@@ -4,6 +4,8 @@ import { requireAuth } from "@/lib/auth";
 import { getToken } from "next-auth/jwt";
 import { TestType } from "@/types/sample";
 
+const LAB_ADMIN_ID = process.env.NEXT_PUBLIC_LAB_ADMIN_ID;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { sampleId: string } }
@@ -34,6 +36,7 @@ export async function GET(
           latitude,
           longitude,
           signature,
+          photo_url,
           received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email,role)
         )
       `

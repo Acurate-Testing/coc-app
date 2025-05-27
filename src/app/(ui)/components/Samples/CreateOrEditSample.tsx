@@ -482,7 +482,7 @@ export default function SampleForm() {
         return (
           <div>
             <div className="mb-3">
-              <label>Select Tests *</label>
+              <label>Select Test Type(s) *</label>
               <MultiSelect
                 className="z-2 w-full mt-1"
                 options={testTypes.map((test) => ({
@@ -497,10 +497,10 @@ export default function SampleForm() {
                   value: test.id,
                 }))}
                 onChange={handleTestSelection}
-                labelledBy="Select Test(s)"
+                labelledBy="Select Test Type(s)"
                 overrideStrings={{
-                  selectSomeItems: "Select Test(s)",
-                  search: "Search Test(s)",
+                  selectSomeItems: "Select Test Type(s)",
+                  search: "Search Test Type(s)",
                 }}
               />
             </div>

@@ -11,20 +11,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const active = searchParams.get("active") === "true";
+
     const baseQuery = supabase
       .from("users")
       .select("id, full_name, email, role, active, created_at")
-      .is("deleted_at", null); // soft delete filter
+      .is("deleted_at", null) // soft delete filter
+      .order("created_at", { ascending: false });
 
-    // Apply agency filter only if not lab_technician
-    if (session.user.role !== UserRole.LABADMIN) {
+    // Apply agency filter only if not lab_technician and agency_id exists
+    if (session.user.role !== UserRole.LABADMIN && session.user.agency_id) {
       baseQuery.eq("agency_id", session.user.agency_id);
+    }
+
+    // Filter by active status if requested
+    if (active) {
+      baseQuery.eq("active", true);
     }
 
     const { data, error } = await baseQuery;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Supabase error:", error);
+      return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ users: [] });
     }
 
     return NextResponse.json({ users: data });

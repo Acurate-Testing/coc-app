@@ -254,10 +254,10 @@ export default function AdminUsersPage() {
               </div>
               <Button
                 variant="outline-primary"
-                label="Edit User Access"
+                label="Assign Account Id"
                 onClick={() => setShowEditAccessModal(true)}
               >
-                Edit User Access
+                Assign Account Id
               </Button>
             </div>
             {/* Test Permissions */}
@@ -265,11 +265,11 @@ export default function AdminUsersPage() {
               <div className="flex items-center justify-between mb-4">
                 <div className="font-semibold text-base">Test Permissions</div>
                 <Button
-                  label="+ Assign Test"
+                  label="+ Assign Test Type"
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
                   onClick={() => setShowAssignModal(true)}
                 >
-                  + Assign Test
+                  + Assign Test Type
                 </Button>
               </div>
               
@@ -277,7 +277,7 @@ export default function AdminUsersPage() {
               <div className="w-full">
                 {(selectedUser.assigned_tests || []).length === 0 ? (
                   <div className="text-center py-8 text-gray-400 text-base font-medium">
-                    No tests assigned.
+                    No test types assigned.
                   </div>
                 ) : (
                   <div className="overflow-x-auto w-full">
@@ -287,10 +287,10 @@ export default function AdminUsersPage() {
                           <thead className="bg-gray-50">
                             <tr>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Test Name
+                                Test Type Name
                               </th>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Test Code
+                                Test Type Code
                               </th>
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Matrix Type
@@ -389,7 +389,7 @@ export default function AdminUsersPage() {
                   role="menuitem"
                 >
                   <FaTrash className="mr-3 h-5 w-5" />
-                  Remove Access
+                  Delete
                 </button>
               </div>
             </div>

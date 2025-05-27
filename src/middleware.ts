@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 
 export async function middleware(request: NextRequest) {
   try {
+    // Initialize Supabase client
+    const res = NextResponse.next();
+    const supabase = createMiddlewareClient({ req: request, res });
+    
+    // Get NextAuth token
     const token = await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
@@ -11,10 +17,18 @@ export async function middleware(request: NextRequest) {
 
     const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
     const isAuthRoute = request.nextUrl.pathname.startsWith("/api/auth/");
+    const isPublicRoute = request.nextUrl.pathname.startsWith("/_next") || 
+                         request.nextUrl.pathname.startsWith("/static") ||
+                         request.nextUrl.pathname.startsWith("/favicon.ico");
+
+    // Allow public routes to pass through
+    if (isPublicRoute) {
+      return res;
+    }
 
     // Allow auth routes to pass through
     if (isAuthRoute) {
-      return NextResponse.next();
+      return res;
     }
 
     // Check authentication for API routes
@@ -22,7 +36,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const publicPages = ["/login", "/register", "/reset-password"];
+    const publicPages = ["/login", "/register", "/reset-password", "/set-password"];
     const isPublicPage = publicPages.some((page) =>
       request.nextUrl.pathname.startsWith(page)
     );
@@ -32,11 +46,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    return NextResponse.next();
+    return res;
   } catch (error) {
     console.error("Middleware error:", error);
     // In case of error, allow the request to proceed to avoid blocking users
-    // You might want to handle this differently depending on your requirements
     return NextResponse.next();
   }
 }

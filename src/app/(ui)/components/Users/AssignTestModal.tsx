@@ -59,12 +59,12 @@ const AssignTestModal: FC<AssignTestModalProps> = ({
         body: JSON.stringify({ userId, testIds: selected.map((s) => s.value) }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to assign tests");
+      if (!res.ok) throw new Error(data.error || "Failed to assign test types");
       successToast("Tests assigned successfully");
       onAssigned();
       close();
     } catch (err: any) {
-      errorToast(err.message || "Failed to assign tests");
+      errorToast(err.message || "Failed to assign test types");
     } finally {
       setIsSaving(false);
     }
@@ -72,23 +72,23 @@ const AssignTestModal: FC<AssignTestModalProps> = ({
 
   return (
     <Modal
-      title="Assign Tests"
+      title="Assign Test Type"
       open={open}
       close={close}
       staticModal
       panelClassName="!max-w-md"
     >
       <div className="mb-4">
-        <label>Select Tests</label>
+        <label>Select Test Type(s)</label>
         <MultiSelect
           className="z-2 w-full mt-1"
           options={tests.map((t) => ({ label: t.name, value: t.id }))}
           value={selected}
           onChange={setSelected}
-          labelledBy="Select Test(s)"
+          labelledBy="Select Test Type(s)"
           overrideStrings={{
-            selectSomeItems: "Select Test(s)",
-            search: "Search Test(s)",
+            selectSomeItems: "Select Test Type(s)",
+            search: "Search Test Type(s)",
           }}
         />
       </div>

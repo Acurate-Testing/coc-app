@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "./(ui)/styles/custom-style.scss";
@@ -35,11 +35,15 @@ export const metadata: Metadata = {
   title: "Accurate Testing Labs",
   description:
     "Professional laboratory testing services for drinking water quality and environmental analysis",
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#2563eb",
   icons: {
     icon: "/favicon.ico",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({
@@ -49,7 +53,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-light text-light`}>
+      <body 
+        className={`${inter.className} bg-light text-light`}
+        suppressHydrationWarning
+      >
         <NextAuthProvider>
           <Suspense fallback={null}>
             <ToastContainerWrapper />

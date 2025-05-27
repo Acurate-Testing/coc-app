@@ -176,7 +176,8 @@ jest.mock('next/headers', () => ({
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
-process.env.SENDGRID_API_KEY = 'SG.test-sendgrid-key'
+process.env.SMTP_EMAIL = 'test@example.com'
+process.env.SMTP_PASSWORD = 'test-smtp-password'
 process.env.ENCRYPTION_KEY = 'test-encryption-key'
 
 // Mock Supabase

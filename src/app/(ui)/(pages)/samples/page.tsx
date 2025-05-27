@@ -29,7 +29,7 @@ export default function HomePage() {
   const router = useRouter();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeTab, setActiveTab] = useState(SampleStatus.Submitted);
   const [samples, setSamples] = useState<Partial<Sample>[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -173,9 +173,7 @@ export default function HomePage() {
               <IoSearch className="text-themeColor pointer-events-none h-5 w-5 absolute top-1/2 transform -translate-y-1/2 left-3 z-[1] ml-2" />
               <input
                 id="sample-search"
-                className={`font-medium rounded-lg py-2.5 px-4 bg-white  ${
-                  !searchQuery && !samples.length ? "cursor-not-allowed" : ""
-                } text-base appearance-none block !pl-12 form-input`}
+                className={`font-medium rounded-lg py-2.5 px-4 bg-white text-base appearance-none block !pl-12 form-input`}
                 value={searchQuery}
                 type="search"
                 placeholder="Search"
@@ -184,7 +182,6 @@ export default function HomePage() {
                   setCurrentPage(0);
                   setSearchQuery(value);
                 }}
-                disabled={!searchQuery && !samples.length}
               />
             </div>
             <div />

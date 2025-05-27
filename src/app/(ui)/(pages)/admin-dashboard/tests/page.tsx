@@ -189,7 +189,7 @@ export default function AdminTestsPage() {
       <div className="p-4 sm:p-8 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Tests
+            Test Types
           </h1>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
@@ -198,7 +198,7 @@ export default function AdminTestsPage() {
               setShowModal(true);
             }}
           >
-            + Add Test
+            + Add Test Type
           </button>
         </div>
         <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -234,7 +234,7 @@ export default function AdminTestsPage() {
                           scope="col"
                           className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
                         >
-                          Test Code
+                          Test Type Code
                         </th>
                         <th
                           scope="col"
@@ -265,7 +265,7 @@ export default function AdminTestsPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-gray-500">
-                              {test.matrix_type || "-"}
+                              {test.matrix_types?.join(", ") || "-"}
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -421,10 +421,10 @@ export default function AdminTestsPage() {
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">
-                  Matrix Type
+                  Matrix Types
                 </dt>
                 <dd className="mt-1 text-base text-gray-900">
-                  {viewTest.matrix_type || "-"}
+                  {viewTest.matrix_types?.join(", ") || "-"}
                 </dd>
               </div>
               <div>

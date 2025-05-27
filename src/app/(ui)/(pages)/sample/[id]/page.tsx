@@ -14,7 +14,7 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-import { FaAngleLeft, FaFingerprint } from "react-icons/fa";
+import { FaAngleLeft, FaFingerprint, FaSignature } from "react-icons/fa";
 import { ImBin } from "react-icons/im";
 import {
   IoChatbubble,
@@ -22,9 +22,88 @@ import {
   IoInformationCircleOutline,
   IoPrintOutline,
 } from "react-icons/io5";
-import { LuWaves } from "react-icons/lu";
+import { LuWaves, LuSignature } from "react-icons/lu";
 import { MdOutlineUpdate } from "react-icons/md";
 import { PiRobotFill } from "react-icons/pi";
+import { BiCamera, BiImage } from "react-icons/bi";
+
+const LAB_ADMIN_ID = process.env.NEXT_PUBLIC_LAB_ADMIN_ID;
+
+const COCTransferItem = ({
+  transfer,
+  onImageSelect
+}: {
+  transfer: any;
+  onImageSelect: (type: 'signature' | 'photo', url: string) => void;
+}) => {
+  const [signature, setSignature] = useState<string | null>(null);
+  const isLabAdminTransfer = transfer.received_by_user?.id === LAB_ADMIN_ID;
+
+  useEffect(() => {
+    const decryptSignature = async () => {
+      if (transfer.signature) {
+        try {
+          const signatureData = transfer.signature.startsWith('base64-')
+            ? transfer.signature.substring(7)
+            : transfer.signature;
+
+          // Use API endpoint for decryption
+          const res = await fetch('/api/encryption/decrypt', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: signatureData }),
+          });
+          if (!res.ok) throw new Error('Failed to decrypt signature');
+          const { decrypted } = await res.json();
+          setSignature(decrypted);
+        } catch (error) {
+          console.error('Error decrypting signature:', error);
+        }
+      }
+    };
+    decryptSignature();
+  }, [transfer.signature]);
+
+  return (
+    <div className="relative mb-6 last:mb-0">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-1">
+        <div className="text-xs text-gray-500 font-medium leading-tight pt-1">
+          {moment(transfer.timestamp).format("MMM D, YYYY h:mm A")}
+          {/* Transfer text */}
+          <h3 className={`text-base font-semibold m-0 transfer-text ${isLabAdminTransfer ? 'text-green-800' : 'text-blue-900'}`}>
+            {isLabAdminTransfer
+              ? 'Transferred to Lab'
+              : (<><span className="font-bold">Transferred to:</span> <span className="ml-1">{transfer.received_by_user?.full_name}</span></>)}
+          </h3>
+        </div>
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          {transfer.photo_url && (
+            <button
+              type="button"
+              title="View Photo"
+              onClick={() => onImageSelect('photo', transfer.photo_url)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-green-100 text-green-600 hover:scale-105 transition-transform"
+            >
+              <BiImage className="w-5 h-5" />
+            </button>
+          )}
+          {signature && (
+            <button
+              type="button"
+              title="View Signature"
+              onClick={() => onImageSelect('signature', signature)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center bg-green-100 text-green-600 hover:scale-105 transition-transform"
+            >
+              <LuSignature className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+    </div>
+  );
+};
 
 export default function InspectionDetailPage() {
   const { data: session, status } = useSession();
@@ -40,6 +119,7 @@ export default function InspectionDetailPage() {
   const [statusNotes, setStatusNotes] = useState<string>("");
   const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
   const [selectedStatus, setSelectedStatus] = useState<'pass' | 'fail' | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{ type: 'signature' | 'photo', url: string } | null>(null);
 
   const isLabAdmin = session?.user?.role === UserRole.LABADMIN;
 
@@ -151,7 +231,7 @@ export default function InspectionDetailPage() {
     } else {
       setSelectedStatus(null);
     }
-    
+
     setStatusNotes(formData.pass_fail_notes || "");
     setOpenStatusUpdateModal(true);
   };
@@ -190,7 +270,7 @@ export default function InspectionDetailPage() {
       setOpenStatusUpdateModal(false);
       setStatusNotes("");
       setSelectedStatus(null);
-      
+
       fetchSampleData();
     } catch (error) {
       console.error("Error updating sample status:", error);
@@ -209,7 +289,12 @@ export default function InspectionDetailPage() {
   };
 
   const getAccordionData = () => {
-    let data = [
+    const cocTransfers = formData?.coc_transfers || [];
+    const lastIsLabAdmin =
+      cocTransfers.length > 0 &&
+      cocTransfers[0].received_by === LAB_ADMIN_ID;
+
+    const baseAccordionItems = [
       {
         id: "acc1",
         title: "Basic Information",
@@ -230,16 +315,14 @@ export default function InspectionDetailPage() {
             </div>
             <div className="flex items-center justify-between">
               <div className="text-gray-500">Status</div>
-              <div className={`font-semibold ${
-                formData.status === SampleStatus.Pass ? 'text-green-600' : 
+              <div className={`font-semibold ${formData.status === SampleStatus.Pass ? 'text-green-600' :
                 formData.status === SampleStatus.Fail ? 'text-red-600' : 'text-gray-900'
-              }`}>
+                }`}>
                 {formData.status || "Pending"}
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="text-gray-500">Matrix Type</div>
-
               <div className="text-gray-900">
                 {formData.matrix_type}{" "}
                 {formData.matrix_type === MatrixType.Other
@@ -344,7 +427,6 @@ export default function InspectionDetailPage() {
             <div className="flex items-center justify-between gap-10">
               <div className="text-gray-500">Current GPS Location</div>
               <div className="md:max-w-[unset] max-w-[120px] break-all font-semibold text-themeColor">
-              {/* ${formData.latitude}° N, ${formData.longitude}° W */}
                 {formData.address}
               </div>
             </div>
@@ -374,35 +456,33 @@ export default function InspectionDetailPage() {
     const cocItem = {
       id: "acc7",
       title: "Chain of Custody",
-      ...(isLabAdmin ? {} : { buttonText: "+ COC", buttonAction: handleCOCModalOpen }),
       content: (
-        <div className="relative border-l-2 border-themeColor ml-4 space-y-6">
-          {formData?.coc_transfers && formData.coc_transfers.length > 0 ? (
-            formData?.coc_transfers.map((item, index) => (
-              <div key={index} className="relative pl-6">
-                <span className="absolute left-[-0.55rem] top-4 w-4 h-4 rounded-full bg-themeColor border-2 border-white"></span>
-
-                <div className="bg-gray-50 p-4 rounded-lg shadow-sm flex justify-between items-start">
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      {moment(item.timestamp).format("YYYY-MM-DD hh:mm A")}
-                    </p>
-                    <h3 className="font-semibold text-gray-800">
-                      Tranferred to:{" "}
-                      <span className="!font-normal">
-                        {item.received_by_user.full_name}
-                      </span>
-                    </h3>
+        <div className="relative pl-6">
+          {/* Timeline vertical line */}
+          <div className="absolute left-0 top-2.5 bottom-2.5 w-0.5 bg-blue-200" style={{ zIndex: 0 }} />
+          <div className="space-y-6">
+            {cocTransfers.map((transfer: any, idx: number) => {
+              const isLabAdminTransfer = transfer.received_by_user?.id === LAB_ADMIN_ID;
+              return (
+                <div key={transfer.id} className="relative">
+                  {/* Timeline dot */}
+                  <div className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${isLabAdminTransfer ? 'bg-green-600 border-green-600' : 'bg-blue-600 border-blue-600'} z-10`} />
+                  <div className={`ml-4 ${isLabAdminTransfer ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'} border rounded-lg p-4 shadow-sm`}>
+                    <COCTransferItem
+                      transfer={transfer}
+                      onImageSelect={(type, url) => setSelectedImage({ type, url })}
+                    />
                   </div>
-                  {/* <FaFilePdf className="text-red-600 text-2xl mt-1" /> */}
                 </div>
-              </div>
-            ))
-          ) : (
-            <span className="text-gray-500"> No Chain Of Custody found</span>
-          )}
+              );
+            })}
+          </div>
         </div>
       ),
+      ...(!isLabAdmin && !lastIsLabAdmin ? {
+        buttonText: "+ COC",
+        buttonAction: () => router.push(`/sample/transfer-coc/${params.id}`)
+      } : {})
     };
 
     const deleteItem = {
@@ -416,13 +496,11 @@ export default function InspectionDetailPage() {
       initiallyOpen: false,
     };
 
-    const accordionData = [
-      ...data,
+    return [
+      ...baseAccordionItems,
       cocItem,
       ...(isLabAdmin ? [] : [deleteItem]),
     ];
-
-    return accordionData;
   };
 
   const handlePrint = () => {
@@ -598,7 +676,7 @@ export default function InspectionDetailPage() {
           setOpenConfirmDeleteDialog(false);
         }}
       />
-      
+
       <Modal
         open={openStatusUpdateModal}
         title="Update Sample Status"
@@ -609,36 +687,32 @@ export default function InspectionDetailPage() {
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">Status</label>
             <div className="flex gap-4">
-              <div 
-                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
-                  selectedStatus === 'pass' 
-                    ? 'border-green-500 bg-green-50' 
-                    : 'border-gray-300'
-                }`} 
+              <div
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${selectedStatus === 'pass'
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-300'
+                  }`}
                 onClick={() => setSelectedStatus('pass')}
               >
-                <div className={`w-4 h-4 rounded-full mr-2 ${
-                  selectedStatus === 'pass' ? 'bg-green-500' : 'bg-gray-200'
-                }`}></div>
+                <div className={`w-4 h-4 rounded-full mr-2 ${selectedStatus === 'pass' ? 'bg-green-500' : 'bg-gray-200'
+                  }`}></div>
                 <span>Pass</span>
               </div>
-              
-              <div 
-                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
-                  selectedStatus === 'fail' 
-                    ? 'border-red-500 bg-red-50' 
-                    : 'border-gray-300'
-                }`} 
+
+              <div
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${selectedStatus === 'fail'
+                  ? 'border-red-500 bg-red-50'
+                  : 'border-gray-300'
+                  }`}
                 onClick={() => setSelectedStatus('fail')}
               >
-                <div className={`w-4 h-4 rounded-full mr-2 ${
-                  selectedStatus === 'fail' ? 'bg-red-500' : 'bg-gray-200'
-                }`}></div>
+                <div className={`w-4 h-4 rounded-full mr-2 ${selectedStatus === 'fail' ? 'bg-red-500' : 'bg-gray-200'
+                  }`}></div>
                 <span>Fail</span>
               </div>
             </div>
           </div>
-          
+
           <TextArea
             label="Notes"
             placeholder="Enter notes about the sample status"
@@ -646,7 +720,7 @@ export default function InspectionDetailPage() {
             onChange={(e) => setStatusNotes(e.target.value)}
             rows={4}
           />
-          
+
           <div className="flex justify-end mt-6 gap-4">
             <Button
               variant="outline-primary"
@@ -660,9 +734,27 @@ export default function InspectionDetailPage() {
               label="Save"
               disabled={updatingStatus || !selectedStatus}
               onClick={handleSaveStatus}
-              // loading={updatingStatus}
+            // loading={updatingStatus}
             />
           </div>
+        </div>
+      </Modal>
+      {/* Image Preview Modal */}
+      <Modal
+        open={!!selectedImage}
+        onClose={() => setSelectedImage(null)}
+        title={selectedImage?.type === 'signature' ? 'Signature' : 'Handoff Photo'}
+      >
+        <div className="p-4">
+          {selectedImage && (
+            <div className="flex justify-center">
+              <img
+                src={selectedImage.url}
+                alt={selectedImage.type === 'signature' ? 'Signature' : 'Handoff Photo'}
+                className="max-w-full max-h-[80vh] object-contain"
+              />
+            </div>
+          )}
         </div>
       </Modal>
     </div>

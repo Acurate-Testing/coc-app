@@ -38,7 +38,7 @@ export default function LoginPage() {
   // Handle session changes
   useEffect(() => {
     if (session?.user?.role === "lab_admin") {
-      router.push("/admin-dashboard");
+      router.push("/admin-dashboard/samples");
     } else if (session) {
       router.push(searchParams.get("callbackUrl") || "/samples");
     }

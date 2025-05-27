@@ -46,6 +46,16 @@ export default function TransferCOCPage() {
       }
       const data = await response.json();
       setSampleData(data.sample);
+
+      // Check if sample has been transferred to Lab Admin
+      const hasLabAdminTransfer = data.sample.coc_transfers?.some(
+        (transfer: any) => transfer.received_by === "59398b60-0d7c-43a7-b2c1-4f0c259c1199"
+      );
+
+      if (hasLabAdminTransfer) {
+        errorToast("This sample has already been transferred to Lab Admin. No further transfers are allowed.");
+        router.push(`/sample/${params.id}`);
+      }
     } catch (error) {
       console.error("Error fetching sample:", error);
       errorToast("Failed to fetch sample data");
@@ -54,17 +64,22 @@ export default function TransferCOCPage() {
   };
 
   const clearSignature = () => {
-    sigPadRef.current?.clear();
-    setSignatureData(null);
+    if (sigPadRef.current) {
+      sigPadRef.current.clear();
+      setSignatureData(null);
+    }
   };
 
   const saveSignature = () => {
-    if (sigPadRef.current?.isEmpty()) return;
-    setSignatureData(
-      sigPadRef?.current
-        ? sigPadRef?.current?.getTrimmedCanvas()?.toDataURL("image/png")
-        : null
-    );
+    if (!sigPadRef.current || sigPadRef.current.isEmpty()) return;
+    
+    try {
+      const signatureDataUrl = sigPadRef.current.toDataURL("image/png");
+      setSignatureData(signatureDataUrl);
+    } catch (error) {
+      console.error("Error saving signature:", error);
+      errorToast("Failed to save signature");
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,30 +99,45 @@ export default function TransferCOCPage() {
       return;
     }
 
+    // Save signature before submitting if it hasn't been saved yet
+    if (!signatureData && sigPadRef.current && !sigPadRef.current.isEmpty()) {
+      saveSignature();
+    }
+
+    if (!signatureData) {
+      setError("Please provide a signature");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError("");
 
+      // Create form data for the COC transfer
+      const formData = new FormData();
+      if (photo) {
+        formData.append('file', dataURLtoFile(photo, 'handoff-photo.jpg'));
+      }
+      formData.append('received_by', selectedUser);
+      formData.append('latitude', sampleData?.latitude?.toString() || '');
+      formData.append('longitude', sampleData?.longitude?.toString() || '');
+      formData.append('timestamp', timestamp.toISOString());
+      formData.append('signature', signatureData);
+
+      // Create the COC transfer
       const response = await fetch(`/api/samples/coc?sample_id=${params.id}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          timestamp,
-          received_by: selectedUser,
-          latitude: sampleData?.latitude || null,
-          longitude: sampleData?.longitude || null,
-          signature: session?.user.id,
-        }),
+        credentials: 'include',
+        body: formData,
       });
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to transfer chain of custody");
       }
+
       successToast("Chain of custody transferred successfully");
-      router.push(`/sample/${params?.id}`);
+      router.push(`/sample/${params.id}`);
     } catch (error) {
       console.error("Transfer error:", error);
       errorToast(
@@ -120,10 +150,23 @@ export default function TransferCOCPage() {
     }
   };
 
+  // Helper function to convert data URL to File object
+  const dataURLtoFile = (dataurl: string, filename: string) => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
   const fetchUsers = async () => {
     try {
       setIsFetchingUsers(true);
-      const response = await fetch("/api/users");
+      const response = await fetch("/api/users?active=true");
       const data = await response.json();
       setUsers(data.users || []);
     } catch (error) {
@@ -216,11 +259,13 @@ export default function TransferCOCPage() {
             <option value="59398b60-0d7c-43a7-b2c1-4f0c259c1199">
               LAB ADMIN
             </option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.full_name} ({user.email})
-              </option>
-            ))}
+            {users
+              .filter((user) => user.id !== session?.user?.id)
+              .map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.full_name} ({user.email})
+                </option>
+              ))}
           </select>
           <div className="border rounded-lg p-4 shadow-sm bg-white mb-5">
             <h3 className="font-semibold text-gray-900 mb-1">
@@ -242,8 +287,11 @@ export default function TransferCOCPage() {
                   ref={sigPadRef}
                   penColor="#000000"
                   clearOnResize
-                  canvasProps={{ className: "w-full h-48" }}
-                  onEnd={saveSignature}
+                  canvasProps={{ 
+                    className: "w-full h-48",
+                    width: 500,
+                    height: 200
+                  }}
                 />
               )}
               {!signatureData && (
@@ -255,23 +303,17 @@ export default function TransferCOCPage() {
                 label={isMobile ? "Clear" : "Clear Signature"}
                 variant="outline-primary"
                 size="large"
-                disabled={
-                  sigPadRef?.current ? sigPadRef?.current.isEmpty() : false
-                }
+                disabled={!sigPadRef.current || sigPadRef.current.isEmpty()}
                 onClick={clearSignature}
                 className="w-full h-[50px]"
               />
-              {sigPadRef.current ? (
-                <Button
-                  label={isMobile ? "Upload" : "Upload Signature"}
-                  size="large"
-                  disabled={sigPadRef.current.isEmpty()}
-                  onClick={saveSignature}
-                  className="w-full h-[50px]"
-                />
-              ) : (
-                ""
-              )}
+              <Button
+                label={isMobile ? "Save" : "Save Signature"}
+                size="large"
+                disabled={!sigPadRef.current || sigPadRef.current.isEmpty()}
+                onClick={saveSignature}
+                className="w-full h-[50px]"
+              />
             </div>
           </div>
 

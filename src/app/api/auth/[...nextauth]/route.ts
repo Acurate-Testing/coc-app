@@ -100,9 +100,6 @@ const handler = NextAuth({
 
             if (!accountsError && accountsData) {
               accounts = accountsData;
-              // if (accounts.length > 0) {
-              //   agency_id = accounts[0].agency_id;
-              // }
             }
             if (!userError && userData) {
               agency_id = userData.agency_id;
@@ -139,6 +136,7 @@ const handler = NextAuth({
         token.accounts = (user as any).accounts || [];
         token.role = (user as any).role ?? null;
         token.agency_id = (user as any).agency_id ?? null;
+        token.name = (user as any).name ?? null;
       }
       return token;
     },
@@ -149,12 +147,25 @@ const handler = NextAuth({
         session.user.accounts = (token.accounts as any[]) || [];
         session.user.agency_id =
           typeof token.agency_id === "string" ? token.agency_id : null;
+        session.user.name = token.name;
       }
       return session;
     },
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
   debug: process.env.NODE_ENV === "development",
 });

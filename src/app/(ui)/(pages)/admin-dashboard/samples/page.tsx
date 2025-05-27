@@ -51,7 +51,7 @@ export default function AdminSamplesPage() {
   const router = useRouter();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeTab, setActiveTab] = useState<string>("All");
   const [samples, setSamples] = useState<Sample[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +105,11 @@ export default function AdminSamplesPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
+      if (session?.user?.role === "lab_admin") {
+        setActiveTab(SampleStatus.Submitted);
+      } else {
+        setActiveTab("All");
+      }
       fetchSamples();
     }
   }, [status, currentPage, activeTab, limitPerPage, selectedAgency]);
@@ -280,7 +285,7 @@ export default function AdminSamplesPage() {
                 onChange={(e) => setSelectedAgency(e.target.value)}
                 className='form-input bg-white w-full'
               >
-                <option value=''>All Users</option>
+                <option value=''>All Accounts</option>
                 {agencies.map((agency) => (
                   <option key={agency.id} value={agency.id}>
                     {agency.name}
