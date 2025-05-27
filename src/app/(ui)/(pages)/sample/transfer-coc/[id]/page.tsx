@@ -49,11 +49,14 @@ export default function TransferCOCPage() {
 
       // Check if sample has been transferred to Lab Admin
       const hasLabAdminTransfer = data.sample.coc_transfers?.some(
-        (transfer: any) => transfer.received_by === "59398b60-0d7c-43a7-b2c1-4f0c259c1199"
+        (transfer: any) =>
+          transfer.received_by === `${process.env.NEXT_PUBLIC_LAB_ADMIN_ID}`
       );
 
       if (hasLabAdminTransfer) {
-        errorToast("This sample has already been transferred to Lab Admin. No further transfers are allowed.");
+        errorToast(
+          "This sample has already been transferred to Lab Admin. No further transfers are allowed."
+        );
         router.push(`/sample/${params.id}`);
       }
     } catch (error) {
@@ -72,7 +75,7 @@ export default function TransferCOCPage() {
 
   const saveSignature = () => {
     if (!sigPadRef.current || sigPadRef.current.isEmpty()) return;
-    
+
     try {
       const signatureDataUrl = sigPadRef.current.toDataURL("image/png");
       setSignatureData(signatureDataUrl);
@@ -116,18 +119,18 @@ export default function TransferCOCPage() {
       // Create form data for the COC transfer
       const formData = new FormData();
       if (photo) {
-        formData.append('file', dataURLtoFile(photo, 'handoff-photo.jpg'));
+        formData.append("file", dataURLtoFile(photo, "handoff-photo.jpg"));
       }
-      formData.append('received_by', selectedUser);
-      formData.append('latitude', sampleData?.latitude?.toString() || '');
-      formData.append('longitude', sampleData?.longitude?.toString() || '');
-      formData.append('timestamp', timestamp.toISOString());
-      formData.append('signature', signatureData);
+      formData.append("received_by", selectedUser);
+      formData.append("latitude", sampleData?.latitude?.toString() || "");
+      formData.append("longitude", sampleData?.longitude?.toString() || "");
+      formData.append("timestamp", timestamp.toISOString());
+      formData.append("signature", signatureData);
 
       // Create the COC transfer
       const response = await fetch(`/api/samples/coc?sample_id=${params.id}`, {
         method: "POST",
-        credentials: 'include',
+        credentials: "include",
         body: formData,
       });
 
@@ -152,7 +155,7 @@ export default function TransferCOCPage() {
 
   // Helper function to convert data URL to File object
   const dataURLtoFile = (dataurl: string, filename: string) => {
-    const arr = dataurl.split(',');
+    const arr = dataurl.split(",");
     const mime = arr[0].match(/:(.*?);/)?.[1];
     const bstr = atob(arr[1]);
     let n = bstr.length;
@@ -256,7 +259,7 @@ export default function TransferCOCPage() {
             disabled={isFetchingUsers}
           >
             <option value="">Select User</option>
-            <option value="59398b60-0d7c-43a7-b2c1-4f0c259c1199">
+            <option value={process.env.NEXT_PUBLIC_LAB_ADMIN_ID}>
               LAB ADMIN
             </option>
             {users
@@ -287,10 +290,10 @@ export default function TransferCOCPage() {
                   ref={sigPadRef}
                   penColor="#000000"
                   clearOnResize
-                  canvasProps={{ 
+                  canvasProps={{
                     className: "w-full h-48",
                     width: 500,
-                    height: 200
+                    height: 200,
                   }}
                 />
               )}
