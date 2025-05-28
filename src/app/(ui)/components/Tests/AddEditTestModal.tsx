@@ -17,6 +17,17 @@ interface AddEditTestModalProps {
   test?: Test | null;
 }
 
+interface FormData {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string | null;
+  created_at: string;
+  deleted_at: string | null;
+  test_code: string | null;
+  matrix_types: MatrixType[];
+}
+
 const AddEditTestModal: FC<AddEditTestModalProps> = ({
   open,
   close,
@@ -28,37 +39,46 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
     trapFocus: true,
     restoreFocus: true,
     focusFirstOnMount: true,
-    isActive: open
+    isActive: open,
   });
 
-  const [form, setForm] = useState({ 
-    name: "", 
+  const [form, setForm] = useState<{
+    id: string;
+    name: string;
+    description: string;
+    test_code: string;
+    matrix_types: MatrixType[];
+  }>({
+    id: "",
+    name: "",
     description: "",
     test_code: "",
-    matrix_types: [MatrixType.PotableWater] as MatrixType[]
+    matrix_types: [],
   });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) {
+    if (test) {
       setForm({
-        name: test?.name || "",
+        id: test.id,
+        name: test.name,
         description: test?.description || "",
         test_code: test?.test_code || "",
-        matrix_types: (test?.matrix_types as MatrixType[]) || [MatrixType.PotableWater],
+        matrix_types: (test?.matrix_types || []).map(
+          (type) => type as MatrixType
+        ),
       });
       setError(null);
-      setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [open, test]);
+  }, [test]);
 
   const handleSave = async () => {
     if (!form.name.trim()) {
       setError("Name is required");
       return;
     }
-    
+
     if (!form.test_code.trim()) {
       setError("Test code is required");
       return;
@@ -102,7 +122,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
         }}
       >
         {error && (
-          <div 
+          <div
             className="mb-4 p-2 bg-red-50 text-red-600 rounded"
             role="alert"
             aria-live="assertive"
@@ -111,10 +131,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           </div>
         )}
         <div className="mb-4">
-          <label 
-            htmlFor="test-name"
-            className="pl-0.5"
-          >
+          <label htmlFor="test-name" className="pl-0.5">
             Test Name
           </label>
           <input
@@ -134,10 +151,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           />
         </div>
         <div className="mb-4">
-          <label 
-            htmlFor="test-code"
-            className="pl-0.5"
-          >
+          <label htmlFor="test-code" className="pl-0.5">
             Test Code
           </label>
           <input
@@ -156,10 +170,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           />
         </div>
         <div className="mb-4">
-          <label 
-            htmlFor="test-description"
-            className="pl-0.5"
-          >
+          <label htmlFor="test-description" className="pl-0.5">
             Description
           </label>
           <textarea
@@ -169,6 +180,36 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
+        </div>
+        <div className="mb-4">
+          <label className="pl-0.5 block mb-2">Matrix Type</label>
+          <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-4">
+            {Object.values(MatrixType).map((type) => (
+              <div
+                key={type}
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
+                  form.matrix_types.includes(type)
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-300"
+                }`}
+                onClick={() => {
+                  const newMatrixTypes = form.matrix_types.includes(type)
+                    ? form.matrix_types.filter((t: MatrixType) => t !== type)
+                    : [...form.matrix_types, type];
+                  setForm({ ...form, matrix_types: newMatrixTypes });
+                }}
+              >
+                <div
+                  className={`w-4 h-4 rounded-full mr-2 ${
+                    form.matrix_types.includes(type)
+                      ? "bg-blue-500"
+                      : "bg-gray-200"
+                  }`}
+                ></div>
+                <span>{type}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="flex justify-end gap-2">
           {isSaving ? (

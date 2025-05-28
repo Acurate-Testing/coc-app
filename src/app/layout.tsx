@@ -36,16 +36,10 @@ export const metadata: Metadata = {
   title: "COC App",
   description: "Certificate of Conformity Application",
   manifest: "/manifest.json",
-  themeColor: "#000000",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "COC App",
-  },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
   },
   icons: {
     icon: "/icons/icon-192x192.png",
@@ -57,6 +51,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
   themeColor: "#2563eb",
 };
 
@@ -66,20 +61,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   // Register service worker on client side
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     registerServiceWorker();
   }
 
   return (
     <html lang="en">
       <head>
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#2563eb" />
         <link rel="apple-touch-icon" href="/logo-at.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="COC App" />
       </head>
-      <body 
+      <body
         className={`${inter.className} bg-light text-light`}
         suppressHydrationWarning
       >
