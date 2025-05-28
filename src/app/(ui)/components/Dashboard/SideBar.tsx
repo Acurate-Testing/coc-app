@@ -64,35 +64,29 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
   if (userRole === UserRole.LABADMIN) {
     sideBarMenuItems = [
       {
-        name: "Dashboard",
-        icon: <TiHome size={24} />,
-        to: "/admin-dashboard",
-        isActive: pathname === "/admin-dashboard",
-      },
-      {
         name: "Samples",
         icon: <FaFileAlt size={22} />,
         to: "/admin-dashboard/samples",
         isActive: pathname === "/admin-dashboard/samples",
       },
       {
-        name: "Tests",
+        name: "Test Types",
         icon: <FaTasks size={22} />,
         to: "/admin-dashboard/tests",
         isActive: pathname === "/admin-dashboard/tests",
       },
       {
-        name: "Users",
+        name: "Account",
         icon: <FaUsers size={22} />,
         to: "/admin-dashboard/users",
         isActive: pathname === "/admin-dashboard/users",
       },
-      {
-        name: "Settings",
-        icon: <FaChartLine size={22} />,
-        to: "/admin-dashboard/settings",
-        isActive: pathname === "/admin-dashboard/settings",
-      },
+      // {
+      //   name: "Settings",
+      //   icon: <FaChartLine size={22} />,
+      //   to: "/admin-dashboard/settings",
+      //   isActive: pathname === "/admin-dashboard/settings",
+      // },
     ];
   } else {
     sideBarMenuItems = [

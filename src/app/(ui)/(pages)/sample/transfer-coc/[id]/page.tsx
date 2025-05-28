@@ -4,26 +4,27 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { User } from "@/types/user";
+import moment from "moment";
 import { Sample } from "@/types/sample";
 import SignaturePad from "react-signature-canvas";
+import { useMediaQuery } from "react-responsive";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { Button } from "@/stories/Button/Button";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import LoadingSpinner from "../../../../components/Common/LoadingSpinner";
-import moment from "moment";
 import { BiCamera, BiCheck, BiPencil, BiX } from "react-icons/bi";
 
 export default function TransferCOCPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const params = useParams();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [selectedUser, setSelectedUser] = useState("");
   const [error, setError] = useState("");
   const [sampleData, setSampleData] = useState<Partial<Sample> | null>(null);
-  console.log("sampleData++++", sampleData);
   const [isEditing, setIsEditing] = useState(false);
   const [timestamp, setTimestamp] = useState(new Date());
   const [tempTimestamp, setTempTimestamp] = useState(new Date());
@@ -45,6 +46,19 @@ export default function TransferCOCPage() {
       }
       const data = await response.json();
       setSampleData(data.sample);
+
+      // Check if sample has been transferred to Lab Admin
+      const hasLabAdminTransfer = data.sample.coc_transfers?.some(
+        (transfer: any) =>
+          transfer.received_by === `${process.env.NEXT_PUBLIC_LAB_ADMIN_ID}`
+      );
+
+      if (hasLabAdminTransfer) {
+        errorToast(
+          "This sample has already been transferred to Lab Admin. No further transfers are allowed."
+        );
+        router.push(`/sample/${params.id}`);
+      }
     } catch (error) {
       console.error("Error fetching sample:", error);
       errorToast("Failed to fetch sample data");
@@ -53,17 +67,22 @@ export default function TransferCOCPage() {
   };
 
   const clearSignature = () => {
-    sigPadRef.current?.clear();
-    setSignatureData(null);
+    if (sigPadRef.current) {
+      sigPadRef.current.clear();
+      setSignatureData(null);
+    }
   };
 
   const saveSignature = () => {
-    if (sigPadRef.current?.isEmpty()) return;
-    setSignatureData(
-      sigPadRef?.current
-        ? sigPadRef?.current?.getTrimmedCanvas()?.toDataURL("image/png")
-        : null
-    );
+    if (!sigPadRef.current || sigPadRef.current.isEmpty()) return;
+
+    try {
+      const signatureDataUrl = sigPadRef.current.toDataURL("image/png");
+      setSignatureData(signatureDataUrl);
+    } catch (error) {
+      console.error("Error saving signature:", error);
+      errorToast("Failed to save signature");
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,30 +102,45 @@ export default function TransferCOCPage() {
       return;
     }
 
+    // Save signature before submitting if it hasn't been saved yet
+    if (!signatureData && sigPadRef.current && !sigPadRef.current.isEmpty()) {
+      saveSignature();
+    }
+
+    if (!signatureData) {
+      setError("Please provide a signature");
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError("");
 
+      // Create form data for the COC transfer
+      const formData = new FormData();
+      if (photo) {
+        formData.append("file", dataURLtoFile(photo, "handoff-photo.jpg"));
+      }
+      formData.append("received_by", selectedUser);
+      formData.append("latitude", sampleData?.latitude?.toString() || "");
+      formData.append("longitude", sampleData?.longitude?.toString() || "");
+      formData.append("timestamp", timestamp.toISOString());
+      formData.append("signature", signatureData);
+
+      // Create the COC transfer
       const response = await fetch(`/api/samples/coc?sample_id=${params.id}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          timestamp,
-          received_by: selectedUser,
-          latitude: sampleData?.latitude || null,
-          longitude: sampleData?.longitude || null,
-          signature: session?.user.id,
-        }),
+        credentials: "include",
+        body: formData,
       });
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to transfer chain of custody");
       }
+
       successToast("Chain of custody transferred successfully");
-      router.push(`/sample/${params?.id}`);
+      router.push(`/sample/${params.id}`);
     } catch (error) {
       console.error("Transfer error:", error);
       errorToast(
@@ -119,10 +153,23 @@ export default function TransferCOCPage() {
     }
   };
 
+  // Helper function to convert data URL to File object
+  const dataURLtoFile = (dataurl: string, filename: string) => {
+    const arr = dataurl.split(",");
+    const mime = arr[0].match(/:(.*?);/)?.[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
   const fetchUsers = async () => {
     try {
       setIsFetchingUsers(true);
-      const response = await fetch("/api/users");
+      const response = await fetch("/api/users?active=true");
       const data = await response.json();
       setUsers(data.users || []);
     } catch (error) {
@@ -146,49 +193,51 @@ export default function TransferCOCPage() {
     <>
       <div className="bg-white md:px-8 px-6 py-4">
         <div className="flex items-center justify-between mb-2">
-          <div className="w-full grid grid-cols-1 gap-y-3 text-sm">
-            <div className="flex items-center justify-between">
+          <div className="w-full grid grid-cols-1 gap-y-3">
+            <div className="flex md:flex-row flex-col md:items-center justify-between">
               <div className="text-gray-500">Sample ID</div>
-              <div className="font-semibold text-gray-900">{params?.id}</div>
+              <div className="font-semibold text-gray-900 pt-1">
+                {params?.id}
+              </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex md:flex-row flex-col md:items-center justify-between">
               <div className="text-gray-500">Timestamp</div>
               <div className="text-gray-900">
                 {!isEditing ? (
                   <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-800">
+                    <span className="text-gray-800">
                       {moment(timestamp).format("YYYY-MM-DD hh:mm A")}
                     </span>
                     <button
                       onClick={() => setIsEditing(true)}
-                      className="text-themeColor hover:bg-gray-100 p-1.5 border rounded-lg"
+                      className="text-themeColor hover:bg-gray-100 py-1.5 !px-0 border rounded-xl"
                     >
-                      <BiPencil className="w-6 h-6" />
+                      <BiPencil className="w-6 h-6 mx-auto" />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <input
                       type="datetime-local"
                       value={moment(tempTimestamp).format("YYYY-MM-DDTHH:mm")}
                       onChange={(e) =>
                         setTempTimestamp(new Date(e.target.value))
                       }
-                      className="border rounded-lg px-3 py-1 h-11 text-sm"
+                      className="form-input mt-1 !px-2 max-w-[220px]"
                     />
                     <button
                       onClick={handleConfirm}
-                      className="text-green-600 hover:bg-gray-100 p-1.5 border rounded-lg"
+                      className="text-green-600 hover:bg-gray-100 py-1.5 !px-0 border rounded-xl"
                       title="Save"
                     >
-                      <BiCheck className="w-6 h-6" />
+                      <BiCheck className="w-6 h-6 mx-auto" />
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
-                      className="text-red-600 hover:bg-gray-100 p-1.5 border rounded-lg"
+                      className="text-red-600 hover:bg-gray-100 py-1.5 !px-0 border rounded-xl"
                       title="Cancel"
                     >
-                      <BiX className="w-6 h-6" />
+                      <BiX className="w-6 h-6 mx-auto" />
                     </button>
                   </div>
                 )}
@@ -210,14 +259,16 @@ export default function TransferCOCPage() {
             disabled={isFetchingUsers}
           >
             <option value="">Select User</option>
-            <option value="59398b60-0d7c-43a7-b2c1-4f0c259c1199">
+            <option value={process.env.NEXT_PUBLIC_LAB_ADMIN_ID}>
               LAB ADMIN
             </option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.full_name} ({user.email})
-              </option>
-            ))}
+            {users
+              .filter((user) => user.id !== session?.user?.id)
+              .map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.full_name} ({user.email})
+                </option>
+              ))}
           </select>
           <div className="border rounded-lg p-4 shadow-sm bg-white mb-5">
             <h3 className="font-semibold text-gray-900 mb-1">
@@ -239,8 +290,11 @@ export default function TransferCOCPage() {
                   ref={sigPadRef}
                   penColor="#000000"
                   clearOnResize
-                  canvasProps={{ className: "w-full h-48" }}
-                  onEnd={saveSignature}
+                  canvasProps={{
+                    className: "w-full h-48",
+                    width: 500,
+                    height: 200,
+                  }}
                 />
               )}
               {!signatureData && (
@@ -249,26 +303,20 @@ export default function TransferCOCPage() {
             </div>
             <div className="flex items-center justify-between gap-4 mt-4">
               <Button
-                label="Clear Signature"
+                label={isMobile ? "Clear" : "Clear Signature"}
                 variant="outline-primary"
                 size="large"
-                disabled={
-                  sigPadRef?.current ? sigPadRef?.current.isEmpty() : false
-                }
+                disabled={!sigPadRef.current || sigPadRef.current.isEmpty()}
                 onClick={clearSignature}
                 className="w-full h-[50px]"
               />
-              {sigPadRef.current ? (
-                <Button
-                  label="Upload Signature"
-                  size="large"
-                  disabled={sigPadRef.current.isEmpty()}
-                  onClick={saveSignature}
-                  className="w-full h-[50px]"
-                />
-              ) : (
-                ""
-              )}
+              <Button
+                label={isMobile ? "Save" : "Save Signature"}
+                size="large"
+                disabled={!sigPadRef.current || sigPadRef.current.isEmpty()}
+                onClick={saveSignature}
+                className="w-full h-[50px]"
+              />
             </div>
           </div>
 

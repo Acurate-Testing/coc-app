@@ -47,11 +47,11 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
   };
 
   return (
-    <header className="flex items-center justify-between bg-white shadow p-4 relative">
+    <header className="flex items-center justify-between bg-white shadow p-4 py-2 pl-6 relative">
       <div className="flex items-center space-x-4">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="md:ml-4 md:mr-2"
+          className="md:ml-4 md:mr-2 min-w-[unset]"
         >
           <FaBars size={24} />
         </button>
@@ -90,7 +90,7 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
           <MenuItems
             transition
             anchor="bottom end"
-            className="w-48 mt-2 origin-top-right rounded-xl border border-borderGray bg-white p-1 text-base/6 text-gray-700 transition duration-200 ease-out [--anchor-gap:var(--spacing-1)] focus:outline-none data-[closed]:scale-95 data-[closed]:opacity-0"
+            className="w-48 origin-top-right rounded-xl border border-borderGray bg-white p-1 text-base/6 text-gray-700 transition duration-200 ease-out [--anchor-gap:var(--spacing-1)] focus:outline-none data-[closed]:scale-95 data-[closed]:opacity-0"
           >
             <MenuItem>
               <button

@@ -1,4 +1,4 @@
-import { PrivacyPolicy, SampleStatus, UserRole } from "@/constants/enums";
+import { MatrixType, PrivacyPolicy, SampleStatus, UserRole } from "@/constants/enums";
 
 export type Json =
   | string
@@ -7,6 +7,13 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[];
+
+export type SampleStatusType =
+  | SampleStatus.Pending
+  | SampleStatus.InCOC
+  | SampleStatus.Submitted
+  | SampleStatus.Pass
+  | SampleStatus.Fail;
 
 export interface Database {
   public: {
@@ -68,6 +75,8 @@ export interface Database {
           created_by: string | null;
           created_at: string;
           deleted_at: string | null;
+          test_code: string | null;
+          matrix_types: string[];
         };
         Insert: {
           id?: string;
@@ -76,6 +85,8 @@ export interface Database {
           created_by?: string | null;
           created_at?: string;
           deleted_at?: string | null;
+          test_code?: string | null;
+          matrix_types?: string[];
         };
         Update: {
           id?: string;
@@ -84,6 +95,8 @@ export interface Database {
           created_by?: string | null;
           created_at?: string;
           deleted_at?: string | null;
+          test_code?: string | null;
+          matrix_types?: string[];
         };
       };
       users: {
@@ -143,24 +156,15 @@ export interface Database {
           created_by: string | null;
           pws_id: string | null;
           matrix_type: string | null;
+          matrix_name: string | null;
           sample_privacy: PrivacyPolicy.Private | PrivacyPolicy.Public | null;
           compliance: "Yes" | "No" | null;
           chlorine_residual: string | null;
           county: string | null;
           sample_type: string | null;
           sample_location: string | null;
-          source: string | null;
-          latitude: number | null;
-          longitude: number | null;
-          sample_collected_at: string | null;
-          temperature: number | null;
+          status: SampleStatusType;
           notes: string | null;
-          status:
-            | SampleStatus.Pending
-            | SampleStatus.InCOC
-            | SampleStatus.Submitted
-            | SampleStatus.Pass
-            | SampleStatus.Fail;
           pass_fail_notes: string | null;
           attachment_url: string | null;
           created_at: string;

@@ -4,6 +4,8 @@ import { requireAuth } from "@/lib/auth";
 import { getToken } from "next-auth/jwt";
 import { TestType } from "@/types/sample";
 
+const LAB_ADMIN_ID = process.env.NEXT_PUBLIC_LAB_ADMIN_ID;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { sampleId: string } }
@@ -25,6 +27,7 @@ export async function GET(
       account:accounts(name),
       agency:agencies(name),
       test_types:test_types(id,name),
+      created_by_user:users(id, full_name),
         coc_transfers(
           id,
           transferred_by,
@@ -33,12 +36,14 @@ export async function GET(
           latitude,
           longitude,
           signature,
+          photo_url,
           received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email,role)
         )
       `
       )
       .eq("id", params.sampleId)
       .is("deleted_at", null)
+      .order("timestamp", { foreignTable: "coc_transfers", ascending: false })
       .single();
 
     if (error) {
@@ -80,6 +85,7 @@ export async function PUT(
       "created_by",
       "pws_id",
       "matrix_type",
+      "matrix_name",
       "sample_privacy",
       "compliance",
       "chlorine_residual",

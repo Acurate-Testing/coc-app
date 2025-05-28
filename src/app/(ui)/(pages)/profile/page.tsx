@@ -1,34 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { FaAngleLeft, FaArrowLeft } from "react-icons/fa";
+import { FaAngleLeft } from "react-icons/fa";
 import { Button } from "@/stories/Button/Button";
 import { Card } from "@/stories/Card/Card";
-import { useSession } from "next-auth/react";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
+import { useSession } from "next-auth/react";
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
+  const { data: session, update: updateSession } = useSession();
   const [name, setName] = useState(session?.user?.name || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClientComponentClient();
 
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    // Fetch initial user data
+    const fetchUserData = async () => {
+      const { data, error } = await supabase
+        .from("users")
+        .select("full_name")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user data:", error);
+        return;
+      }
+
+      if (data?.full_name) {
+        setName(data.full_name);
+      }
+    };
+
+    fetchUserData();
+  }, [session?.user?.id, supabase]);
+
   const handleNameUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { full_name: name },
-      });
+      if (!session?.user?.id) {
+        throw new Error("No user found");
+      }
+
+      const { error } = await supabase
+        .from("users")
+        .update({ full_name: name })
+        .eq("id", session.user.id);
 
       if (error) throw error;
+
+      // Update the session with the new name
+      await updateSession({
+        ...session,
+        user: {
+          ...session.user,
+          name: name,
+        },
+      });
+
       successToast("Name updated successfully");
     } catch (error) {
       errorToast("Failed to update name");
@@ -43,6 +82,10 @@ export default function ProfilePage() {
     setIsLoading(true);
 
     try {
+      if (!session?.user?.id) {
+        throw new Error("No user found");
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -58,6 +101,23 @@ export default function ProfilePage() {
       setIsLoading(false);
     }
   };
+
+  if (!session) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <Button
+          label="Back"
+          icon={<FaAngleLeft />}
+          variant="icon"
+          size="large"
+          onClick={() => router.back()}
+        />
+        <div className="text-center mt-6">
+          <p className="text-red-500">Please sign in to access your profile</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">

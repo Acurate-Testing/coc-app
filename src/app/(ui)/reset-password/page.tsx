@@ -61,17 +61,32 @@ export default function ForgotPasswordPage() {
         </div>
         <h2 className="text-2xl font-bold mb-6 text-center">Forgot Password</h2>
         <form onSubmit={handleReset}>
-          <label className="block mb-4">
-            <span>Email address</span>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 form-input"
-              placeholder="you@example.com"
-            />
-          </label>
+          <div>
+            <label htmlFor="email">Email address</label>
+            <div className="relative mt-1">
+              <span className="absolute left-4 top-1/2 text-gray-500 transform -translate-y-1/2 z-[1]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                className="form-input !pl-11"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+                autoComplete="email"
+              />
+            </div>
+          </div>
           {status === "loading" ? (
             <LoadingButton
               label="Signing in..."

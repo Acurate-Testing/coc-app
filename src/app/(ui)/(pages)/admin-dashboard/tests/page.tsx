@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Database } from "@/types/supabase";
-import { Button } from "@/stories/Button/Button";
-import { Card } from "@/stories/Card/Card";
-import { Pagination } from "@/stories/Pagination/Pagination";
-import { FiEdit } from "react-icons/fi";
-import { ImBin } from "react-icons/im";
 import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
+import AddEditTestModal from "@/app/(ui)/components/Tests/AddEditTestModal";
+import { Card } from "@/stories/Card/Card";
+import { Pagination } from "@/stories/Pagination/Pagination";
+import { Database } from "@/types/supabase";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { FiEdit, FiEye, FiMoreVertical } from "react-icons/fi";
+import { ImBin } from "react-icons/im";
 
 // Use the correct Test type
 type Test = Database["public"]["Tables"]["test_types"]["Row"];
@@ -27,13 +28,21 @@ export default function AdminTestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
-  const [limitPerPage, setLimitPerPage] = useState(10);
   const [totalTests, setTotalTests] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [editTest, setEditTest] = useState<Test | null>(null);
   const [selectedTest, setSelectedTest] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
+    useState<boolean>(false);
+  const [viewTest, setViewTest] = useState<Test | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [isMounted, setIsMounted] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchTests = async () => {
     try {
@@ -41,7 +50,6 @@ export default function AdminTestsPage() {
       setError(null);
       const params = [
         `page=${currentPage}`,
-        `limit=${limitPerPage}`,
         searchQuery ? `search=${searchQuery}` : "",
       ]
         .filter(Boolean)
@@ -63,7 +71,7 @@ export default function AdminTestsPage() {
 
   useEffect(() => {
     fetchTests();
-  }, [currentPage, limitPerPage]);
+  }, [currentPage]);
 
   useEffect(() => {
     if (searchQuery !== "") {
@@ -74,6 +82,23 @@ export default function AdminTestsPage() {
     }
   }, [searchQuery]);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenActionMenu(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuRef]);
+
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
   const handleEditClick = (test: Test) => {
     setEditTest(test);
     setShowModal(true);
@@ -82,6 +107,11 @@ export default function AdminTestsPage() {
   const handleDeleteClick = (id: string) => {
     setSelectedTest(id);
     setOpenConfirmDeleteDialog(true);
+  };
+
+  const handleViewClick = (test: Test) => {
+    setViewTest(test);
+    setShowViewModal(true);
   };
 
   const handleDeleteTest = async () => {
@@ -100,10 +130,39 @@ export default function AdminTestsPage() {
       setSelectedTest("");
       fetchTests();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to delete test");
+      setError(
+        error instanceof Error ? error.message : "Failed to delete test"
+      );
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const toggleActionMenu = (
+    testId: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const button = event.currentTarget;
+    menuButtonRefs.current.set(testId, button);
+
+    if (openActionMenu === testId) {
+      setOpenActionMenu(null);
+      return;
+    }
+
+    // Get button position
+    const rect = button.getBoundingClientRect();
+    const isNearRightEdge = window.innerWidth - rect.right < 200;
+    const isNearBottomEdge = window.innerHeight - rect.bottom < 150;
+
+    // Calculate position based on boundaries
+    const position = {
+      top: isNearBottomEdge ? rect.top - 150 : rect.bottom + 5,
+      left: isNearRightEdge ? rect.left - 150 : rect.left,
+    };
+
+    setMenuPosition(position);
+    setOpenActionMenu(testId);
   };
 
   if (isLoading) {
@@ -113,7 +172,10 @@ export default function AdminTestsPage() {
     return (
       <div className="min-h-screen w-full">
         <div className="max-w-md mx-auto p-4">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+            role="alert"
+          >
             <strong className="font-bold">Error!</strong>
             <span className="block sm:inline"> {error}</span>
           </div>
@@ -125,13 +187,18 @@ export default function AdminTestsPage() {
   return (
     <>
       <div className="p-4 sm:p-8 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tests</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Test Types
+          </h1>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
-            onClick={() => { setEditTest(null); setShowModal(true); }}
+            onClick={() => {
+              setEditTest(null);
+              setShowModal(true);
+            }}
           >
-            + Add Test
+            + Add Test Type
           </button>
         </div>
         <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -149,48 +216,89 @@ export default function AdminTestsPage() {
             />
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           {tests.length > 0 ? (
-            <>
-              {tests.map((test) => (
-                <div key={test.id} className="mb-4">
-                  <Card className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between">
-                    <div>
-                      <div className="font-semibold text-lg">{test.name}</div>
-                      <div className="text-gray-500 text-sm mb-2">{test.description || "-"}</div>
-                      <div className="text-xs text-gray-400">Code: {test.id}</div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        className="min-w-[110px]"
-                        onClick={() => handleEditClick(test)}
-                        label="Edit"
-                        icon={<FiEdit className="text-lg" />}
-                      />
-                      <Button
-                        className="min-w-[110px]"
-                        onClick={() => handleDeleteClick(test.id)}
-                        label="Delete"
-                        variant="danger"
-                        icon={<ImBin className="text-lg" />}
-                      />
-                    </div>
-                  </Card>
+            <div className="w-full">
+              <div className="rounded-xl overflow-hidden shadow">
+                <div className="w-full overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-300">
+                      <tr>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
+                        >
+                          Name
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
+                        >
+                          Test Type Code
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
+                        >
+                          Matrix Type
+                        </th>
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-right text-sm font-medium text-gray-800 uppercase tracking-wider w-24"
+                        >
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {tests.map((test) => (
+                        <tr key={test.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="font-medium text-gray-900">
+                              {test.name}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-gray-500">
+                              {test.test_code || "-"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-gray-500">
+                              {test.matrix_types?.join(", ") || "-"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div>
+                              <button
+                                ref={(el : any) =>
+                                  el && menuButtonRefs.current.set(test.id, el)
+                                }
+                                onClick={(e) => toggleActionMenu(test.id, e)}
+                                className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+                              >
+                                <FiMoreVertical className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-              {totalPages && (
+              </div>
+              {totalPages > 0 && (
                 <div className="p-5">
                   <Pagination
                     activePage={currentPage || 0}
                     setActivePage={setCurrentPage}
                     numberOfPage={totalPages}
                     numberOfRecords={totalTests}
-                    itemsPerPage={limitPerPage || 10}
-                    setItemsPerPage={setLimitPerPage}
+                    itemsPerPage={10}
                   />
                 </div>
               )}
-            </>
+            </div>
           ) : (
             <Card className="p-4 bg-white !shadow-none rounded-xl">
               <div className="flex items-center justify-center h-64">
@@ -200,15 +308,148 @@ export default function AdminTestsPage() {
           )}
         </div>
       </div>
-      {/* Add/Edit Test Modal (stub) */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-            <div className="font-semibold text-lg mb-4">{editTest ? "Edit Test" : "Add Test"}</div>
-            <div className="mb-4 text-gray-500 text-sm">(Test form UI goes here)</div>
-            <div className="flex justify-end gap-2">
-              <button className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="px-4 py-2 rounded-lg bg-blue-600 text-white">{editTest ? "Update" : "Add"}</button>
+
+      {/* Dropdown menu portal */}
+      {isMounted &&
+        openActionMenu &&
+        createPortal(
+          <div
+            className="fixed z-50"
+            style={{
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+            }}
+            ref={menuRef}
+          >
+            <div className="mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+              <div className="py-1" role="menu" aria-orientation="vertical">
+                {tests.find((t) => t.id === openActionMenu) && (
+                  <>
+                    <button
+                      onClick={() => {
+                        handleViewClick(
+                          tests.find((t) => t.id === openActionMenu)!
+                        );
+                        setOpenActionMenu(null);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
+                      role="menuitem"
+                    >
+                      <FiEye className="mr-3 h-5 w-5" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleEditClick(
+                          tests.find((t) => t.id === openActionMenu)!
+                        );
+                        setOpenActionMenu(null);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
+                      role="menuitem"
+                    >
+                      <FiEdit className="mr-3 h-5 w-5" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDeleteClick(openActionMenu);
+                        setOpenActionMenu(null);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-700 w-full text-left"
+                      role="menuitem"
+                    >
+                      <ImBin className="mr-3 h-5 w-5" />
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      <AddEditTestModal
+        open={showModal}
+        test={editTest}
+        onSaved={fetchTests}
+        close={() => setShowModal(false)}
+      />
+      {/* View Test Modal */}
+      {viewTest && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+            showViewModal ? "" : "hidden"
+          }`}
+        >
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowViewModal(false)}
+          ></div>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md z-10 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Test Details
+              </h3>
+              <button
+                type="button"
+                className="text-gray-400 hover:text-gray-500"
+                onClick={() => setShowViewModal(false)}
+              >
+                &times;
+              </button>
+            </div>
+            <dl className="space-y-4">
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Name</dt>
+                <dd className="mt-1 text-base text-gray-900">{viewTest.name}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">
+                  Description
+                </dt>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.description || "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Test Code</dt>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.test_code || "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">
+                  Matrix Types
+                </dt>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.matrix_types?.join(", ") || "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">
+                  Created At
+                </dt>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.created_at
+                    ? new Date(viewTest.created_at).toLocaleString()
+                    : "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">ID</dt>
+                <dd className="mt-1 text-sm text-gray-500">{viewTest.id}</dd>
+              </div>
+            </dl>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
+                onClick={() => setShowViewModal(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -224,4 +465,4 @@ export default function AdminTestsPage() {
       />
     </>
   );
-} 
+}

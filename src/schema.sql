@@ -22,6 +22,8 @@ create table public.test_types (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text,
+  test_code text,
+  matrix_types text[] default array['Potable Water'],
   created_by uuid,
   created_at timestamp default current_timestamp,
   deleted_at timestamp default null
@@ -84,7 +86,8 @@ create table public.coc_transfers (
   received_by uuid references public.users(id),
   timestamp timestamp not null default current_timestamp,
   latitude numeric,
- longitude numeric,
+  longitude numeric,
   signature text,
+  photo_url text,
   deleted_at timestamp default null
 );

@@ -8,6 +8,7 @@ export enum MatrixType {
   Wastewater = "Wastewater",
   NonPotableWater = "Non-potable Water",
   Soil = "Soil",
+  Other = "Other",
 }
 
 export enum SampleStatus {
@@ -21,6 +22,14 @@ export enum SampleStatus {
 export enum SampleType {
   Composite = "Composite",
   Grab = "Grab",
+  Construction = "Construction",
+  Downstream = "Downstream",
+  Upstream = "Upstream",
+  Enforcement = "Enforcement",
+  Repeat = "Repeat",
+  RoutineSample = "Routine Sample",
+  Untreated = "Untreated",
+  Other = "Other",
 }
 
 export enum SampleSourceType {

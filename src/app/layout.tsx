@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "./(ui)/styles/custom-style.scss";
 import "./(ui)/styles/glove-friendly.css";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
+import { registerServiceWorker } from "./service-worker";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -32,14 +33,31 @@ const ToastContainerWrapper = dynamic(
 );
 
 export const metadata: Metadata = {
-  title: "Accurate Testing Labs",
-  description:
-    "Professional laboratory testing services for drinking water quality and environmental analysis",
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#2563eb",
-  icons: {
-    icon: "/favicon.ico",
+  title: "COC App",
+  description: "Certificate of Conformity Application",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "COC App",
   },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
+  icons: {
+    icon: "/icons/icon-192x192.png",
+    shortcut: "/icons/icon-192x192.png",
+    apple: "/icons/icon-192x192.png",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({
@@ -47,9 +65,24 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Register service worker on client side
+  if (typeof window !== 'undefined') {
+    registerServiceWorker();
+  }
+
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-light text-dark`}>
+      <head>
+        <meta name="theme-color" content="#000000" />
+        <link rel="apple-touch-icon" href="/logo-at.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="COC App" />
+      </head>
+      <body 
+        className={`${inter.className} bg-light text-light`}
+        suppressHydrationWarning
+      >
         <NextAuthProvider>
           <Suspense fallback={null}>
             <ToastContainerWrapper />

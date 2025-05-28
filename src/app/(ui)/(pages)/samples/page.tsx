@@ -9,37 +9,33 @@ import LoadingSpinner from "../../components/Common/LoadingSpinner";
 import { Label } from "@/stories/Label/Label";
 import moment from "moment";
 import { Button } from "@/stories/Button/Button";
-import ConfirmationModal from "../../components/Common/ConfirmationModal";
 import { LuPlus } from "react-icons/lu";
 import SampleOverview from "../../components/Samples/SampleOverview";
 import { Card } from "@/stories/Card/Card";
 import { GoClock } from "react-icons/go";
 import { FaLocationDot } from "react-icons/fa6";
 import { Pagination } from "@/stories/Pagination/Pagination";
-import { ImBin } from "react-icons/im";
 import { FiEdit } from "react-icons/fi";
 import { Chip } from "@material-tailwind/react";
 import { SampleStatus } from "@/constants/enums";
 import { useMediaQuery } from "react-responsive";
+import { RiTestTubeFill } from "react-icons/ri";
+import { Sample } from "@/types/sample";
 
-type Sample = Database["public"]["Tables"]["samples"]["Row"];
+// type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
 export default function HomePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("All");
-  const [samples, setSamples] = useState<Sample[]>([]);
+  const [activeTab, setActiveTab] = useState<SampleStatus | "All">("All");
+  const [samples, setSamples] = useState<Partial<Sample>[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
-  const [limitPerPage, setLimitPerPage] = useState(10);
   const [totalSamples, setTotalSamples] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [selectedSample, setSelectedSample] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
-    useState<boolean>(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -53,7 +49,7 @@ export default function HomePage() {
       setError(null);
 
       const response = await fetch(
-        `/api/samples?page=${currentPage}&limit=${limitPerPage}${
+        `/api/samples?page=${currentPage}${
           searchQuery ? `&search=${searchQuery}` : ""
         }${activeTab !== "All" ? `&status=${activeTab}` : ""}
         `
@@ -90,9 +86,9 @@ export default function HomePage() {
       case "in_coc":
         return "!bg-[#DBEAFE] !text-[#1D4ED8]";
       case "submitted":
-        return "!bg-[#D1FAE5] !text-[#047857]";
+        return '!bg-[#E9D5FF] !text-[#7E22CE]';
       case "pass":
-        return "!bg-[#d1fae5] !text-[ #065f46]";
+        return "!bg-[#d1fae5] !text-[#065f46]";
       case "fail":
         return "!bg-[#fee2e2] !text-[#dc2626]";
       default:
@@ -121,7 +117,7 @@ export default function HomePage() {
     if (status === "authenticated") {
       fetchSamples();
     }
-  }, [status, currentPage, activeTab, limitPerPage]);
+  }, [status, currentPage, activeTab]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -130,18 +126,18 @@ export default function HomePage() {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  const filteredSamples = samples.filter((sample: Sample) => {
-    const matchesSearch =
-      (sample.project_id?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-        false) ||
-      (sample.pws_id?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-        false) ||
-      (sample.matrix_type?.toLowerCase().includes(searchQuery.toLowerCase()) ??
-        false);
+  // const filteredSamples = samples?.filter((sample: Sample) => {
+  //   const matchesSearch =
+  //     (sample.project_id?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+  //       false) ||
+  //     (sample.pws_id?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+  //       false) ||
+  //     (sample.matrix_type?.toLowerCase().includes(searchQuery.toLowerCase()) ??
+  //       false);
 
-    if (activeTab === "All") return matchesSearch;
-    return matchesSearch && sample.status === activeTab.toLowerCase();
-  });
+  //   if (activeTab === "All") return matchesSearch;
+  //   return matchesSearch && sample.status === activeTab.toLowerCase();
+  // });
 
   if (error) {
     return (
@@ -159,41 +155,6 @@ export default function HomePage() {
     );
   }
 
-  const handleDeleteClick = (e: any, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedSample(id);
-    setOpenConfirmDeleteDialog(true);
-  };
-
-  const handleDeleteSample = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/samples?id=${selectedSample}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to delete sample");
-      }
-
-      // Close the confirmation dialog
-      setOpenConfirmDeleteDialog(false);
-      setSelectedSample("");
-
-      // Refresh the samples list
-      fetchSamples();
-    } catch (error) {
-      console.error("Error deleting sample:", error);
-      setError(
-        error instanceof Error ? error.message : "Failed to delete sample"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <>
       {!isMobile && <SampleOverview />}
@@ -209,12 +170,10 @@ export default function HomePage() {
         <div className="flex gap-4 items-center">
           <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="relative">
-              <IoSearch className="text-themeColor pointer-events-none h-5 w-5 absolute top-1/2 transform -translate-y-1/2 left-3" />
+              <IoSearch className="text-themeColor pointer-events-none h-5 w-5 absolute top-1/2 transform -translate-y-1/2 left-3 z-[1] ml-2" />
               <input
                 id="sample-search"
-                className={`font-medium rounded-lg py-2.5 px-4 bg-white  ${
-                  !searchQuery && !samples.length ? "cursor-not-allowed" : ""
-                } text-base appearance-none block !pl-10 form-input`}
+                className={`font-medium rounded-lg py-2.5 px-4 bg-white text-base appearance-none block !pl-12 form-input`}
                 value={searchQuery}
                 type="search"
                 placeholder="Search"
@@ -223,7 +182,6 @@ export default function HomePage() {
                   setCurrentPage(0);
                   setSearchQuery(value);
                 }}
-                disabled={!searchQuery && !samples.length}
               />
             </div>
             <div />
@@ -234,9 +192,9 @@ export default function HomePage() {
                 value={activeTab}
                 onChange={(e) => {
                   setCurrentPage(0);
-                  setActiveTab(e.target.value);
+                  setActiveTab(e.target.value as SampleStatus | "All");
                 }}
-                className="form-input bg-white"
+                className="form-input h-[60px] md:h-full bg-white"
               >
                 <option value="All">All</option>
                 <option value={SampleStatus.Pending}>Pending</option>
@@ -258,49 +216,41 @@ export default function HomePage() {
                     className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between cursor-pointer"
                   >
                     <div>
-                      <div className="flex md:flex-row flex-col-reverse md:gap-4 gap-1">
+                      <div className="flex flex-row items-center md:gap-4 gap-2">
                         <div>
                           <Label
-                            label={`#${sample.pws_id || "N/A"}`}
+                            label={`#${sample.project_id || "N/A"}`}
                             className="text-lg font-semibold"
                           />
                         </div>
                         <div>
                           <Chip
                             className={`${getStatusColor(
-                              sample?.status
-                            )} capitalize flex items-center justify-center py-1 w-fit rounded-full`}
-                            value={getStatusLabel(sample?.status)}
+                              sample?.status as string,
+                            )} capitalize flex items-center justify-center py-1.5 w-fit rounded-full text-sm`}
+                            value={getStatusLabel(sample?.status as string)}
                           />
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center md:gap-4 gap-2">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
                           icon={<IoFlask className="text-lg text-gray-600" />}
                         />
-                        <Label
-                          label={sample?.matrix_type || "-"}
-                          className="text-lg"
-                        />
+                        <Label label={sample?.matrix_type || "-"} className="text-lg" />
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center md:gap-4 gap-2">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
-                          icon={
-                            <FaLocationDot className="text-lg text-gray-600" />
-                          }
+                          icon={<FaLocationDot className="text-lg text-gray-600" />}
                         />
-                        <Label
-                          label={sample?.sample_location || "-"}
-                          className="text-lg"
-                        />
+                        <Label label={sample?.sample_location || "-"} className="text-lg" />
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center md:gap-4 gap-2">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
@@ -308,16 +258,37 @@ export default function HomePage() {
                           icon={<GoClock className="text-lg text-gray-600" />}
                         />
                         <Label
-                          label={moment(sample?.created_at).format(
-                            "YYYY-MM-DD hh:mm A"
-                          )}
+                          label={moment(sample?.created_at).format("YYYY-MM-DD hh:mm A")}
                           className="text-lg"
                         />
+                      </div>
+                      <div className="flex items-center justify-start md:gap-4 gap-2">
+                        <Button
+                          className="md:!min-w-fit !p-3 !cursor-default"
+                          label=""
+                          variant="icon"
+                          icon={<RiTestTubeFill className="text-xl text-gray-600" />}
+                        />
+                        <div className="flex items-center flex-wrap gap-2">
+                          {sample?.sample_test_types && sample?.sample_test_types?.length > 0 ? (
+                            sample?.sample_test_types?.map((item, index) => (
+                              <div key={index}>
+                                {item?.test_types?.name && (
+                                  <div className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-full text-sm">
+                                    {item?.test_types?.name}
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-sm text-gray-500">No tests selected</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button
-                        className="md:min-w-[110px] !bg-[#FEF3C7]"
+                        className="md:min-w-[110px] !bg-[#DBEAFE]"
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/sample/edit/${sample.id}`);
@@ -337,15 +308,14 @@ export default function HomePage() {
                   </Card>
                 </div>
               ))}
-              {totalPages && (
+              {totalPages > 1 && (
                 <div>
                   <Pagination
                     activePage={currentPage || 0}
                     setActivePage={setCurrentPage}
                     numberOfPage={totalPages}
                     numberOfRecords={totalSamples}
-                    itemsPerPage={limitPerPage || 10}
-                    setItemsPerPage={setLimitPerPage}
+                    itemsPerPage={10}
                   />
                 </div>
               )}
@@ -368,16 +338,6 @@ export default function HomePage() {
           )}
         </div>
       </div>
-
-      {/* <ConfirmationModal
-        open={openConfirmDeleteDialog}
-        processing={isLoading}
-        onConfirm={handleDeleteSample}
-        setOpenModal={() => {
-          setSelectedSample("");
-          setOpenConfirmDeleteDialog(false);
-        }}
-      /> */}
     </>
   );
 }
