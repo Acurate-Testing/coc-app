@@ -9,7 +9,11 @@ export async function PUT(
 ) {
   try {
     // Verify authentication
-    const token = await getToken({ req: request });
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: "next-auth.session-token", 
+    });
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -13,8 +13,12 @@ export async function middleware(request: NextRequest) {
     const token = await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
-      cookieName: "next-auth.session-token", // Ensure this matches your NextAuth config
+      cookieName: "next-auth.session-token", 
     });
+
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
     const isAuthRoute = request.nextUrl.pathname.startsWith("/api/auth/");
