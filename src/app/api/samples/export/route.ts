@@ -35,109 +35,58 @@ const CSV_EXPORT_CONFIG = {
 
 export async function GET(request: NextRequest) {
   try {
-    // Authentication check
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      cookieName: "next-auth.session-token", 
-    });
-    if (!token) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse search parameters
     const searchParams = request.nextUrl.searchParams;
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
     const search = searchParams.get("search") || "";
-    const status = searchParams.get("status") || "";
-    const agency = searchParams.get("agency") || "";
-
-    // Role-based access control
-    const isAgency = session.user.role === UserRole.AGENCY;
-    const isLabAdmin = session.user.role === UserRole.LABADMIN;
-
-    // Set up query
-    let baseSelect = `
-      *,
-      account:accounts(name),
-      sample_test_types(
-        test_types(id, name)
-      )
-    `;
-
-    if (isAgency || isLabAdmin) {
-      baseSelect = `
-        *,
-        agency:agencies(name),
-        account:accounts(name),
-        sample_test_types(
-          test_types(id, name)
-        )
-      `;
-    }
+    const agencyId = searchParams.get("agencyId");
 
     let query = supabase
-      .from('samples')
-      .select(baseSelect)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+      .from("samples")
+      .select(
+        `
+        *,
+        account:accounts(name),
+        agency:agencies(name),
+        test_types:test_types(id,name),
+        created_by_user:users(id, full_name)
+      `
+      )
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+
+    // Apply date filters if provided
+    if (startDate) {
+      query = query.gte("created_at", startDate);
+    }
+    if (endDate) {
+      query = query.lte("created_at", endDate);
+    }
 
     // Apply search filter if provided
     if (search) {
-      query = query.or(`project_id.ilike.%${search}%,pws_id.ilike.%${search}%,matrix_type.ilike.%${search}%`);
+      query = query.or(
+        `pws_id.ilike.%${search}%,matrix_name.ilike.%${search}%,sample_location.ilike.%${search}%`
+      );
     }
-    
-    // Apply role-based filters
-    if (isLabAdmin) {
-      // Lab admin can only see submitted, pass, or fail samples
-      query = query.in('status', [SampleStatus.Submitted, SampleStatus.Pass, SampleStatus.Fail]);
-      
-      // Apply additional status filter if provided
-      if (status && status !== "All") {
-        query = query.eq('status', status.toLowerCase());
-      }
-      
-      // Lab admin can also filter by agency
-      if (agency) {
-        query = query.eq('agency_id', agency);
-      }
-    } else {
-      // Regular users can only see their agency's samples
-      query = query.eq('agency_id', token.agency_id);
-      
-      // Apply status filter if provided
-      if (status && status !== "All") {
-        query = query.eq('status', status.toLowerCase());
-      }
+
+    // Apply agency filter if provided
+    if (agencyId) {
+      query = query.eq("agency_id", agencyId);
     }
 
     const { data, error } = await query;
 
     if (error) {
-      console.error("Supabase query error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    if (!data || data.length === 0) {
-      return NextResponse.json({ error: "No data to export" }, { status: 400 });
-    }
-
-    // Process the data for CSV format
-    const csvData = processDataForCSV(data, isLabAdmin);
-    
-    // Create CSV headers
-    const headers = new Headers();
-    headers.set('Content-Type', 'text/csv');
-    headers.set('Content-Disposition', 'attachment; filename=samples-export.csv');
-    
-    // Return the CSV data
-    return new NextResponse(csvData, {
-      status: 200,
-      headers,
-    });
+    return NextResponse.json({ samples: data });
   } catch (error) {
     console.error("Export samples error:", error);
     return NextResponse.json(

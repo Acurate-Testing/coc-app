@@ -6,19 +6,13 @@ import { getServerSession } from 'next-auth';
 import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      cookieName: "next-auth.session-token", 
-    });
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -79,7 +73,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Regular users can only see their agency's samples
-      query = query.eq('agency_id', token.agency_id);
+      query = query.eq('agency_id', session.user.agency_id);
       
       // Apply status filter if provided
       if (status && status !== "All") {

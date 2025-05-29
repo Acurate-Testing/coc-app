@@ -5,7 +5,10 @@ import { authOptions } from "@/lib/auth-options";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { agencyId: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -13,17 +16,19 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await supabase
-      .from("agencies")
+      .from("users")
       .select("*")
-      .order("name");
+      .eq("agency_id", params.agencyId)
+      .is("deleted_at", null)
+      .order("full_name");
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ agencies: data });
+    return NextResponse.json({ users: data });
   } catch (error) {
-    console.error("Get agencies error:", error);
+    console.error("Get agency users error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -31,7 +36,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { agencyId: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -39,19 +47,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, address, city, state, zip, phone, email } = body;
+    const { email, full_name, role } = body;
 
     const { data, error } = await supabase
-      .from("agencies")
+      .from("users")
       .insert([
         {
-          name,
-          address,
-          city,
-          state,
-          zip,
-          phone,
           email,
+          full_name,
+          role,
+          agency_id: params.agencyId,
         },
       ])
       .select()
@@ -61,9 +66,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ agency: data });
+    return NextResponse.json({ user: data });
   } catch (error) {
-    console.error("Create agency error:", error);
+    console.error("Create agency user error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
