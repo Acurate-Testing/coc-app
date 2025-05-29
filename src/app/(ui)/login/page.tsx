@@ -37,11 +37,22 @@ export default function LoginPage() {
 
   // Handle session changes
   useEffect(() => {
-    if (status === "authenticated") {
-      if (session?.user?.role === "lab_admin") {
-        router.replace("/admin-dashboard/samples");
+    if (status === "authenticated" && session?.user) {
+      const callbackUrl = searchParams.get("callbackUrl");
+      // Only redirect if callbackUrl is not /login
+      if (callbackUrl && callbackUrl !== "/login") {
+        if (session.user.role === "lab_admin") {
+          router.replace("/admin-dashboard/samples");
+        } else {
+          router.replace(callbackUrl);
+        }
       } else {
-        router.replace(searchParams.get("callbackUrl") || "/samples");
+        // Default redirect if no valid callbackUrl
+        if (session.user.role === "lab_admin") {
+          router.replace("/admin-dashboard/samples");
+        } else {
+          router.replace("/samples");
+        }
       }
     }
   }, [session, status, router, searchParams]);
@@ -49,25 +60,24 @@ export default function LoginPage() {
   const handleSubmit = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      const callbackUrl = searchParams.get("callbackUrl");
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
+        callbackUrl:
+          callbackUrl && callbackUrl !== "/login" ? callbackUrl : "/samples",
       });
 
       if (result?.error) {
-        console.log("Error:", result.error);
+        console.error("Login error:", result.error);
         errorToast("Invalid credentials. Please try again.");
       } else if (result?.ok) {
-        // Force a small delay to ensure session is set
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Use window.location.href for a full page navigation
-        // This ensures the middleware gets the proper session
-        const redirectUrl = searchParams.get("callbackUrl") || "/samples";
-        window.location.href = redirectUrl;
+        // Let the useEffect handle the redirection
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     } catch (error) {
+      console.error("Login error:", error);
       errorToast("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

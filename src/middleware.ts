@@ -16,10 +16,6 @@ export async function middleware(request: NextRequest) {
       cookieName: "next-auth.session-token", 
     });
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
     const isAuthRoute = request.nextUrl.pathname.startsWith("/api/auth/");
     const isRscRequest = request.nextUrl.searchParams.has("_rsc");
@@ -39,18 +35,24 @@ export async function middleware(request: NextRequest) {
       return res;
     }
 
-    // Check authentication for API routes
-    if (isApiRoute && !token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const publicPages = ["/login", "/register", "/reset-password", "/set-password"];
     const isPublicPage = publicPages.some((page) =>
       request.nextUrl.pathname.startsWith(page)
     );
 
-    // Check authentication for protected pages
-    if (!isApiRoute && !token && !isPublicPage) {
+    // If it's a public page, allow access regardless of auth status
+    if (isPublicPage) {
+      return res;
+    }
+
+    // Handle unauthorized access for protected routes
+    if (!token) {
+      // For API routes, return JSON response
+      if (isApiRoute) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      
+      // For all other routes, redirect to login
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);

@@ -14,7 +14,7 @@ export async function GET(
     const token = await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
-      cookieName: "next-auth.session-token", // <-- ADD THIS!
+      cookieName: "next-auth.session-token", 
     });
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -76,7 +76,11 @@ export async function PUT(
     // const session = await requireAuth(request);
     // if (session instanceof NextResponse) return session;
 
-    const token = await getToken({ req: request });
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName: "next-auth.session-token", 
+    });
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
