@@ -4,6 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { getServerSession } from 'next-auth';
 import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
+import moment from "moment";
+
+export const dynamic = 'force-dynamic';
 
 // Define CSV export column configurations
 // This makes header changes easy without changing the rest of the code
