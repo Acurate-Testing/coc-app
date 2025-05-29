@@ -37,6 +37,8 @@ export default function LoginPage() {
 
   // Handle session changes
   useEffect(() => {
+    // Debug: log session and status every time they change
+    console.log("Session:", session, "Status:", status);
     if (status === "authenticated") {
       if (session?.user?.role === "lab_admin") {
         router.replace("/admin-dashboard/samples");
@@ -57,28 +59,9 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        // Handle specific error messages
-        switch (result.error) {
-          case "CredentialsSignin":
-            errorToast("Invalid email or password");
-            break;
-          case "Email and password are required":
-            errorToast("Please enter both email and password");
-            break;
-          case "No user found":
-            errorToast("No account found with this email");
-            break;
-          default:
-            errorToast(result.error);
-        }
+        console.log("Error:", result.error);
       } else if (result?.ok) {
-        // Force a session refresh and then redirect
-        await fetch("/api/auth/session");
-        if (session?.user?.role === "lab_admin") {
-          router.replace("/admin-dashboard/samples");
-        } else {
-          router.replace(searchParams.get("callbackUrl") || "/samples");
-        }
+        window.location.reload();
       }
     } catch (error) {
       errorToast("Something went wrong. Please try again.");
