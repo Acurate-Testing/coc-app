@@ -25,8 +25,8 @@ export async function middleware(request: NextRequest) {
                          request.nextUrl.pathname === "/manifest.json" ||
                          request.nextUrl.pathname.startsWith("/logo-at.png");
 
-    // Allow public routes and RSC requests to pass through
-    if (isPublicRoute || isRscRequest) {
+    // Allow public routes to pass through
+    if (isPublicRoute) {
       return res;
     }
 
@@ -45,11 +45,16 @@ export async function middleware(request: NextRequest) {
       return res;
     }
 
-    // Handle unauthorized access for protected routes
+    // Handle unauthorized access
     if (!token) {
       // For API routes, return JSON response
       if (isApiRoute) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      
+      // For RSC requests, allow them to pass through to handle auth in the component
+      if (isRscRequest) {
+        return res;
       }
       
       // For all other routes, redirect to login
@@ -58,6 +63,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
+    // If we have a token, allow all requests
     return res;
   } catch (error) {
     console.error("Middleware error:", error);
