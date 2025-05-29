@@ -17,14 +17,15 @@ export async function middleware(request: NextRequest) {
 
     const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
     const isAuthRoute = request.nextUrl.pathname.startsWith("/api/auth/");
+    const isRscRequest = request.nextUrl.searchParams.has("_rsc");
     const isPublicRoute = request.nextUrl.pathname.startsWith("/_next") || 
                          request.nextUrl.pathname.startsWith("/static") ||
                          request.nextUrl.pathname.startsWith("/favicon.ico") ||
                          request.nextUrl.pathname === "/manifest.json" ||
                          request.nextUrl.pathname.startsWith("/logo-at.png");
 
-    // Allow public routes to pass through
-    if (isPublicRoute) {
+    // Allow public routes and RSC requests to pass through
+    if (isPublicRoute || isRscRequest) {
       return res;
     }
 
@@ -45,7 +46,9 @@ export async function middleware(request: NextRequest) {
 
     // Check authentication for protected pages
     if (!isApiRoute && !token && !isPublicPage) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
     return res;
