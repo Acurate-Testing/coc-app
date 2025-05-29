@@ -12,23 +12,21 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email and password are required");
+          return null;
         }
 
         try {
-          const {
-            data: { user },
-            error,
-          } = await supabase.auth.signInWithPassword({
+          const { data: { user }, error } = await supabase.auth.signInWithPassword({
             email: credentials.email,
             password: credentials.password,
           });
 
           if (error || !user) {
-            throw new Error(error?.message || "Invalid credentials");
+            console.error("Auth error:", error);
+            return null;
           }
 
-          // Get user data from the users table
+          // Get user details from the users table
           const { data: userData, error: userError } = await supabase
             .from("users")
             .select("*")
@@ -36,7 +34,8 @@ export const authOptions: NextAuthOptions = {
             .single();
 
           if (userError || !userData) {
-            throw new Error("User data not found");
+            console.error("User data error:", userError);
+            return null;
           }
 
           return {
@@ -47,8 +46,8 @@ export const authOptions: NextAuthOptions = {
             agency_id: userData.agency_id,
           };
         } catch (error) {
-          console.error("Authentication error:", error);
-          throw error;
+          console.error("Auth error:", error);
+          return null;
         }
       },
     }),
@@ -63,7 +62,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (token) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.agency_id = token.agency_id as string;
@@ -77,6 +76,8 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
 };

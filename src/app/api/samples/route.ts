@@ -10,92 +10,87 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("Samples API: Starting request");
     const session = await getServerSession(authOptions);
+    console.log("Samples API: Session check", { 
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userRole: session?.user?.role,
+      agencyId: session?.user?.agency_id
+    });
+
     if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log("Samples API: Unauthorized - No session or user");
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = Number(searchParams.get("page") || 0);
-    const limit = Number(searchParams.get("limit") || 10);
+    const page = parseInt(searchParams.get("page") || "0");
+    const pageSize = parseInt(searchParams.get("pageSize") || "10");
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
-    const agency = searchParams.get("agency") || "";
-    const offset = page * limit;
+    const agencyId = searchParams.get("agencyId");
 
-    const isAgency = session.user.role === UserRole.AGENCY;
-    const isLabAdmin = session.user.role === UserRole.LABADMIN;
-
-    let baseSelect = `
-      *,
-      account:accounts(name),
-      creator:users!created_by(id, full_name,email),
-      sample_test_types(
-        test_types(id, name)
-      )
-    `;
-
-    if (isAgency || isLabAdmin) {
-      baseSelect = `
-        *,
-        agency:agencies(name),
-        account:accounts(name),
-        creator:users!created_by(id, full_name,email),
-        sample_test_types(
-          test_types(id, name)
-        )
-      `;
-    }
+    console.log("Samples API: Query params", { page, pageSize, search, status, agencyId });
 
     let query = supabase
-      .from('samples')
-      .select(baseSelect, { count: 'exact' })
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .from("samples")
+      .select(
+        `
+        *,
+        account:accounts(name),
+        agency:agencies(name),
+        test_types:test_types(id,name),
+        created_by_user:users(id, full_name)
+      `,
+        { count: "exact" }
+      )
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
 
     // Apply search filter if provided
     if (search) {
-      query = query.or(`project_id.ilike.%${search}%,pws_id.ilike.%${search}%,matrix_type.ilike.%${search}%`);
-    }
-    if (isLabAdmin) {
-      // Lab admin can only see submitted, pass, or fail samples
-      query = query.in('status', [SampleStatus.Submitted, SampleStatus.Pass, SampleStatus.Fail]);
-      
-      // Apply additional status filter if provided
-      if (status && status !== "All") {
-        query = query.eq('status', status.toLowerCase());
-      }
-      
-      // Lab admin can also filter by agency
-      if (agency) {
-        query = query.eq('agency_id', agency);
-      }
-    } else {
-      // Regular users can only see their agency's samples
-      query = query.eq('agency_id', session.user.agency_id);
-      
-      // Apply status filter if provided
-      if (status && status !== "All") {
-        query = query.eq('status', status.toLowerCase());
-      }
+      query = query.or(
+        `pws_id.ilike.%${search}%,matrix_name.ilike.%${search}%,sample_location.ilike.%${search}%`
+      );
     }
 
+    // Apply status filter if provided
+    if (status && status !== "All") {
+      query = query.eq("status", status.toLowerCase());
+    }
+
+    // Apply agency filter if provided
+    if (agencyId) {
+      query = query.eq("agency_id", agencyId);
+    }
+
+    // Apply pagination
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    query = query.range(from, to);
+
+    console.log("Samples API: Executing query");
     const { data, error, count } = await query;
 
     if (error) {
-      console.error("Supabase query error:", error);
+      console.error("Samples API: Query error", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    console.log("Samples API: Query successful", { 
+      count: count || 0,
+      results: data?.length || 0
+    });
+
     return NextResponse.json({
-      samples: data || [],
+      samples: data,
       total: count || 0,
       page,
-      totalPages: Math.ceil((count || 0) / limit),
+      pageSize,
     });
   } catch (error) {
-    console.error("Get samples error:", error);
+    console.error("Samples API: Unexpected error", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
