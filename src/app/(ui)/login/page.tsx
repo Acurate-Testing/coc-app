@@ -37,12 +37,14 @@ export default function LoginPage() {
 
   // Handle session changes
   useEffect(() => {
-    if (session?.user?.role === "lab_admin") {
-      router.push("/admin-dashboard/samples");
-    } else if (session) {
-      router.push(searchParams.get("callbackUrl") || "/samples");
+    if (status === "authenticated") {
+      if (session?.user?.role === "lab_admin") {
+        router.push("/admin-dashboard/samples");
+      } else if (session) {
+        router.push(searchParams.get("callbackUrl") || "/samples");
+      }
     }
-  }, [session, router, searchParams]);
+  }, [session, status, router, searchParams]);
 
   const handleSubmit = async (email: string, password: string) => {
     setIsLoading(true);
@@ -69,6 +71,9 @@ export default function LoginPage() {
           default:
             errorToast(result.error);
         }
+      } else if (result?.ok) {
+        // If sign in was successful, the useEffect will handle the redirect
+        // based on the updated session
       }
     } catch (error) {
       errorToast("Something went wrong. Please try again.");
