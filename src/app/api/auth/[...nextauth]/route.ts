@@ -20,6 +20,8 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string;
     role?: string | null;
+    agency_id?: string | null;
+    accounts?: any[];
   }
 }
 
@@ -45,11 +47,7 @@ const handler = NextAuth({
             {
               cookies: {
                 get(name: string) {
-                  const cookie = cookieStore.get(name)?.value;
-                  if (cookie?.startsWith('base64-')) {
-                    return cookie.substring(7); // Remove the 'base64-' prefix
-                  }
-                  return cookie;
+                  return cookieStore.get(name)?.value;
                 },
                 set(name: string, value: string, options: any) {
                   cookieStore.set({ name, value, ...options });
@@ -57,12 +55,6 @@ const handler = NextAuth({
                 remove(name: string, options: any) {
                   cookieStore.set({ name, value: "", ...options });
                 },
-              },
-              auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: false,
-                storageKey: 'sb-auth-token',
               },
             }
           );
@@ -150,8 +142,7 @@ const handler = NextAuth({
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.accounts = (token.accounts as any[]) || [];
-        session.user.agency_id =
-          typeof token.agency_id === "string" ? token.agency_id : null;
+        session.user.agency_id = token.agency_id;
         session.user.name = token.name;
       }
       return session;

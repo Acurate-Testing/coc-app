@@ -11,7 +11,8 @@ export async function middleware(request: NextRequest) {
     path === "/register" ||
     path.startsWith("/_next") ||
     path.startsWith("/static") ||
-    path.includes(".")
+    path.includes(".") ||
+    path.startsWith("/api/auth/") // Allow all NextAuth API routes
   ) {
     return NextResponse.next();
   }
