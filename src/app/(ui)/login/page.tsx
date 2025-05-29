@@ -37,12 +37,10 @@ export default function LoginPage() {
 
   // Handle session changes
   useEffect(() => {
-    // Debug: log session and status every time they change
-    console.log("Session:", session, "Status:", status);
     if (status === "authenticated") {
       if (session?.user?.role === "lab_admin") {
         router.replace("/admin-dashboard/samples");
-      } else if (session) {
+      } else {
         router.replace(searchParams.get("callbackUrl") || "/samples");
       }
     }
