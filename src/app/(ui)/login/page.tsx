@@ -53,13 +53,19 @@ export default function LoginPage() {
         email,
         password,
         redirect: false,
-        callbackUrl: searchParams.get("callbackUrl") || "/samples",
       });
 
       if (result?.error) {
         console.log("Error:", result.error);
+        errorToast("Invalid credentials. Please try again.");
       } else if (result?.ok) {
-        window.location.reload();
+        // Force a small delay to ensure session is set
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Use window.location.href for a full page navigation
+        // This ensures the middleware gets the proper session
+        const redirectUrl = searchParams.get("callbackUrl") || "/samples";
+        window.location.href = redirectUrl;
       }
     } catch (error) {
       errorToast("Something went wrong. Please try again.");
