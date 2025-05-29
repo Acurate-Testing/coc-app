@@ -9,16 +9,12 @@ export async function middleware(request: NextRequest) {
     const res = NextResponse.next();
     const supabase = createMiddlewareClient({ req: request, res });
     
-    // Get NextAuth token
+    // Get NextAuth token, explicitly specifying the custom cookie name
     const token = await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
+      cookieName: "next-auth.session-token", // Ensure this matches your NextAuth config
     });
-
-    // Add debugging
-    console.log("Middleware - Path:", request.nextUrl.pathname);
-    console.log("Middleware - Search params:", request.nextUrl.searchParams.toString());
-    console.log("Middleware - Has token:", !!token);
 
     const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
     const isAuthRoute = request.nextUrl.pathname.startsWith("/api/auth/");
@@ -29,21 +25,18 @@ export async function middleware(request: NextRequest) {
                          request.nextUrl.pathname === "/manifest.json" ||
                          request.nextUrl.pathname.startsWith("/logo-at.png");
 
-    // Allow public routes to pass through
-    if (isPublicRoute) {
-      console.log("Middleware - Allowing public route");
+    // Allow public routes and RSC requests to pass through
+    if (isPublicRoute || isRscRequest) {
       return res;
     }
 
     // Allow auth routes to pass through
     if (isAuthRoute) {
-      console.log("Middleware - Allowing auth route");
       return res;
     }
 
     // Check authentication for API routes
     if (isApiRoute && !token) {
-      console.log("Middleware - Blocking unauthenticated API route");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -52,23 +45,13 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith(page)
     );
 
-    // For RSC requests to protected pages, check authentication
-    if (isRscRequest && !token && !isPublicPage) {
-      console.log("Middleware - Blocking unauthenticated RSC request");
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-
     // Check authentication for protected pages
     if (!isApiRoute && !token && !isPublicPage) {
-      console.log("Middleware - Redirecting to login");
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
     }
 
-    console.log("Middleware - Allowing request");
     return res;
   } catch (error) {
     console.error("Middleware error:", error);
