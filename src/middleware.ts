@@ -17,16 +17,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow RSC requests to pass through
-  if (path.includes("_rsc")) {
-    return NextResponse.next();
-  }
-
   // Check for authentication token
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
+
+  // Handle RSC requests
+  if (path.includes("_rsc")) {
+    if (!token) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    return NextResponse.next();
+  }
 
   // Handle API routes
   if (path.startsWith("/api/")) {
