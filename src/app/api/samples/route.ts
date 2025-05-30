@@ -244,8 +244,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const token = await getToken({
       req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      cookieName: "next-auth.session-token", 
+      secret: process.env.NEXTAUTH_SECRET
     });
 
     if (!token) {

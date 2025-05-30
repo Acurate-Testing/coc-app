@@ -11,8 +11,7 @@ export async function PUT(
     // Verify authentication
     const token = await getToken({
       req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      cookieName: "next-auth.session-token", 
+      secret: process.env.NEXTAUTH_SECRET
     });
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
