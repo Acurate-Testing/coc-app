@@ -40,7 +40,7 @@ export const authOptions: NextAuthOptions = {
 
           return {
             id: user.id,
-            email: user.email,
+            email: user.email || credentials.email,
             name: userData.full_name,
             role: userData.role,
             agency_id: userData.agency_id,

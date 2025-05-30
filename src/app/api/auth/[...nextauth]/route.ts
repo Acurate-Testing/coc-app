@@ -110,7 +110,7 @@ const handler = NextAuth({
 
           return {
             id: user.id,
-            email: user.email,
+            email: user.email || credentials.email,
             name: LoggedInUserData?.full_name,
             role: LoggedInUserData?.role,
             accounts: accounts,

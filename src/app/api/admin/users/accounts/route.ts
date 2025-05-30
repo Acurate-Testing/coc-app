@@ -36,13 +36,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   // Verify user has access to this agency
-  const { data: userRole } = await supabase
-    .from("user_roles")
+  const { data: userData } = await supabase
+    .from("users")
     .select("role")
-    .eq("user_id", session.user.id)
+    .eq("id", session.user.id)
     .single();
 
-  if (!userRole || (userRole.role !== "admin" && userRole.role !== "lab_admin")) {
+  if (!userData || userData.role !== "lab_admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -130,13 +130,13 @@ export async function DELETE(req: NextRequest) {
   }
 
   // Verify user has access to this agency
-  const { data: userRole } = await supabase
-    .from("user_roles")
+  const { data: userData } = await supabase
+    .from("users")
     .select("role")
-    .eq("user_id", session.user.id)
+    .eq("id", session.user.id)
     .single();
 
-  if (!userRole || (userRole.role !== "admin" && userRole.role !== "lab_admin")) {
+  if (!userData || userData.role !== "lab_admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -187,13 +187,13 @@ export async function GET(req: NextRequest) {
   }
 
   // Verify user has access to this agency
-  const { data: userRole } = await supabase
-    .from("user_roles")
+  const { data: userData } = await supabase
+    .from("users")
     .select("role")
-    .eq("user_id", session.user.id)
+    .eq("id", session.user.id)
     .single();
 
-  if (!userRole || (userRole.role !== "admin" && userRole.role !== "lab_admin")) {
+  if (!userData || userData.role !== "lab_admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

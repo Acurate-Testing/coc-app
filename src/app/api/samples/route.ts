@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { TestType } from '@/types/sample';
 import { getServerSession } from 'next-auth';
+import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -246,9 +247,28 @@ export async function DELETE(request: NextRequest) {
       secret: process.env.NEXTAUTH_SECRET,
       cookieName: "next-auth.session-token", 
     });
+
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookies().get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            cookies().set({ name, value, ...options });
+          },
+          remove(name: string, options: any) {
+            cookies().set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
 
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get("id");
@@ -266,13 +286,13 @@ export async function DELETE(request: NextRequest) {
       .eq("id", id);
 
     if (error) {
-      console.error("Supabase delete error:", error);
+      console.error("Error deleting sample:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ message: "Sample deleted successfully" });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Delete sample error:", error);
+    console.error("Error in DELETE /api/samples:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
