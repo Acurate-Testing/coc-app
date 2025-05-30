@@ -12,7 +12,7 @@ import { Database } from "@/types/supabase";
 import { Chip } from "@material-tailwind/react";
 import moment from "moment";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { FaLocationDot } from "react-icons/fa6";
 import { FiDownload, FiEdit, FiUser } from "react-icons/fi";
 import { GoClock } from "react-icons/go";
@@ -113,17 +113,17 @@ export default function AdminSamplesClient({
     } else {
       setActiveTab("All");
     }
-    fetchSamples();
-  }, [currentPage, activeTab, limitPerPage, selectedAgency]);
+  }, [userRole]);
 
   useEffect(() => {
-    if (searchQuery !== "") {
-      const delayDebounceFn = setTimeout(() => {
+    const delayDebounceFn = setTimeout(
+      () => {
         fetchSamples();
-      }, 1000);
-      return () => clearTimeout(delayDebounceFn);
-    }
-  }, [searchQuery]);
+      },
+      searchQuery ? 1000 : 0
+    );
+    return () => clearTimeout(delayDebounceFn);
+  }, [currentPage, activeTab, limitPerPage, selectedAgency, searchQuery]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -233,8 +233,11 @@ export default function AdminSamplesClient({
   const getAgencyName = (id: string | null) =>
     agencies.find((a) => a.id === id)?.name || id || "-";
 
-  // Memoize the SampleOverview to prevent re-renders on pagination/filtering changes
-  const memoizedSampleOverview = useMemo(() => <SampleOverview />, []);
+  // Use useCallback to memoize the SampleOverview component
+  const renderSampleOverview = useCallback(
+    () => <SampleOverview key="sample-overview" />,
+    [] // Empty dependency array since we want it to render only once
+  );
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -258,7 +261,7 @@ export default function AdminSamplesClient({
 
   return (
     <>
-      {!isMobile && memoizedSampleOverview}
+      {!isMobile && renderSampleOverview()}
       <div className="w-full md:p-8 p-6 !pt-0">
         <div className="flex gap-4 items-center">
           <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">

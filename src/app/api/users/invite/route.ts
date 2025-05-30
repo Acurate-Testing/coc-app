@@ -28,44 +28,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { name, email, role, agency_id } = await request.json();
+    const { name, email } = await request.json();
 
-    if (!email || !role) {
+    if (!email || !name) {
       return NextResponse.json(
-        { error: "Email and role are required" },
+        { error: "Email and name are required" },
         { status: 400 }
       );
     }
 
-    // Verify agency exists
-    const { data: agency, error: agencyError } = await supabase
-      .from("agencies")
-      .select("id")
-      .eq("id", agency_id)
-      .single();
-
-    if (agencyError || !agency) {
-      return NextResponse.json({ error: "Agency not found" }, { status: 404 });
-    }
-
     // Generate invite token
     const inviteToken = crypto.randomBytes(32).toString("hex");
+
+    // Create agency first
+    const { data: agency, error: agencyError } = await supabase
+      .from("agencies")
+      .insert({
+        name: `${name}'s Agency`,
+        contact_email: email,
+        created_by: session.user.id,
+      })
+      .select()
+      .single();
+
+    if (agencyError) {
+      console.error("Error creating agency:", agencyError);
+      return NextResponse.json({ error: agencyError.message }, { status: 500 });
+    }
 
     // Store user in database with invitation token
     const { data: newUser, error: inviteError } = await supabase
       .from("users")
       .insert({
         email,
-        role,
+        role: "agency",
         active: false,
         full_name: name,
-        agency_id,
+        agency_id: agency.id,
         invitation_token: inviteToken,
       })
       .select()
       .single();
 
     if (inviteError) {
+      // If user creation fails, clean up the agency
+      await supabase.from("agencies").delete().eq("id", agency.id);
       console.error("Error creating user:", inviteError);
       return NextResponse.json({ error: inviteError.message }, { status: 500 });
     }

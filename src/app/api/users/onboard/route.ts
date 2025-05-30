@@ -11,6 +11,12 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
+    // Create an admin client for admin operations
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const { token, password } = await request.json();
 
     // Validate the token
@@ -35,41 +41,102 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create the user in Supabase Auth with email confirmation
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: user.email,
-      password: password,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-        data: {
-          email_confirmed: true
+    let authData;
+    try {
+      // Try to create a new user
+      const { data, error: createError } = await adminClient.auth.admin.createUser({
+        email: user.email,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          email_confirmed: true,
+          role: user.role,
+          agency_id: user.agency_id,
+          full_name: user.full_name
         }
-      },
-    });
+      });
 
-    if (authError || !authData.user) {
+      if (createError) {
+        // If user already exists, try to update them
+        if (createError.message.includes("already been registered")) {
+          // Get the user by email using the signIn method
+          const { data: existingUser, error: getUserError } = await adminClient.auth.signInWithPassword({
+            email: user.email,
+            password: "temporary-password" // This will fail but give us the user
+          });
+          
+          if (getUserError?.message?.includes("Invalid login credentials")) {
+            // User exists but password is wrong, which is what we want
+            const { data: userData, error: userError } = await adminClient.auth.admin.listUsers();
+            
+            if (userError || !userData.users) {
+              console.error("Get users error:", userError);
+              return NextResponse.json(
+                { error: "Failed to get existing user" },
+                { status: 400 }
+              );
+            }
+
+            const existingUser = userData.users.find(u => u.email === user.email);
+            if (!existingUser) {
+              return NextResponse.json(
+                { error: "Failed to find existing user" },
+                { status: 400 }
+              );
+            }
+
+            // Update the existing user
+            const { data: updatedUser, error: updateError } = await adminClient.auth.admin.updateUserById(
+              existingUser.id,
+              {
+                password: password,
+                email_confirm: true,
+                user_metadata: {
+                  email_confirmed: true,
+                  role: user.role,
+                  agency_id: user.agency_id,
+                  full_name: user.full_name
+                }
+              }
+            );
+
+            if (updateError) {
+              console.error("Update user error:", updateError);
+              return NextResponse.json(
+                { error: "Failed to update existing user" },
+                { status: 400 }
+              );
+            }
+
+            authData = { user: updatedUser.user };
+          } else {
+            console.error("Create user error:", createError);
+            return NextResponse.json(
+              { error: "Failed to create user account" },
+              { status: 400 }
+            );
+          }
+        } else {
+          console.error("Create user error:", createError);
+          return NextResponse.json(
+            { error: "Failed to create user account" },
+            { status: 400 }
+          );
+        }
+      } else {
+        authData = { user: data.user };
+      }
+    } catch (error) {
+      console.error("Auth operation error:", error);
       return NextResponse.json(
-        { error: "Failed to create user account" },
+        { error: "Failed to process user account" },
         { status: 400 }
       );
     }
 
-    // Confirm the email automatically since we've verified through invitation
-    const { error: confirmError } = await supabase.auth.admin.updateUserById(
-      authData.user.id,
-      { 
-        email_confirm: true,
-        user_metadata: {
-          email_confirmed: true
-        }
-      }
-    );
-
-    if (confirmError) {
-      // If email confirmation fails, clean up the auth user
-      await supabase.auth.admin.deleteUser(authData.user.id);
+    if (!authData.user) {
       return NextResponse.json(
-        { error: "Failed to confirm email" },
+        { error: "Failed to process user account" },
         { status: 400 }
       );
     }
@@ -85,8 +152,7 @@ export async function POST(request: Request) {
       .eq("invitation_token", token);
 
     if (updateError) {
-      // If user update fails, we should clean up the auth user
-      await supabase.auth.admin.deleteUser(authData.user.id);
+      console.error("Update error:", updateError);
       return NextResponse.json(
         { error: "Failed to update user record" },
         { status: 400 }

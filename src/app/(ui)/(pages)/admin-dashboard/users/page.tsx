@@ -4,11 +4,13 @@ import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
 import AssignTestModal from "@/app/(ui)/components/Users/AssignTestModal";
 import EditUserAccessPopover from "@/app/(ui)/components/Users/EditUserAccessPopover";
+import InviteUserModal from "@/app/(ui)/components/Users/InviteUserModal";
 import { Button } from "@/stories/Button/Button";
 import { useEffect, useState, useRef } from "react";
 import { FaTrash } from "react-icons/fa";
 import { ImSpinner8 } from "react-icons/im";
 import { FiMoreVertical } from "react-icons/fi";
+import { LuPlus } from "react-icons/lu";
 import { createPortal } from "react-dom";
 
 // Use the correct User type
@@ -36,8 +38,10 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showEditAccessModal, setShowEditAccessModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedTest, setSelectedTest] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
+    useState<boolean>(false);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -73,7 +77,9 @@ export default function AdminUsersPage() {
       setUsers(data || []);
 
       if (selectedUser) {
-        const updatedSelectedUser = data.find((user: User) => user.id === selectedUser.id);
+        const updatedSelectedUser = data.find(
+          (user: User) => user.id === selectedUser.id
+        );
         if (updatedSelectedUser) {
           setSelectedUser(updatedSelectedUser);
         }
@@ -90,16 +96,12 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-    // eslint-disable-next-line
   }, []);
 
-  const filteredUsers = users.filter((u) =>
-    (u.name ?? "")
-      .toLowerCase()
-      .includes(search.toLowerCase()) ||
-    (u.contact_email ?? "")
-      .toLowerCase()
-      .includes(search.toLowerCase())
+  const filteredUsers = users.filter(
+    (u) =>
+      (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.contact_email ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteClick = (testId: string) => {
@@ -118,7 +120,7 @@ export default function AdminUsersPage() {
         },
         body: JSON.stringify({
           userId: selectedUser?.id,
-          testId: selectedTest
+          testId: selectedTest,
         }),
       });
 
@@ -129,7 +131,9 @@ export default function AdminUsersPage() {
 
       fetchUsers();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to remove test access");
+      setError(
+        error instanceof Error ? error.message : "Failed to remove test access"
+      );
     } finally {
       setIsLoading(false);
       setOpenConfirmDeleteDialog(false);
@@ -185,18 +189,28 @@ export default function AdminUsersPage() {
     <div className="flex flex-col sm:flex-row h-full min-h-[80vh]">
       {/* Sidebar */}
       <div className="w-full sm:w-72 bg-white border-r border-gray-100 p-2 sm:p-4 flex-shrink-0">
-        <input
-          className="w-full mb-4 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Search users..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="flex justify-between items-center mb-4">
+          <input
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search users..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="ml-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <LuPlus size={20} />
+          </button>
+        </div>
         <div className="flex flex-col gap-1 relative">
           {isLoading && (
             <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
               <div className="flex items-center gap-2">
                 <ImSpinner8 className="animate-spin text-blue-600" />
-                <span className="text-sm font-medium text-gray-600">Loading users...</span>
+                <span className="text-sm font-medium text-gray-600">
+                  Loading users...
+                </span>
               </div>
             </div>
           )}
@@ -215,7 +229,9 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <div className="font-medium text-sm">{user.name}</div>
-                <div className="text-xs text-gray-400">{user.contact_email}</div>
+                <div className="text-xs text-gray-400">
+                  {user.contact_email}
+                </div>
               </div>
             </button>
           ))}
@@ -239,9 +255,7 @@ export default function AdminUsersPage() {
                     {selectedUser.contact_email}
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {(
-                      selectedUser.accounts || []
-                    ).map((acc) => (
+                    {(selectedUser.accounts || []).map((acc) => (
                       <span
                         key={acc}
                         className="bg-gray-200 text-gray-600 rounded-full px-3 py-1 text-xs font-medium"
@@ -272,7 +286,7 @@ export default function AdminUsersPage() {
                   + Assign Test Type
                 </Button>
               </div>
-              
+
               {/* Table view for tests, similar to tests page */}
               <div className="w-full">
                 {(selectedUser.assigned_tests || []).length === 0 ? (
@@ -286,16 +300,28 @@ export default function AdminUsersPage() {
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
                             <tr>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
                                 Test Type Name
                               </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
                                 Test Type Code
                               </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                              >
                                 Matrix Type
                               </th>
-                              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                              <th
+                                scope="col"
+                                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24"
+                              >
                                 Actions
                               </th>
                             </tr>
@@ -304,10 +330,14 @@ export default function AdminUsersPage() {
                             {selectedUser.assigned_tests?.map((test) => (
                               <tr key={test.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="font-medium text-gray-900">{test.name}</div>
+                                  <div className="font-medium text-gray-900">
+                                    {test.name}
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-gray-500">{test.test_code || "-"}</div>
+                                  <div className="text-gray-500">
+                                    {test.test_code || "-"}
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="text-gray-500">
@@ -317,8 +347,13 @@ export default function AdminUsersPage() {
                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                   <div>
                                     <button
-                                      ref={(el: any) => el && menuButtonRefs.current.set(test.id, el)}
-                                      onClick={(e) => toggleActionMenu(test.id, e)}
+                                      ref={(el: any) =>
+                                        el &&
+                                        menuButtonRefs.current.set(test.id, el)
+                                      }
+                                      onClick={(e) =>
+                                        toggleActionMenu(test.id, e)
+                                      }
                                       className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
                                     >
                                       <FiMoreVertical className="h-5 w-5" />
@@ -365,7 +400,7 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
-      
+
       {/* Dropdown menu portal */}
       {isMounted &&
         openActionMenu &&
@@ -396,6 +431,15 @@ export default function AdminUsersPage() {
           </div>,
           document.body
         )}
+
+      {/* Invite Modal */}
+      <InviteUserModal
+        open={showInviteModal}
+        close={() => {
+          setShowInviteModal(false);
+          fetchUsers(); // Refresh the list after inviting
+        }}
+      />
     </div>
   );
 }

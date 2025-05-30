@@ -79,9 +79,12 @@ export async function GET(request: NextRequest) {
       query = query.eq("status", status.toLowerCase());
     }
 
-    // Apply agency filter if provided
+    // Apply agency filter if provided or if user is not a lab admin
     if (agencyId) {
       query = query.eq("agency_id", agencyId);
+    } else if (session.user.role !== "lab_admin") {
+      // For non-admin users, only show their agency's samples
+      query = query.eq("agency_id", session.user.agency_id);
     }
 
     // Apply pagination

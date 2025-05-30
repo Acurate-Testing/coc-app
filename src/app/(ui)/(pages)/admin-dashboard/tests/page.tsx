@@ -71,16 +71,7 @@ export default function AdminTestsPage() {
 
   useEffect(() => {
     fetchTests();
-  }, [currentPage]);
-
-  useEffect(() => {
-    if (searchQuery !== "") {
-      const delayDebounceFn = setTimeout(() => {
-        fetchTests();
-      }, 1000);
-      return () => clearTimeout(delayDebounceFn);
-    }
-  }, [searchQuery]);
+  }, [currentPage, searchQuery]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -271,7 +262,7 @@ export default function AdminTestsPage() {
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <div>
                               <button
-                                ref={(el : any) =>
+                                ref={(el: any) =>
                                   el && menuButtonRefs.current.set(test.id, el)
                                 }
                                 onClick={(e) => toggleActionMenu(test.id, e)}
@@ -403,7 +394,9 @@ export default function AdminTestsPage() {
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-gray-500">Name</dt>
-                <dd className="mt-1 text-base text-gray-900">{viewTest.name}</dd>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.name}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">
