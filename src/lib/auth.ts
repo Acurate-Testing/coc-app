@@ -1,18 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "./supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "./auth-options";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export const AUTH_COOKIE_NAME = "auth_token";
 
 export async function getSession() {
-  const cookieStore = cookies();
-  const token = cookieStore.get(AUTH_COOKIE_NAME);
-  if (!token) return null;
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.supabaseToken) return null;
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token.value);
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookies().set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookies().set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
+  const { data: { user }, error } = await supabase.auth.getUser(session.user.supabaseToken);
   if (error || !user) return null;
 
   return user;
@@ -43,6 +59,27 @@ export async function clearAuthCookie() {
 }
 
 export async function getUserRole(userId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.supabaseToken) return null;
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookies().set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookies().set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
   const { data, error } = await supabase
     .from("users")
     .select("role")

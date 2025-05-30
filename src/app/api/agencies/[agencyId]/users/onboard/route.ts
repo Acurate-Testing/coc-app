@@ -1,83 +1,111 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { setAuthCookie } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function POST(
-  request: NextRequest,
+  request: Request,
   { params }: { params: { agencyId: string } }
 ) {
   try {
-    const { token, fullName, password } = await request.json();
-
-    if (!token || !fullName || !password) {
-      return NextResponse.json(
-        { error: "Token, full name, and password are required" },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.supabaseToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify invite token
-    const { data: invite, error: inviteError } = await supabase
-      .from("user_invites")
-      .select("*")
-      .eq("token", token)
-      .eq("agency_id", params.agencyId)
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookies().get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            cookies().set({ name, value, ...options });
+          },
+          remove(name: string, options: any) {
+            cookies().set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
+
+    const { email, phone, password } = await request.json();
+
+    // Verify user has access to this agency
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("agency_id, role")
+      .eq("id", session.user.id)
       .single();
 
-    if (inviteError || !invite) {
+    if (userError || !user) {
       return NextResponse.json(
-        { error: "Invalid or expired invite token" },
-        { status: 400 }
+        { error: "User not found" },
+        { status: 404 }
       );
     }
 
-    // Create user in Supabase Auth
+    // Check if user is lab admin or belongs to the same agency
+    if (user.role !== "lab_admin" && user.agency_id !== params.agencyId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    // Create the user
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: invite.email,
+      email,
       password,
       options: {
         data: {
-          full_name: fullName,
-          role: invite.role,
+          agency_id: params.agencyId,
+          role: "agency_user",
         },
       },
     });
 
-    if (authError || !authData.user) {
+    if (authError) {
+      console.error("User creation error:", authError);
       return NextResponse.json(
-        { error: authError?.message || "Failed to create user" },
+        { error: "Failed to create user" },
         { status: 500 }
       );
     }
 
-    // Create user record in database
-    const { error: userError } = await supabase.from("users").insert({
-      id: authData.user.id,
-      full_name: fullName,
-      email: invite.email,
-      role: invite.role,
-      agency_id: params.agencyId,
-    });
+    // Create the user profile
+    const { error: profileError } = await supabase
+      .from("users")
+      .insert([
+        {
+          id: authData.user?.id,
+          email,
+          phone,
+          agency_id: params.agencyId,
+          role: "agency_user",
+          full_name: email.split("@")[0], // Default name from email
+        },
+      ]);
 
-    if (userError) {
-      return NextResponse.json({ error: userError.message }, { status: 500 });
-    }
-
-    // Delete used invite
-    await supabase.from("user_invites").delete().eq("token", token);
-
-    // Set auth cookie
-    if (authData.session) {
-      await setAuthCookie(authData.session.access_token);
+    if (profileError) {
+      console.error("Profile creation error:", profileError);
+      return NextResponse.json(
+        { error: "Failed to create user profile" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
+      success: true,
       user: authData.user,
     });
   } catch (error) {
     console.error("User onboard error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to onboard user" },
       { status: 500 }
     );
   }

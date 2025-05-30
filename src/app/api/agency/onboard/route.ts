@@ -1,96 +1,102 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { setAuthCookie } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { token, name, address, contactEmail, password } =
-      await request.json();
-
-    if (!token || !name || !address || !contactEmail || !password) {
-      return NextResponse.json(
-        { error: "All fields are required" },
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.supabaseToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify invite token
-    const { data: invite, error: inviteError } = await supabase
-      .from("agency_invites")
-      .select("*")
-      .eq("token", token)
-      .single();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookies().get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            cookies().set({ name, value, ...options });
+          },
+          remove(name: string, options: any) {
+            cookies().set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
 
-    if (inviteError || !invite) {
-      return NextResponse.json(
-        { error: "Invalid or expired invite token" },
-        { status: 400 }
-      );
-    }
+    const { agency_name, address, email, phone, password } = await request.json();
 
-    // Create agency
+    // Create the agency
     const { data: agency, error: agencyError } = await supabase
       .from("agencies")
-      .insert({
-        name,
-        contact_email: contactEmail,
-        created_by: invite.created_by,
-      })
+      .insert([{ name: agency_name, address }])
       .select()
       .single();
 
     if (agencyError) {
-      return NextResponse.json({ error: agencyError.message }, { status: 500 });
-    }
-
-    // Create admin user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: contactEmail,
-      password,
-      options: {
-        data: {
-          full_name: name,
-          role: "agency",
-        },
-      },
-    });
-
-    if (authError || !authData.user) {
+      console.error("Agency creation error:", agencyError);
       return NextResponse.json(
-        { error: authError?.message || "Failed to create user" },
+        { error: "Failed to create agency" },
         { status: 500 }
       );
     }
 
-    // Create user record
-    const { error: userError } = await supabase.from("users").insert({
-      id: authData.user.id,
-      full_name: name,
-      email: contactEmail,
-      role: "agency",
-      agency_id: agency.id,
+    // Create the user with the agency
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          agency_id: agency.id,
+          role: "agency_admin",
+        },
+      },
     });
 
-    if (userError) {
-      return NextResponse.json({ error: userError.message }, { status: 500 });
+    if (authError) {
+      console.error("User creation error:", authError);
+      return NextResponse.json(
+        { error: "Failed to create user" },
+        { status: 500 }
+      );
     }
 
-    // Delete used invite
-    await supabase.from("agency_invites").delete().eq("token", token);
+    // Create the user profile
+    const { error: profileError } = await supabase
+      .from("users")
+      .insert([
+        {
+          id: authData.user?.id,
+          email,
+          phone,
+          agency_id: agency.id,
+          role: "agency_admin",
+          full_name: email.split("@")[0], // Default name from email
+        },
+      ]);
 
-    // Set auth cookie
-    if (authData.session) {
-      await setAuthCookie(authData.session.access_token);
+    if (profileError) {
+      console.error("Profile creation error:", profileError);
+      return NextResponse.json(
+        { error: "Failed to create user profile" },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
+      success: true,
       agency,
       user: authData.user,
     });
   } catch (error) {
     console.error("Agency onboard error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to onboard agency" },
       { status: 500 }
     );
   }

@@ -1,73 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
-import { requireAuth } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { parse } from "papaparse";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const session = await requireAuth(request);
-    if (session instanceof NextResponse) return session;
-
-    const formData = await request.formData();
-    const file = formData.get("file") as File;
-
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.supabaseToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const text = await file.text();
-    const { data: csvData, errors } = parse(text, {
-      header: true,
-      skipEmptyLines: true,
-    });
-
-    if (errors.length > 0) {
-      return NextResponse.json(
-        { error: "Invalid CSV format", details: errors },
-        { status: 400 }
-      );
-    }
-
-    // Validate required fields
-    const requiredFields = ["project_id", "agency_id", "account_id"];
-    const invalidRows = csvData.filter((row: any) =>
-      requiredFields.some((field) => !row[field])
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookies().get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            cookies().set({ name, value, ...options });
+          },
+          remove(name: string, options: any) {
+            cookies().set({ name, value: "", ...options });
+          },
+        },
+      }
     );
 
-    if (invalidRows.length > 0) {
+    const { samples } = await request.json();
+
+    // Verify user has access to create samples
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("agency_id, role")
+      .eq("id", session.user.id)
+      .single();
+
+    if (userError || !user) {
       return NextResponse.json(
-        { error: "Missing required fields in some rows", rows: invalidRows },
-        { status: 400 }
+        { error: "User not found" },
+        { status: 404 }
       );
     }
 
-    // Prepare samples for insertion
-    const samples = csvData.map((row: any) => ({
-      ...row,
-      created_by: session.id,
-      status: "pending",
+    // Only allow lab admin or agency users to create samples
+    if (user.role !== "lab_admin" && user.role !== "agency_user") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    // Add agency_id and created_by to each sample
+    const samplesWithMetadata = samples.map((sample: any) => ({
+      ...sample,
+      agency_id: user.agency_id,
+      created_by: session.user.id,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }));
 
-    // Insert samples
     const { data, error } = await supabase
       .from("samples")
-      .insert(samples)
+      .insert(samplesWithMetadata)
       .select();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Batch insert error:", error);
+      return NextResponse.json(
+        { error: "Failed to create samples" },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({
-      message: `Successfully imported ${data.length} samples`,
-      samples: data,
-    });
+    return NextResponse.json({ samples: data });
   } catch (error) {
-    console.error("Batch import error:", error);
+    console.error("Batch samples error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to process samples" },
       { status: 500 }
     );
   }

@@ -12,6 +12,7 @@ declare module "next-auth" {
       accounts?: any[];
       role?: string | null;
       agency_id?: string | null;
+      supabaseToken?: string;
     };
   }
 }
@@ -22,6 +23,7 @@ declare module "next-auth/jwt" {
     role?: string | null;
     agency_id?: string | null;
     accounts?: any[];
+    supabaseToken?: string;
   }
 }
 
@@ -60,7 +62,7 @@ const handler = NextAuth({
           );
 
           const {
-            data: { user },
+            data: { user, session },
             error,
           } = await supabase.auth.signInWithPassword({
             email: credentials.email,
@@ -72,9 +74,9 @@ const handler = NextAuth({
             throw new Error(error.message);
           }
 
-          if (!user) {
-            console.error("No user found after successful auth");
-            throw new Error("No user found");
+          if (!user || !session) {
+            console.error("No user or session found after successful auth");
+            throw new Error("Authentication failed");
           }
 
           // Initialize accounts as empty array and agency_id as null
@@ -104,7 +106,6 @@ const handler = NextAuth({
             }
           } catch (error) {
             console.warn("Could not fetch accounts - this is optional:", error);
-            // Continue with empty accounts array
           }
 
           return {
@@ -114,6 +115,7 @@ const handler = NextAuth({
             role: LoggedInUserData?.role,
             accounts: accounts,
             agency_id,
+            supabaseToken: session.access_token,
           };
         } catch (error) {
           console.error("Authentication error:", error);
@@ -134,6 +136,7 @@ const handler = NextAuth({
         token.role = (user as any).role ?? null;
         token.agency_id = (user as any).agency_id ?? null;
         token.name = (user as any).name ?? null;
+        token.supabaseToken = (user as any).supabaseToken;
       }
       return token;
     },
@@ -144,6 +147,7 @@ const handler = NextAuth({
         session.user.accounts = (token.accounts as any[]) || [];
         session.user.agency_id = token.agency_id;
         session.user.name = token.name;
+        session.user.supabaseToken = token.supabaseToken;
       }
       return session;
     },
