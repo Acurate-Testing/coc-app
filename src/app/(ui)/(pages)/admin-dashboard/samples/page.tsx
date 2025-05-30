@@ -56,7 +56,7 @@ export default async function AdminSamplesPage() {
     <AdminSamplesClient
       initialSamples={samples || []}
       initialAgencies={agencies || []}
-      userRole={session.user.role}
+      userRole={session.user.role || "agency"}
     />
   );
 }

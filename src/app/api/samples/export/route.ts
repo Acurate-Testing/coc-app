@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
     const search = searchParams.get("search") || "";
     const agencyId = searchParams.get("agencyId");
+    const status = searchParams.get("status");
 
     let query = supabase
       .from("samples")
@@ -80,13 +81,28 @@ export async function GET(request: NextRequest) {
       query = query.eq("agency_id", agencyId);
     }
 
+    // Apply status filter if provided
+    if (status) {
+      query = query.eq("status", status);
+    }
+
     const { data, error } = await query;
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ samples: data });
+    // Process data for CSV export
+    const isLabAdmin = session.user.role === UserRole.LABADMIN;
+    const csvContent = processDataForCSV(data, isLabAdmin);
+
+    // Return CSV file
+    return new NextResponse(csvContent, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="samples-export-${moment().format('YYYY-MM-DD')}.csv"`
+      }
+    });
   } catch (error) {
     console.error("Export samples error:", error);
     return NextResponse.json(
@@ -133,9 +149,9 @@ function processDataForCSV(data: any[], isLabAdmin: boolean): string {
     // Add admin-specific fields if needed
     if (isLabAdmin) {
       rowDataObj['agency_name'] = sample.agency?.name || '';
-      rowDataObj['test_types'] = sample.sample_test_types
-        ? sample.sample_test_types
-          .map((stt: any) => stt.test_types?.name || '')
+      rowDataObj['test_types'] = sample.test_types
+        ? sample.test_types
+          .map((tt: any) => tt.name || '')
           .filter(Boolean)
           .join(', ')
         : '';
