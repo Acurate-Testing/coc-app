@@ -6,6 +6,8 @@ import "./(ui)/styles/glove-friendly.css";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import { registerServiceWorker } from "./service-worker";
+import NextAuthProvider from "./providers";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -14,16 +16,6 @@ const inter = Inter({
 });
 
 // Dynamically import the auth provider with no SSR
-const NextAuthProvider = dynamic(() => import("./providers"), {
-  ssr: false,
-  loading: () => (
-    <div className="h-screen flex justify-center items-center">
-      <div className="animate-pulse">Loading...</div>
-    </div>
-  ),
-});
-
-// Create a client component for ToastContainer
 const ToastContainerWrapper = dynamic(
   () => import("./components/ToastContainerWrapper"),
   {
@@ -65,6 +57,11 @@ export default function RootLayout({
     registerServiceWorker();
   }
 
+  // Check if the current path is the onboarding page
+  const isOnboardingPage =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/users/onboard");
+
   return (
     <html lang="en">
       <head>
@@ -79,14 +76,19 @@ export default function RootLayout({
         className={`${inter.className} bg-light text-light`}
         suppressHydrationWarning
       >
-        <NextAuthProvider>
-          <Suspense fallback={null}>
-            <ToastContainerWrapper />
-          </Suspense>
-          <main id="main-content" className="min-h-screen">
-            {children}
-          </main>
-        </NextAuthProvider>
+        {isOnboardingPage ? (
+          children
+        ) : (
+          <NextAuthProvider>
+            <Suspense fallback={null}>
+              <ToastContainerWrapper />
+            </Suspense>
+            <main id="main-content" className="min-h-screen">
+              {children}
+            </main>
+          </NextAuthProvider>
+        )}
+        <Toaster />
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { errorToast } from "@/hooks/useCustomToast";
+import { UserRole } from "@/constants/enums";
 
 // Dynamically import the form component
 const LoginForm = dynamic(
@@ -41,14 +42,14 @@ export default function LoginPage() {
       const callbackUrl = searchParams.get("callbackUrl");
       // Only redirect if callbackUrl is not /login
       if (callbackUrl && callbackUrl !== "/login") {
-        if (session.user.role === "lab_admin") {
+        if (session.user.role === UserRole.LABADMIN) {
           router.replace("/admin-dashboard/samples");
         } else {
           router.replace(callbackUrl);
         }
       } else {
         // Default redirect if no valid callbackUrl
-        if (session.user.role === "lab_admin") {
+        if (session.user.role === UserRole.LABADMIN) {
           router.replace("/admin-dashboard/samples");
         } else {
           router.replace("/samples");

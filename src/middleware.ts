@@ -5,15 +5,32 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
-  // Allow public pages and static files
-  if (
-    path === "/login" ||
-    path === "/register" ||
-    path.startsWith("/_next") ||
-    path.startsWith("/static") ||
-    path.includes(".") ||
-    path.startsWith("/api/auth/") // Allow all NextAuth API routes
-  ) {
+  // Special handling for onboarding routes and session endpoint - completely skip auth checks
+  if (path.startsWith("/users/onboard") || 
+      path.startsWith("/api/users/validate-invite") || 
+      path.startsWith("/api/users/onboard") ||
+      path === "/api/auth/session" ||
+      path.startsWith("/api/auth/session")) {
+    return NextResponse.next();
+  }
+
+  // Define public routes that don't need authentication
+  const publicRoutes = [
+    "/login",
+    "/register",
+    "/_next",
+    "/static",
+    "/api/auth",
+  ];
+
+  // Check if the current path is public
+  const isPublicRoute = publicRoutes.some(route => 
+    path === route || 
+    path.startsWith(route)
+  );
+
+  // If it's a public route, allow access without checking auth
+  if (isPublicRoute) {
     return NextResponse.next();
   }
 
