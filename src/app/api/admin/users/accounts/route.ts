@@ -1,12 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 // Update user accounts - handles both adding and removing accounts
 export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.supabaseToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookies().set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookies().set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
   const { userId, accounts } = await req.json();
   
   if (!userId || !Array.isArray(accounts)) {
     return NextResponse.json({ error: "userId and accounts[] are required" }, { status: 400 });
+  }
+
+  // Verify user has access to this agency
+  const { data: userRole } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", session.user.id)
+    .single();
+
+  if (!userRole || (userRole.role !== "admin" && userRole.role !== "lab_admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   // Fetch existing accounts for this agency
@@ -63,10 +100,44 @@ export async function PATCH(req: NextRequest) {
 
 // Delete a specific account from a user
 export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.supabaseToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookies().set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookies().set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
   const { userId, accountName } = await req.json();
 
   if (!userId || !accountName) {
     return NextResponse.json({ error: "userId and accountName are required" }, { status: 400 });
+  }
+
+  // Verify user has access to this agency
+  const { data: userRole } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", session.user.id)
+    .single();
+
+  if (!userRole || (userRole.role !== "admin" && userRole.role !== "lab_admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   // Remove the account from the accounts table
@@ -81,4 +152,60 @@ export async function DELETE(req: NextRequest) {
   }
 
   return NextResponse.json({ success: true });
+}
+
+// Get accounts for a user
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.supabaseToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookies().get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookies().set({ name, value, ...options });
+        },
+        remove(name: string, options: any) {
+          cookies().set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
+  const { searchParams } = new URL(req.url);
+  const userId = searchParams.get("userId");
+
+  if (!userId) {
+    return NextResponse.json({ error: "userId is required" }, { status: 400 });
+  }
+
+  // Verify user has access to this agency
+  const { data: userRole } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", session.user.id)
+    .single();
+
+  if (!userRole || (userRole.role !== "admin" && userRole.role !== "lab_admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  // Fetch accounts for the specified user
+  const { data: accounts, error } = await supabase
+    .from("accounts")
+    .select("name")
+    .eq("agency_id", userId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ accounts: accounts || [] });
 }

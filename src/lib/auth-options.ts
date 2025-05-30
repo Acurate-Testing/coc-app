@@ -16,12 +16,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const { data: { user }, error } = await supabase.auth.signInWithPassword({
+          const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
             email: credentials.email,
             password: credentials.password,
           });
 
-          if (error || !user) {
+          if (error || !user || !session) {
             console.error("Auth error:", error);
             return null;
           }
@@ -44,6 +44,7 @@ export const authOptions: NextAuthOptions = {
             name: userData.full_name,
             role: userData.role,
             agency_id: userData.agency_id,
+            supabaseToken: session.access_token,
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -58,6 +59,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = user.role;
         token.agency_id = user.agency_id;
+        token.supabaseToken = user.supabaseToken;
       }
       return token;
     },
@@ -66,6 +68,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.agency_id = token.agency_id as string;
+        session.user.supabaseToken = token.supabaseToken as string;
       }
       return session;
     },

@@ -1,9 +1,9 @@
 import { SampleStatus, UserRole } from '@/constants/enums';
 import { authOptions } from '@/lib/auth-options';
-import { supabase } from "@/lib/supabase";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { TestType } from '@/types/sample';
 import { getServerSession } from 'next-auth';
-import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -19,10 +19,28 @@ export async function GET(request: NextRequest) {
       agencyId: session?.user?.agency_id
     });
 
-    if (!session?.user) {
+    if (!session?.user?.supabaseToken) {
       console.log("Samples API: Unauthorized - No session or user");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookies().get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            cookies().set({ name, value, ...options });
+          },
+          remove(name: string, options: any) {
+            cookies().set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "0");
@@ -100,14 +118,28 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-      cookieName: "next-auth.session-token", 
-    });
-    if (!token) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.supabaseToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookies().get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            cookies().set({ name, value, ...options });
+          },
+          remove(name: string, options: any) {
+            cookies().set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
 
     const sampleData = await request.json();
 
@@ -159,7 +191,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ Add created_by and default status
-    filteredSampleData.created_by = token.sub;
+    filteredSampleData.created_by = session.user.id;
     filteredSampleData.status = "pending";
     filteredSampleData.updated_at = new Date().toISOString();
 
@@ -199,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ sample: data });
   } catch (error) {
-    console.error("Create sample error:", error);
+    console.error("Samples API: Unexpected error", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
