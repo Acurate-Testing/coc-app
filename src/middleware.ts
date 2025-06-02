@@ -18,6 +18,7 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = [
     "/login",
     "/register",
+    "/reset-password",
     "/_next",
     "/static",
     "/api/auth",
