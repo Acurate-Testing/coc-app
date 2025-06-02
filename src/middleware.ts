@@ -19,6 +19,7 @@ export async function middleware(request: NextRequest) {
     "/login",
     "/register",
     "/reset-password",
+    "/set-password",
     "/_next",
     "/static",
     "/api/auth",
