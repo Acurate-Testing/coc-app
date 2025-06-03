@@ -70,6 +70,21 @@ export const authOptions: NextAuthOptions = {
         session.user.agency_id = token.agency_id as string;
         session.user.supabaseToken = token.supabaseToken as string;
       }
+
+      // If role or agency_id is missing, fetch from database
+      if (!session.user.role || !session.user.agency_id) {
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("role, agency_id")
+          .eq("id", session.user.id)
+          .single();
+
+        if (!userError && userData) {
+          session.user.role = userData.role;
+          session.user.agency_id = userData.agency_id;
+        }
+      }
+
       return session;
     },
   },

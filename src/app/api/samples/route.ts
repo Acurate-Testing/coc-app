@@ -80,11 +80,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply agency filter if provided or if user is not a lab admin
-    if (agencyId) {
+    if (agencyId && agencyId !== "null") {
       query = query.eq("agency_id", agencyId);
-    } else if (session.user.role !== "lab_admin") {
-      // For non-admin users, only show their agency's samples
+    } else if (session.user.role === "lab_admin") {
+      // Lab admins can see all samples
+      // No additional filter needed
+    } else if (session.user.agency_id) {
+      // For non-admin users with an agency, only show their agency's samples
       query = query.eq("agency_id", session.user.agency_id);
+    } else {
+      // For users without a role or agency, show no samples
+      return NextResponse.json({
+        samples: [],
+        total: 0,
+        page,
+        pageSize,
+      });
     }
 
     // Apply pagination

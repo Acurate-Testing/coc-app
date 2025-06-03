@@ -14,8 +14,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const { data: session, update: updateSession } = useSession();
   const [name, setName] = useState(session?.user?.name || "");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClientComponentClient();
 
@@ -24,19 +24,39 @@ export default function ProfilePage() {
 
     // Fetch initial user data
     const fetchUserData = async () => {
-      const { data, error } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from("users")
-        .select("full_name")
+        .select("full_name, email, role, agency_id")
         .eq("id", session.user.id)
         .single();
 
-      if (error) {
-        console.error("Error fetching user data:", error);
+      if (userError) {
+        console.error("Error fetching user data:", userError);
         return;
       }
 
-      if (data?.full_name) {
-        setName(data.full_name);
+      if (userData?.full_name) {
+        setName(userData.full_name);
+      }
+
+      // If user is an agency, fetch agency details
+      if (userData?.role === "agency" && userData?.agency_id) {
+        const { data: agencyData, error: agencyError } = await supabase
+          .from("agencies")
+          .select("name, contact_email, phone, address")
+          .eq("id", userData.agency_id)
+          .single();
+
+        if (agencyError) {
+          console.error("Error fetching agency data:", agencyError);
+          return;
+        }
+
+        if (agencyData) {
+          setName(agencyData.name || userData.full_name);
+          setPhone(agencyData.phone || "");
+          setAddress(agencyData.address || "");
+        }
       }
     };
 
@@ -77,26 +97,48 @@ export default function ProfilePage() {
     }
   };
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
+  const handleAgencyUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      if (!session?.user?.id) {
-        throw new Error("No user found");
+      if (!session?.user?.id || !session?.user?.agency_id) {
+        throw new Error("No user or agency found");
       }
 
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
+      // Update agency information
+      const { error: agencyError } = await supabase
+        .from("agencies")
+        .update({
+          name: name,
+          phone: phone || null,
+          address: address || null,
+        })
+        .eq("id", session.user.agency_id);
+
+      if (agencyError) throw agencyError;
+
+      // Update the user's name in the users table
+      const { error: userError } = await supabase
+        .from("users")
+        .update({ full_name: name })
+        .eq("id", session.user.id);
+
+      if (userError) throw userError;
+
+      // Update the session with the new name
+      await updateSession({
+        ...session,
+        user: {
+          ...session.user,
+          name: name,
+        },
       });
 
-      if (error) throw error;
-      successToast("Password updated successfully");
-      setCurrentPassword("");
-      setNewPassword("");
+      successToast("Agency information updated successfully");
     } catch (error) {
-      errorToast("Failed to update password");
-      console.error("Error updating password:", error);
+      errorToast("Failed to update agency information");
+      console.error("Error updating agency information:", error);
     } finally {
       setIsLoading(false);
     }
@@ -130,88 +172,103 @@ export default function ProfilePage() {
       />
 
       <div className="space-y-8 mt-6">
-        {/* Name Update Form */}
-        <Card className="p-6 !shadow-none rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Update Name</h2>
-          <form onSubmit={handleNameUpdate} className="space-y-4">
-            <div>
-              <label htmlFor="name">Full Name</label>
-              <input
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 form-input"
-                placeholder="Enter your full name"
-                required
-              />
-            </div>
-
-            {isLoading ? (
-              <LoadingButton
-                label="Updating..."
-                size="large"
-                className="h-[50px] mt-4"
-                disabled
-              />
-            ) : (
-              <Button
-                label="Update Name"
-                size="large"
-                type="submit"
-                className="w-full h-[50px] mt-4"
-                disabled={isLoading}
-              />
-            )}
-          </form>
-        </Card>
-
-        <Card className="p-6 !shadow-none rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Change Password</h2>
-          <form onSubmit={handlePasswordUpdate} className="space-y-4">
-            <div>
-              <label htmlFor="currentPassword">Current Password</label>
-              <input
-                type="password"
-                id="currentPassword"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="mt-1 form-input"
-                placeholder="********"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="newPassword">New Password</label>
-              <input
-                type="password"
-                id="newPassword"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1 form-input"
-                placeholder="********"
-                required
-                minLength={6}
-              />
-            </div>
-            {isLoading ? (
-              <LoadingButton
-                label="Updating..."
-                size="large"
-                className="h-[50px] mt-4"
-                disabled
-              />
-            ) : (
-              <Button
-                label="Update Password"
-                size="large"
-                type="submit"
-                className="w-full h-[50px] mt-4"
-                disabled={isLoading}
-              />
-            )}
-          </form>
-        </Card>
+        {session.user.role === "agency" ? (
+          // Agency Profile Form
+          <Card className="p-6 !shadow-none rounded-xl">
+            <h2 className="text-xl font-semibold mb-4">
+              Update Agency Information
+            </h2>
+            <form onSubmit={handleAgencyUpdate} className="space-y-4">
+              <div>
+                <label htmlFor="name">Agency Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-1 form-input"
+                  placeholder="Enter agency name"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="phone">Phone Number</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="mt-1 form-input"
+                  placeholder="Enter phone number"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="address">Address</label>
+                <textarea
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="mt-1 form-input"
+                  placeholder="Enter agency address"
+                  required
+                  rows={3}
+                />
+              </div>
+              {isLoading ? (
+                <LoadingButton
+                  label="Updating..."
+                  size="large"
+                  className="h-[50px] mt-4"
+                  disabled
+                />
+              ) : (
+                <Button
+                  label="Update Agency Information"
+                  size="large"
+                  type="submit"
+                  className="w-full h-[50px] mt-4"
+                  disabled={isLoading}
+                />
+              )}
+            </form>
+          </Card>
+        ) : (
+          // User/Admin Name Update Form
+          <Card className="p-6 !shadow-none rounded-xl">
+            <h2 className="text-xl font-semibold mb-4">Update Name</h2>
+            <form onSubmit={handleNameUpdate} className="space-y-4">
+              <div>
+                <label htmlFor="name">Full Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-1 form-input"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+              {isLoading ? (
+                <LoadingButton
+                  label="Updating..."
+                  size="large"
+                  className="h-[50px] mt-4"
+                  disabled
+                />
+              ) : (
+                <Button
+                  label="Update Name"
+                  size="large"
+                  type="submit"
+                  className="w-full h-[50px] mt-4"
+                  disabled={isLoading}
+                />
+              )}
+            </form>
+          </Card>
+        )}
       </div>
     </div>
   );

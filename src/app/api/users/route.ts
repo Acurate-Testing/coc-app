@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       .is("deleted_at", null) // soft delete filter
       .order("created_at", { ascending: false });
 
-    // Apply agency filter only if not lab_technician and agency_id exists
+    // Apply agency filter only if not lab admin and agency_id exists
     if (session.user.role !== UserRole.LABADMIN && session.user.agency_id) {
       baseQuery.eq("agency_id", session.user.agency_id);
     }

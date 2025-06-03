@@ -106,12 +106,14 @@ const Users = () => {
   return (
     <div className="md:p-8 p-6">
       <div className="relative bg-gray-50">
-        <button
-          onClick={() => router.push("/member/invite")}
-          className="fixed bottom-8 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200"
-        >
-          <LuPlus size={30} />
-        </button>
+        {session?.user.role === UserRole.AGENCY && (
+          <button
+            onClick={() => router.push("/member/invite")}
+            className="fixed bottom-8 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200"
+          >
+            <LuPlus size={30} />
+          </button>
+        )}
       </div>
       {userList.length > 0 ? (
         userList.map((user) => (
@@ -151,40 +153,46 @@ const Users = () => {
 
             {session?.user.id !== user.id && (
               <div className="flex flex-col gap-3">
-                <Button
-                  className="md:min-w-[100px]"
-                  variant="white"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleResendInvite(user.id);
-                  }}
-                  disabled={session?.user.id === user.id}
-                  label={
-                    isMobile
-                      ? ""
-                      : isResending === user.id
-                      ? "Resending..."
-                      : "Resend Invite"
-                  }
-                  icon={<IoMdRefresh className="text-lg" />}
-                />
-                <Button
-                  className="md:min-w-[100px]"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteUser(user.id);
-                  }}
-                  disabled={isDeleting === user.id}
-                  label={
-                    isMobile
-                      ? ""
-                      : isDeleting === user.id
-                      ? "Deleting..."
-                      : "Delete"
-                  }
-                  variant="danger"
-                  icon={<ImBin className="text-lg" />}
-                />
+                {session?.user.role === UserRole.AGENCY && !user.active && (
+                  <Button
+                    className="md:min-w-[100px]"
+                    variant="white"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleResendInvite(user.id);
+                    }}
+                    disabled={isResending === user.id}
+                    label={
+                      isMobile
+                        ? ""
+                        : isResending === user.id
+                        ? "Resending..."
+                        : "Resend Invite"
+                    }
+                    icon={<IoMdRefresh className="text-lg" />}
+                  />
+                )}
+                {session?.user.role === UserRole.AGENCY && (
+                  <Button
+                    className="md:min-w-[100px]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteUser(user.id);
+                    }}
+                    disabled={
+                      isDeleting === user.id || session?.user.id === user.id
+                    }
+                    label={
+                      isMobile
+                        ? ""
+                        : isDeleting === user.id
+                        ? "Deleting..."
+                        : "Delete"
+                    }
+                    variant="danger"
+                    icon={<ImBin className="text-lg" />}
+                  />
+                )}
               </div>
             )}
           </Card>

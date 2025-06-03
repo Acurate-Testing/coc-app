@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { sendUserInviteEmail } from "@/lib/email";
 import { authOptions } from "@/lib/auth-options";
 import crypto from "crypto";
+import { UserRole } from "@/constants/enums";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Get user role from database
     const { data: userData, error: userError } = await supabase
       .from("users")
-      .select("role")
+      .select("role, agency_id")
       .eq("id", session.user.id)
       .single();
 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has required role
-    if (!["lab_admin", "agency"].includes(userData.role)) {
+    if (![UserRole.LABADMIN, UserRole.AGENCY].includes(userData.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -40,39 +41,21 @@ export async function POST(request: NextRequest) {
     // Generate invite token
     const inviteToken = crypto.randomBytes(32).toString("hex");
 
-    // Create agency first
-    const { data: agency, error: agencyError } = await supabase
-      .from("agencies")
-      .insert({
-        name: `${name}'s Agency`,
-        contact_email: email,
-        created_by: session.user.id,
-      })
-      .select()
-      .single();
-
-    if (agencyError) {
-      console.error("Error creating agency:", agencyError);
-      return NextResponse.json({ error: agencyError.message }, { status: 500 });
-    }
-
     // Store user in database with invitation token
     const { data: newUser, error: inviteError } = await supabase
       .from("users")
       .insert({
         email,
-        role: "agency",
+        role: UserRole.USER,
         active: false,
         full_name: name,
-        agency_id: agency.id,
+        agency_id: userData.agency_id,
         invitation_token: inviteToken,
       })
       .select()
       .single();
 
     if (inviteError) {
-      // If user creation fails, clean up the agency
-      await supabase.from("agencies").delete().eq("id", agency.id);
       console.error("Error creating user:", inviteError);
       return NextResponse.json({ error: inviteError.message }, { status: 500 });
     }

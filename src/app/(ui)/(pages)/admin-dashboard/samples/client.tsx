@@ -85,7 +85,7 @@ export default function AdminSamplesClient({
         `limit=${limitPerPage}`,
         searchQuery ? `search=${searchQuery}` : "",
         activeTab !== "All" ? `status=${activeTab}` : "",
-        selectedAgency ? `agency=${selectedAgency}` : "",
+        selectedAgency ? `agencyId=${selectedAgency}` : "",
       ]
         .filter(Boolean)
         .join("&");
@@ -201,7 +201,7 @@ export default function AdminSamplesClient({
       const params = [
         searchQuery ? `search=${searchQuery}` : "",
         activeTab !== "All" ? `status=${activeTab}` : "",
-        selectedAgency ? `agency=${selectedAgency}` : "",
+        selectedAgency ? `agencyId=${selectedAgency}` : "",
       ]
         .filter(Boolean)
         .join("&");
