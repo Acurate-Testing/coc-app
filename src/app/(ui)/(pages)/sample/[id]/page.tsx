@@ -145,7 +145,6 @@ export default function InspectionDetailPage() {
       const data = await res.json();
       setUserList(data.users || []);
     } catch (error) {
-      console.log(error);
       setUserList([]);
     }
   };

@@ -25,6 +25,8 @@ interface ApiResponse {
 export default function AdminTestsPage() {
   const [tests, setTests] = useState<Test[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [isPageChanging, setIsPageChanging] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -66,8 +68,18 @@ export default function AdminTestsPage() {
       setError(err instanceof Error ? err.message : "Failed to fetch tests");
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
+      setIsPageChanging(false);
     }
   };
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      setIsSearching(true);
+      fetchTests();
+    }, 1000);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   useEffect(() => {
     fetchTests();
@@ -154,6 +166,11 @@ export default function AdminTestsPage() {
 
     setMenuPosition(position);
     setOpenActionMenu(testId);
+  };
+
+  const handlePageChange = (page: number) => {
+    setIsPageChanging(true);
+    setCurrentPage(page);
   };
 
   if (isLoading) {
@@ -282,7 +299,7 @@ export default function AdminTestsPage() {
                 <div className="p-5">
                   <Pagination
                     activePage={currentPage || 0}
-                    setActivePage={setCurrentPage}
+                    setActivePage={handlePageChange}
                     numberOfPage={totalPages}
                     numberOfRecords={totalTests}
                     itemsPerPage={10}
@@ -290,6 +307,8 @@ export default function AdminTestsPage() {
                 </div>
               )}
             </div>
+          ) : isLoading || isSearching || isPageChanging ? (
+            <LoadingSpinner />
           ) : (
             <Card className="p-4 bg-white !shadow-none rounded-xl">
               <div className="flex items-center justify-center h-64">

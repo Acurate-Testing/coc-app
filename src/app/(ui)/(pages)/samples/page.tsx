@@ -33,6 +33,8 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<SampleStatus | "All">("All");
   const [samples, setSamples] = useState<Partial<Sample>[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [isPageChanging, setIsPageChanging] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalSamples, setTotalSamples] = useState(0);
@@ -79,6 +81,8 @@ export default function HomePage() {
       );
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
+      setIsPageChanging(false);
     }
   };
 
@@ -124,10 +128,16 @@ export default function HomePage() {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
+      setIsSearching(true);
       fetchSamples();
     }, 1000);
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
+
+  const handlePageChange = (page: number) => {
+    setIsPageChanging(true);
+    setCurrentPage(page);
+  };
 
   // const filteredSamples = samples?.filter((sample: Sample) => {
   //   const matchesSearch =
@@ -285,13 +295,13 @@ export default function HomePage() {
                           }
                         />
                         <div className="flex items-center flex-wrap gap-2">
-                          {sample?.sample_test_types &&
-                          sample?.sample_test_types?.length > 0 ? (
-                            sample?.sample_test_types?.map((item, index) => (
+                          {sample?.test_types &&
+                          sample?.test_types?.length > 0 ? (
+                            sample?.test_types?.map((item, index) => (
                               <div key={index}>
-                                {item?.test_types?.name && (
+                                {item?.name && (
                                   <div className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-full text-sm">
-                                    {item?.test_types?.name}
+                                    {item?.name}
                                   </div>
                                 )}
                               </div>
@@ -330,7 +340,7 @@ export default function HomePage() {
                 <div>
                   <Pagination
                     activePage={currentPage || 0}
-                    setActivePage={setCurrentPage}
+                    setActivePage={handlePageChange}
                     numberOfPage={totalPages}
                     numberOfRecords={totalSamples}
                     itemsPerPage={10}
@@ -338,7 +348,7 @@ export default function HomePage() {
                 </div>
               )}
             </>
-          ) : isLoading ? (
+          ) : isLoading || isSearching || isPageChanging ? (
             <LoadingSpinner />
           ) : (
             <Card className="p-4 bg-white !shadow-none rounded-xl">

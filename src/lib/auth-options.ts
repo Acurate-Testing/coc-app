@@ -34,7 +34,7 @@ export const authOptions: NextAuthOptions = {
           // Get user role and agency info
           const { data: userData, error: userError } = await supabase
             .from("users")
-            .select("role, agency_id, full_name")
+            .select("id, role, agency_id, full_name")
             .eq("id", data.user.id)
             .single();
 
@@ -60,6 +60,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
         token.role = user.role;
         token.agency_id = user.agency_id;
         token.name = user.name;
@@ -69,6 +70,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token) {
+        session.user.id = token.id;
         session.user.role = token.role;
         session.user.agency_id = token.agency_id;
         session.user.name = token.name;

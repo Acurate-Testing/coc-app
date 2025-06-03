@@ -1,8 +1,6 @@
-import { SampleStatus, UserRole } from '@/constants/enums';
 import { authOptions } from '@/lib/auth-options';
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { TestType } from '@/types/sample';
 import { getServerSession } from 'next-auth';
 import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,17 +10,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("Samples API: Starting request");
     const session = await getServerSession(authOptions);
-    console.log("Samples API: Session check", { 
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userRole: session?.user?.role,
-      agencyId: session?.user?.agency_id
-    });
 
     if (!session?.user?.supabaseToken) {
-      console.log("Samples API: Unauthorized - No session or user");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -50,8 +40,6 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
     const agencyId = searchParams.get("agencyId");
-
-    console.log("Samples API: Query params", { page, pageSize, search, status, agencyId });
 
     let query = supabase
       .from("samples")
@@ -84,7 +72,6 @@ export async function GET(request: NextRequest) {
     if (agencyId && agencyId !== "null") {
       query = query.eq("agency_id", agencyId);
     } else if (session.user.role === "lab_admin") {
-      // Lab admins can see all samples
       // No additional filter needed
     } else if (session.user.agency_id) {
       // For non-admin users with an agency, only show their agency's samples
@@ -104,18 +91,12 @@ export async function GET(request: NextRequest) {
     const to = from + pageSize - 1;
     query = query.range(from, to);
 
-    console.log("Samples API: Executing query");
     const { data, error, count } = await query;
 
     if (error) {
       console.error("Samples API: Query error", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
-    console.log("Samples API: Query successful", { 
-      count: count || 0,
-      results: data?.length || 0
-    });
 
     return NextResponse.json({
       samples: data,
@@ -210,6 +191,7 @@ export async function POST(request: NextRequest) {
     filteredSampleData.created_by = session.user.id;
     filteredSampleData.status = "pending";
     filteredSampleData.updated_at = new Date().toISOString();
+
 
     // Add created_by and set initial status
     const { data, error } = await supabase

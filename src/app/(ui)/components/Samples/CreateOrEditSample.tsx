@@ -214,7 +214,7 @@ export default function SampleForm() {
     try {
       const submission = {
         ...formData,
-        status: "submitted",
+        status: "pending",
         saved_at: new Date().toISOString(),
       };
 
@@ -691,7 +691,8 @@ export default function SampleForm() {
                 <div>
                   <p className="text-sm text-gray-600">Date/Timestamp</p>
                   <p className="font-medium">
-                    {formData.created_at
+                    {formData.sample_collected_at &&
+                    typeof formData.sample_collected_at === "string"
                       ? new Date(formData.sample_collected_at).toLocaleString()
                       : "Not available"}
                   </p>
