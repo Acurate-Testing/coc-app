@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { supabase } from "./supabase";
+import { handleAuthError } from "./error-handling";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -12,43 +13,46 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error("Email and password are required");
         }
 
         try {
-          const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
+          const { data, error } = await supabase.auth.signInWithPassword({
             email: credentials.email,
             password: credentials.password,
           });
 
-          if (error || !user || !session) {
-            console.error("Auth error:", error);
-            return null;
+          if (error) {
+            const appError = handleAuthError(error);
+            throw new Error(appError.message);
           }
 
-          // Get user details from the users table
+          if (!data.user || !data.user.email) {
+            throw new Error("User not found");
+          }
+
+          // Get user role and agency info
           const { data: userData, error: userError } = await supabase
             .from("users")
-            .select("*")
-            .eq("id", user.id)
+            .select("role, agency_id, full_name")
+            .eq("id", data.user.id)
             .single();
 
           if (userError || !userData) {
-            console.error("User data error:", userError);
-            return null;
+            throw new Error("Failed to fetch user data");
           }
 
           return {
-            id: user.id,
-            email: user.email || credentials.email,
-            name: userData.full_name,
+            id: data.user.id,
+            email: data.user.email,
+            name: userData.full_name || data.user.email.split('@')[0],
             role: userData.role,
             agency_id: userData.agency_id,
-            supabaseToken: session.access_token,
+            supabaseToken: data.session?.access_token,
           };
         } catch (error) {
-          console.error("Auth error:", error);
-          return null;
+          const appError = handleAuthError(error);
+          throw new Error(appError.message);
         }
       },
     }),
@@ -56,35 +60,20 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
         token.role = user.role;
         token.agency_id = user.agency_id;
+        token.name = user.name;
         token.supabaseToken = user.supabaseToken;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.agency_id = token.agency_id as string;
-        session.user.supabaseToken = token.supabaseToken as string;
+        session.user.role = token.role;
+        session.user.agency_id = token.agency_id;
+        session.user.name = token.name;
+        session.user.supabaseToken = token.supabaseToken;
       }
-
-      // If role or agency_id is missing, fetch from database
-      if (!session.user.role || !session.user.agency_id) {
-        const { data: userData, error: userError } = await supabase
-          .from("users")
-          .select("role, agency_id")
-          .eq("id", session.user.id)
-          .single();
-
-        if (!userError && userData) {
-          session.user.role = userData.role;
-          session.user.agency_id = userData.agency_id;
-        }
-      }
-
       return session;
     },
   },
@@ -94,8 +83,6 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
 };

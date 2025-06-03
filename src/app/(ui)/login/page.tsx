@@ -71,15 +71,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        console.error("Login error:", result.error);
-        errorToast("Invalid credentials. Please try again.");
+        errorToast(result.error);
       } else if (result?.ok) {
         // Let the useEffect handle the redirection
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
     } catch (error) {
-      console.error("Login error:", error);
-      errorToast("Something went wrong. Please try again.");
+      errorToast("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

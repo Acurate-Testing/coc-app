@@ -23,7 +23,6 @@ export default function TransferCOCPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [selectedUser, setSelectedUser] = useState("");
-  const [error, setError] = useState("");
   const [sampleData, setSampleData] = useState<Partial<Sample> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [timestamp, setTimestamp] = useState(new Date());
@@ -41,10 +40,12 @@ export default function TransferCOCPage() {
   const fetchSampleData = async () => {
     try {
       const response = await fetch(`/api/samples/${params.id}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch sample data");
-      }
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch sample data");
+      }
+
       setSampleData(data.sample);
 
       // Check if sample has been transferred to Lab Admin
@@ -60,8 +61,9 @@ export default function TransferCOCPage() {
         router.push(`/sample/${params.id}`);
       }
     } catch (error) {
-      console.error("Error fetching sample:", error);
-      errorToast("Failed to fetch sample data");
+      errorToast(
+        error instanceof Error ? error.message : "Failed to fetch sample data"
+      );
       router.push("/samples");
     }
   };
@@ -78,27 +80,106 @@ export default function TransferCOCPage() {
 
     try {
       const signatureDataUrl = sigPadRef.current.toDataURL("image/png");
-      setSignatureData(signatureDataUrl);
+      // Validate signature complexity
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+      img.src = signatureDataUrl;
+
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx?.drawImage(img, 0, 0);
+        const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData?.data;
+
+        // Check if signature has enough non-transparent pixels
+        let nonTransparentPixels = 0;
+        if (data) {
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] > 0) nonTransparentPixels++;
+          }
+        }
+
+        if (nonTransparentPixels < 100) {
+          errorToast("Please provide a more detailed signature");
+          return;
+        }
+
+        setSignatureData(signatureDataUrl);
+      };
     } catch (error) {
-      console.error("Error saving signature:", error);
       errorToast("Failed to save signature");
     }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPhoto(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      errorToast("Photo size must be less than 2MB");
+      return;
     }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      errorToast("Please upload an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const img = new Image();
+      img.src = reader.result as string;
+
+      img.onload = () => {
+        // Compress image if needed
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
+        setPhoto(compressedDataUrl);
+      };
+
+      img.onerror = () => {
+        errorToast("Failed to load image");
+      };
+    };
+
+    reader.onerror = () => {
+      errorToast("Failed to read file");
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedUser) {
-      setError("Please select a user");
+      errorToast("Please select a user");
       return;
     }
 
@@ -108,13 +189,12 @@ export default function TransferCOCPage() {
     }
 
     if (!signatureData) {
-      setError("Please provide a signature");
+      errorToast("Please provide a signature");
       return;
     }
 
     try {
       setIsLoading(true);
-      setError("");
 
       // Create form data for the COC transfer
       const formData = new FormData();
@@ -134,15 +214,15 @@ export default function TransferCOCPage() {
         body: formData,
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || "Failed to transfer chain of custody");
       }
 
       successToast("Chain of custody transferred successfully");
       router.push(`/sample/${params.id}`);
     } catch (error) {
-      console.error("Transfer error:", error);
       errorToast(
         error instanceof Error
           ? error.message
@@ -253,7 +333,6 @@ export default function TransferCOCPage() {
             value={selectedUser}
             onChange={(e) => {
               setSelectedUser(e.target.value);
-              setError("");
             }}
             className="form-input bg-white w-full mt-1 mb-5"
             disabled={isFetchingUsers}

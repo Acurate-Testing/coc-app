@@ -21,6 +21,7 @@ import { SampleStatus } from "@/constants/enums";
 import { useMediaQuery } from "react-responsive";
 import { RiTestTubeFill } from "react-icons/ri";
 import { Sample } from "@/types/sample";
+import { errorToast } from "@/hooks/useCustomToast";
 
 // type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
@@ -73,7 +74,9 @@ export default function HomePage() {
       setTotalPages(data.totalPages);
     } catch (err) {
       console.error("Error fetching samples:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch samples");
+      errorToast(
+        err instanceof Error ? err.message : "Failed to fetch samples"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +89,7 @@ export default function HomePage() {
       case "in_coc":
         return "!bg-[#DBEAFE] !text-[#1D4ED8]";
       case "submitted":
-        return '!bg-[#E9D5FF] !text-[#7E22CE]';
+        return "!bg-[#E9D5FF] !text-[#7E22CE]";
       case "pass":
         return "!bg-[#d1fae5] !text-[#065f46]";
       case "fail":
@@ -226,7 +229,7 @@ export default function HomePage() {
                         <div>
                           <Chip
                             className={`${getStatusColor(
-                              sample?.status as string,
+                              sample?.status as string
                             )} capitalize flex items-center justify-center py-1.5 w-fit rounded-full text-sm`}
                             value={getStatusLabel(sample?.status as string)}
                           />
@@ -239,16 +242,24 @@ export default function HomePage() {
                           variant="icon"
                           icon={<IoFlask className="text-lg text-gray-600" />}
                         />
-                        <Label label={sample?.matrix_type || "-"} className="text-lg" />
+                        <Label
+                          label={sample?.matrix_type || "-"}
+                          className="text-lg"
+                        />
                       </div>
                       <div className="flex items-center md:gap-4 gap-2">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
-                          icon={<FaLocationDot className="text-lg text-gray-600" />}
+                          icon={
+                            <FaLocationDot className="text-lg text-gray-600" />
+                          }
                         />
-                        <Label label={sample?.sample_location || "-"} className="text-lg" />
+                        <Label
+                          label={sample?.sample_location || "-"}
+                          className="text-lg"
+                        />
                       </div>
                       <div className="flex items-center md:gap-4 gap-2">
                         <Button
@@ -258,7 +269,9 @@ export default function HomePage() {
                           icon={<GoClock className="text-lg text-gray-600" />}
                         />
                         <Label
-                          label={moment(sample?.created_at).format("YYYY-MM-DD hh:mm A")}
+                          label={moment(sample?.created_at).format(
+                            "YYYY-MM-DD hh:mm A"
+                          )}
                           className="text-lg"
                         />
                       </div>
@@ -267,10 +280,13 @@ export default function HomePage() {
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
-                          icon={<RiTestTubeFill className="text-xl text-gray-600" />}
+                          icon={
+                            <RiTestTubeFill className="text-xl text-gray-600" />
+                          }
                         />
                         <div className="flex items-center flex-wrap gap-2">
-                          {sample?.sample_test_types && sample?.sample_test_types?.length > 0 ? (
+                          {sample?.sample_test_types &&
+                          sample?.sample_test_types?.length > 0 ? (
                             sample?.sample_test_types?.map((item, index) => (
                               <div key={index}>
                                 {item?.test_types?.name && (
@@ -281,7 +297,9 @@ export default function HomePage() {
                               </div>
                             ))
                           ) : (
-                            <div className="text-sm text-gray-500">No tests selected</div>
+                            <div className="text-sm text-gray-500">
+                              No tests selected
+                            </div>
                           )}
                         </div>
                       </div>

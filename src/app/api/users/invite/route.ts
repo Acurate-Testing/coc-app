@@ -13,19 +13,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user role from database
-    const { data: userData, error: userError } = await supabase
-      .from("users")
-      .select("role, agency_id")
-      .eq("id", session.user.id)
-      .single();
-
-    if (userError || !userData) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
     // Check if user has required role
-    if (![UserRole.LABADMIN, UserRole.AGENCY].includes(userData.role)) {
+    if (![UserRole.LABADMIN, UserRole.AGENCY].includes(session.user.role as UserRole)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -35,6 +24,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Email and name are required" },
         { status: 400 }
+      );
+    }
+
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "User with this email already exists" },
+        { status: 409 }
       );
     }
 
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
         role: UserRole.USER,
         active: false,
         full_name: name,
-        agency_id: userData.agency_id,
+        agency_id: session.user.agency_id,
         invitation_token: inviteToken,
       })
       .select()

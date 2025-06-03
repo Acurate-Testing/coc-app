@@ -93,7 +93,6 @@ export async function POST(request: NextRequest) {
     let photo_url = null;
     if (photo) {
       const photoBuffer = await photo.arrayBuffer();
-      const photoBase64 = Buffer.from(photoBuffer).toString('base64');
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(COC_BUCKET)
         .upload(`${sampleId}/${Date.now()}.jpg`, photoBuffer, {

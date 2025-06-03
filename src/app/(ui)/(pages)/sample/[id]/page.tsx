@@ -31,10 +31,10 @@ const LAB_ADMIN_ID = process.env.NEXT_PUBLIC_LAB_ADMIN_ID;
 
 const COCTransferItem = ({
   transfer,
-  onImageSelect
+  onImageSelect,
 }: {
   transfer: any;
-  onImageSelect: (type: 'signature' | 'photo', url: string) => void;
+  onImageSelect: (type: "signature" | "photo", url: string) => void;
 }) => {
   const [signature, setSignature] = useState<string | null>(null);
   const isLabAdminTransfer = transfer.received_by_user?.id === LAB_ADMIN_ID;
@@ -43,21 +43,21 @@ const COCTransferItem = ({
     const decryptSignature = async () => {
       if (transfer.signature) {
         try {
-          const signatureData = transfer.signature.startsWith('base64-')
+          const signatureData = transfer.signature.startsWith("base64-")
             ? transfer.signature.substring(7)
             : transfer.signature;
 
           // Use API endpoint for decryption
-          const res = await fetch('/api/encryption/decrypt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const res = await fetch("/api/encryption/decrypt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ data: signatureData }),
           });
-          if (!res.ok) throw new Error('Failed to decrypt signature');
+          if (!res.ok) throw new Error("Failed to decrypt signature");
           const { decrypted } = await res.json();
           setSignature(decrypted);
         } catch (error) {
-          console.error('Error decrypting signature:', error);
+          console.error("Error decrypting signature:", error);
         }
       }
     };
@@ -71,10 +71,21 @@ const COCTransferItem = ({
         <div className="text-xs text-gray-500 font-medium leading-tight pt-1">
           {moment(transfer.timestamp).format("MMM D, YYYY h:mm A")}
           {/* Transfer text */}
-          <h3 className={`text-base font-semibold m-0 transfer-text ${isLabAdminTransfer ? 'text-green-800' : 'text-blue-900'}`}>
-            {isLabAdminTransfer
-              ? 'Transferred to Lab'
-              : (<><span className="font-bold">Transferred to:</span> <span className="ml-1">{transfer.received_by_user?.full_name}</span></>)}
+          <h3
+            className={`text-base font-semibold m-0 transfer-text ${
+              isLabAdminTransfer ? "text-green-800" : "text-blue-900"
+            }`}
+          >
+            {isLabAdminTransfer ? (
+              "Transferred to Lab"
+            ) : (
+              <>
+                <span className="font-bold">Transferred to:</span>{" "}
+                <span className="ml-1">
+                  {transfer.received_by_user?.full_name}
+                </span>
+              </>
+            )}
           </h3>
         </div>
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
@@ -82,7 +93,7 @@ const COCTransferItem = ({
             <button
               type="button"
               title="View Photo"
-              onClick={() => onImageSelect('photo', transfer.photo_url)}
+              onClick={() => onImageSelect("photo", transfer.photo_url)}
               className="w-8 h-8 rounded-lg flex items-center justify-center bg-green-100 text-green-600 hover:scale-105 transition-transform"
             >
               <BiImage className="w-5 h-5" />
@@ -92,7 +103,7 @@ const COCTransferItem = ({
             <button
               type="button"
               title="View Signature"
-              onClick={() => onImageSelect('signature', signature)}
+              onClick={() => onImageSelect("signature", signature)}
               className="w-8 h-8 rounded-lg flex items-center justify-center bg-green-100 text-green-600 hover:scale-105 transition-transform"
             >
               <LuSignature className="w-5 h-5" />
@@ -100,7 +111,6 @@ const COCTransferItem = ({
           )}
         </div>
       </div>
-
     </div>
   );
 };
@@ -115,11 +125,17 @@ export default function InspectionDetailPage() {
   const [formData, setFormData] = useState<Partial<Sample>>({});
   const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
     useState<boolean>(false);
-  const [openStatusUpdateModal, setOpenStatusUpdateModal] = useState<boolean>(false);
+  const [openStatusUpdateModal, setOpenStatusUpdateModal] =
+    useState<boolean>(false);
   const [statusNotes, setStatusNotes] = useState<string>("");
   const [updatingStatus, setUpdatingStatus] = useState<boolean>(false);
-  const [selectedStatus, setSelectedStatus] = useState<'pass' | 'fail' | null>(null);
-  const [selectedImage, setSelectedImage] = useState<{ type: 'signature' | 'photo', url: string } | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<"pass" | "fail" | null>(
+    null
+  );
+  const [selectedImage, setSelectedImage] = useState<{
+    type: "signature" | "photo";
+    url: string;
+  } | null>(null);
 
   const isLabAdmin = session?.user?.role === UserRole.LABADMIN;
 
@@ -147,11 +163,12 @@ export default function InspectionDetailPage() {
         fetchUserList();
 
         const response = await fetch(`/api/samples/${sampleId}`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch sample data");
-        }
         const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch sample data");
+        }
+
         if (data.sample) {
           setFormData(data.sample);
           handleGetLocation(
@@ -159,11 +176,12 @@ export default function InspectionDetailPage() {
             Number(data.sample.longitude.toFixed(2))
           );
         }
-        setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching sample:", error);
+        errorToast(
+          error instanceof Error ? error.message : "Failed to load sample data"
+        );
+      } finally {
         setIsLoading(false);
-        errorToast("Failed to load sample data. Please try again.");
       }
     }
   };
@@ -179,15 +197,16 @@ export default function InspectionDetailPage() {
         method: "DELETE",
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || "Failed to delete sample");
       }
 
       setOpenConfirmDeleteDialog(false);
+      successToast("Sample deleted successfully");
       router.push("/samples");
     } catch (error) {
-      console.error("Error deleting sample:", error);
       errorToast(
         error instanceof Error ? error.message : "Failed to delete sample"
       );
@@ -225,9 +244,9 @@ export default function InspectionDetailPage() {
   const handleUpdateStatus = () => {
     // Pre-select the status based on current sample status
     if (formData.status === SampleStatus.Pass) {
-      setSelectedStatus('pass');
+      setSelectedStatus("pass");
     } else if (formData.status === SampleStatus.Fail) {
-      setSelectedStatus('fail');
+      setSelectedStatus("fail");
     } else {
       setSelectedStatus(null);
     }
@@ -251,18 +270,20 @@ export default function InspectionDetailPage() {
         },
         body: JSON.stringify({
           status: selectedStatus,
-          notes: statusNotes
+          notes: statusNotes,
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || "Failed to update sample status");
       }
 
       setFormData((prev) => ({
         ...prev,
-        status: selectedStatus === "pass" ? SampleStatus.Pass : SampleStatus.Fail,
+        status:
+          selectedStatus === "pass" ? SampleStatus.Pass : SampleStatus.Fail,
         pass_fail_notes: statusNotes,
       }));
 
@@ -273,9 +294,10 @@ export default function InspectionDetailPage() {
 
       fetchSampleData();
     } catch (error) {
-      console.error("Error updating sample status:", error);
       errorToast(
-        error instanceof Error ? error.message : "Failed to update sample status"
+        error instanceof Error
+          ? error.message
+          : "Failed to update sample status"
       );
     } finally {
       setUpdatingStatus(false);
@@ -291,8 +313,7 @@ export default function InspectionDetailPage() {
   const getAccordionData = () => {
     const cocTransfers = formData?.coc_transfers || [];
     const lastIsLabAdmin =
-      cocTransfers.length > 0 &&
-      cocTransfers[0].received_by === LAB_ADMIN_ID;
+      cocTransfers.length > 0 && cocTransfers[0].received_by === LAB_ADMIN_ID;
 
     const baseAccordionItems = [
       {
@@ -311,13 +332,21 @@ export default function InspectionDetailPage() {
             </div>
             <div className="flex items-center justify-between">
               <div className="text-gray-500">Created By</div>
-              <div className="text-gray-900">{formData.created_by_user?.full_name || "-"}</div>
+              <div className="text-gray-900">
+                {formData.created_by_user?.full_name || "-"}
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="text-gray-500">Status</div>
-              <div className={`font-semibold ${formData.status === SampleStatus.Pass ? 'text-green-600' :
-                formData.status === SampleStatus.Fail ? 'text-red-600' : 'text-gray-900'
-                }`}>
+              <div
+                className={`font-semibold ${
+                  formData.status === SampleStatus.Pass
+                    ? "text-green-600"
+                    : formData.status === SampleStatus.Fail
+                    ? "text-red-600"
+                    : "text-gray-900"
+                }`}
+              >
                 {formData.status || "Pending"}
               </div>
             </div>
@@ -459,18 +488,36 @@ export default function InspectionDetailPage() {
       content: (
         <div className="relative pl-6">
           {/* Timeline vertical line */}
-          <div className="absolute left-0 top-2.5 bottom-2.5 w-0.5 bg-blue-200" style={{ zIndex: 0 }} />
+          <div
+            className="absolute left-0 top-2.5 bottom-2.5 w-0.5 bg-blue-200"
+            style={{ zIndex: 0 }}
+          />
           <div className="space-y-6">
             {cocTransfers.map((transfer: any, idx: number) => {
-              const isLabAdminTransfer = transfer.received_by_user?.id === LAB_ADMIN_ID;
+              const isLabAdminTransfer =
+                transfer.received_by_user?.id === LAB_ADMIN_ID;
               return (
                 <div key={transfer.id} className="relative">
                   {/* Timeline dot */}
-                  <div className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${isLabAdminTransfer ? 'bg-green-600 border-green-600' : 'bg-blue-600 border-blue-600'} z-10`} />
-                  <div className={`ml-4 ${isLabAdminTransfer ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'} border rounded-lg p-4 shadow-sm`}>
+                  <div
+                    className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${
+                      isLabAdminTransfer
+                        ? "bg-green-600 border-green-600"
+                        : "bg-blue-600 border-blue-600"
+                    } z-10`}
+                  />
+                  <div
+                    className={`ml-4 ${
+                      isLabAdminTransfer
+                        ? "bg-green-50 border-green-200"
+                        : "bg-gray-50 border-gray-200"
+                    } border rounded-lg p-4 shadow-sm`}
+                  >
                     <COCTransferItem
                       transfer={transfer}
-                      onImageSelect={(type, url) => setSelectedImage({ type, url })}
+                      onImageSelect={(type, url) =>
+                        setSelectedImage({ type, url })
+                      }
                     />
                   </div>
                 </div>
@@ -479,10 +526,13 @@ export default function InspectionDetailPage() {
           </div>
         </div>
       ),
-      ...(!isLabAdmin && !lastIsLabAdmin ? {
-        buttonText: "+ COC",
-        buttonAction: () => router.push(`/sample/transfer-coc/${params.id}`)
-      } : {})
+      ...(!isLabAdmin && !lastIsLabAdmin
+        ? {
+            buttonText: "+ COC",
+            buttonAction: () =>
+              router.push(`/sample/transfer-coc/${params.id}`),
+          }
+        : {}),
     };
 
     const deleteItem = {
@@ -646,7 +696,9 @@ export default function InspectionDetailPage() {
           icon={<FaAngleLeft />}
           variant="icon"
           size="large"
-          onClick={() => router.push(isLabAdmin ? "/admin-dashboard/samples" : "/samples")}
+          onClick={() =>
+            router.push(isLabAdmin ? "/admin-dashboard/samples" : "/samples")
+          }
         />
         <div className="flex gap-3">
           {isLabAdmin && (
@@ -688,26 +740,34 @@ export default function InspectionDetailPage() {
             <label className="block text-sm font-medium mb-2">Status</label>
             <div className="flex gap-4">
               <div
-                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${selectedStatus === 'pass'
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-300'
-                  }`}
-                onClick={() => setSelectedStatus('pass')}
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
+                  selectedStatus === "pass"
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-300"
+                }`}
+                onClick={() => setSelectedStatus("pass")}
               >
-                <div className={`w-4 h-4 rounded-full mr-2 ${selectedStatus === 'pass' ? 'bg-green-500' : 'bg-gray-200'
-                  }`}></div>
+                <div
+                  className={`w-4 h-4 rounded-full mr-2 ${
+                    selectedStatus === "pass" ? "bg-green-500" : "bg-gray-200"
+                  }`}
+                ></div>
                 <span>Pass</span>
               </div>
 
               <div
-                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${selectedStatus === 'fail'
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-gray-300'
-                  }`}
-                onClick={() => setSelectedStatus('fail')}
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
+                  selectedStatus === "fail"
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300"
+                }`}
+                onClick={() => setSelectedStatus("fail")}
               >
-                <div className={`w-4 h-4 rounded-full mr-2 ${selectedStatus === 'fail' ? 'bg-red-500' : 'bg-gray-200'
-                  }`}></div>
+                <div
+                  className={`w-4 h-4 rounded-full mr-2 ${
+                    selectedStatus === "fail" ? "bg-red-500" : "bg-gray-200"
+                  }`}
+                ></div>
                 <span>Fail</span>
               </div>
             </div>
@@ -734,7 +794,7 @@ export default function InspectionDetailPage() {
               label="Save"
               disabled={updatingStatus || !selectedStatus}
               onClick={handleSaveStatus}
-            // loading={updatingStatus}
+              // loading={updatingStatus}
             />
           </div>
         </div>
@@ -743,14 +803,20 @@ export default function InspectionDetailPage() {
       <Modal
         open={!!selectedImage}
         onClose={() => setSelectedImage(null)}
-        title={selectedImage?.type === 'signature' ? 'Signature' : 'Handoff Photo'}
+        title={
+          selectedImage?.type === "signature" ? "Signature" : "Handoff Photo"
+        }
       >
         <div className="p-4">
           {selectedImage && (
             <div className="flex justify-center">
               <img
                 src={selectedImage.url}
-                alt={selectedImage.type === 'signature' ? 'Signature' : 'Handoff Photo'}
+                alt={
+                  selectedImage.type === "signature"
+                    ? "Signature"
+                    : "Handoff Photo"
+                }
                 className="max-w-full max-h-[80vh] object-contain"
               />
             </div>

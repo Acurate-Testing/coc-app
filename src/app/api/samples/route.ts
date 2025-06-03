@@ -6,6 +6,7 @@ import { TestType } from '@/types/sample';
 import { getServerSession } from 'next-auth';
 import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
+import { handleDatabaseError, handleApiError } from "@/lib/error-handling";
 
 export const dynamic = 'force-dynamic';
 
@@ -194,7 +195,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ✅ Validate required fields
+    // Validate required fields
     const requiredFields = ["agency_id"];
     for (const field of requiredFields) {
       if (!filteredSampleData[field]) {
@@ -205,7 +206,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ✅ Add created_by and default status
+    // Add created_by and default status
     filteredSampleData.created_by = session.user.id;
     filteredSampleData.status = "pending";
     filteredSampleData.updated_at = new Date().toISOString();
@@ -218,38 +219,35 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("Supabase insert error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      const appError = handleDatabaseError(error);
+      return NextResponse.json({ error: appError.message }, { status: appError.statusCode });
     }
 
-    if (sampleData.test_types.length > 0) {
+    if (sampleData.test_types?.length > 0) {
       const testTypeEntries = sampleData.test_types.map(
-        (testType: TestType) => ({
-        sample_id: data.id,
-        test_type_id: testType.id,
+        (testType: any) => ({
+          sample_id: data.id,
+          test_type_id: testType.id,
         })
       );
 
-      const { data: testSamplesData, error: testSampleError } = await supabase
+      const { error: testSampleError } = await supabase
         .from("sample_test_types")
         .insert(testTypeEntries)
         .select();
 
       if (testSampleError) {
-        console.error("Error inserting test types:", testSampleError);
-        return NextResponse.json(
-          { error: "Failed to associate test types with sample" },
-          { status: 500 }
-        );
+        const appError = handleDatabaseError(testSampleError);
+        return NextResponse.json({ error: appError.message }, { status: appError.statusCode });
       }
     }
 
     return NextResponse.json({ sample: data });
   } catch (error) {
-    console.error("Samples API: Unexpected error", error);
+    const appError = handleApiError(error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: appError.message },
+      { status: appError.statusCode }
     );
   }
 }

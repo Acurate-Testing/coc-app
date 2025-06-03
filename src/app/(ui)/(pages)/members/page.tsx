@@ -78,15 +78,15 @@ const Users = () => {
         method: "DELETE",
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || "Failed to delete user");
       }
 
       successToast("User deleted successfully");
       fetchUserList(); // Refresh the list
     } catch (error) {
-      console.error("Error deleting user:", error);
       errorToast(
         error instanceof Error ? error.message : "Failed to delete user"
       );

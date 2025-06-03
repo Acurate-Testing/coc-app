@@ -2,6 +2,7 @@ import { UserRole } from "@/constants/enums";
 import { supabase } from "@/lib/supabase";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
+import { handleDatabaseError, handleApiError } from "@/lib/error-handling";
 
 export async function PUT(
   request: NextRequest,
@@ -41,7 +42,12 @@ export async function PUT(
       .is("deleted_at", null)
       .single();
 
-    if (fetchError || !existingSample) {
+    if (fetchError) {
+      const appError = handleDatabaseError(fetchError);
+      return NextResponse.json({ error: appError.message }, { status: appError.statusCode });
+    }
+
+    if (!existingSample) {
       return NextResponse.json({ error: "Sample not found" }, { status: 404 });
     }
 
@@ -58,7 +64,8 @@ export async function PUT(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      const appError = handleDatabaseError(error);
+      return NextResponse.json({ error: appError.message }, { status: appError.statusCode });
     }
 
     return NextResponse.json({ 
@@ -67,10 +74,10 @@ export async function PUT(
       message: `Sample status updated to ${status}` 
     });
   } catch (error) {
-    console.error("Update sample status error:", error);
+    const appError = handleApiError(error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: appError.message },
+      { status: appError.statusCode }
     );
   }
 }

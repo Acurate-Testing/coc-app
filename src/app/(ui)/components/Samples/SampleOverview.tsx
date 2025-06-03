@@ -2,6 +2,7 @@
 import { UserRole } from "@/constants/enums";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { errorToast } from "@/hooks/useCustomToast";
 
 const SampleOverview = () => {
   const [overview, setOverview] = useState<any>(null);
@@ -33,6 +34,7 @@ const SampleOverview = () => {
         }
       } catch (err) {
         console.error("Failed to fetch sample overview", err);
+        errorToast("Failed to fetch sample overview");
       } finally {
         if (isMounted) {
           setLoading(false);

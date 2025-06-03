@@ -3,6 +3,7 @@ import React, { FC, useEffect, useRef, useState } from "react";
 import { Button } from "@/stories/Button/Button";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import { Modal } from "@/stories/Modal/Modal";
+import { errorToast } from "@/hooks/useCustomToast";
 
 interface MemberInvitePros {
   open: boolean;
@@ -13,7 +14,6 @@ interface MemberInvitePros {
 const MemberEditModal: FC<MemberInvitePros> = ({ open, close, agencyId }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isInviting, setIsInviting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState({
     name: "",
     email: "",
@@ -29,12 +29,11 @@ const MemberEditModal: FC<MemberInvitePros> = ({ open, close, agencyId }) => {
 
   const handleSendInvitation = async () => {
     if (!inviteForm.name || !inviteForm.email) {
-      setError("Name and email are required");
+      errorToast("Name and email are required");
       return;
     }
 
     setIsInviting(true);
-    setError(null);
 
     try {
       const response = await fetch(`/api/agencies/${agencyId}/users/invite`, {
@@ -58,7 +57,7 @@ const MemberEditModal: FC<MemberInvitePros> = ({ open, close, agencyId }) => {
       close();
     } catch (error) {
       console.error("Error sending invitation:", error);
-      setError(
+      errorToast(
         error instanceof Error ? error.message : "Failed to send invitation"
       );
     } finally {
@@ -80,9 +79,6 @@ const MemberEditModal: FC<MemberInvitePros> = ({ open, close, agencyId }) => {
           handleSendInvitation();
         }}
       >
-        {error && (
-          <div className="mb-4 p-2 bg-red-50 text-red-600 rounded">{error}</div>
-        )}
         <div className="mb-4">
           <label className="text-colorBlack font-medium mb-1 pl-0.5">
             Name
@@ -95,7 +91,6 @@ const MemberEditModal: FC<MemberInvitePros> = ({ open, close, agencyId }) => {
             value={inviteForm.name}
             onChange={(e) => {
               setInviteForm({ ...inviteForm, name: e.target.value });
-              setError(null);
             }}
             className="form-input"
             autoFocus
@@ -113,7 +108,6 @@ const MemberEditModal: FC<MemberInvitePros> = ({ open, close, agencyId }) => {
             value={inviteForm.email}
             onChange={(e) => {
               setInviteForm({ ...inviteForm, email: e.target.value });
-              setError(null);
             }}
             className="form-input"
             required

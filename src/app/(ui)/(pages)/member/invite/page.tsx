@@ -4,12 +4,12 @@ import { Button } from "@/stories/Button/Button";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { errorToast } from "@/hooks/useCustomToast";
 
 const InviteMember = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isInviting, setIsInviting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState({
     name: "",
     email: "",
@@ -23,17 +23,16 @@ const InviteMember = () => {
 
   const handleSendInvitation = async () => {
     if (!inviteForm.name || !inviteForm.email) {
-      setError("Name and email are required");
+      errorToast("Name and email are required");
       return;
     }
 
     if (!session) {
-      setError("You must be logged in to send invitations");
+      errorToast("You must be logged in to send invitations");
       return;
     }
 
     setIsInviting(true);
-    setError(null);
 
     try {
       const response = await fetch(`/api/users/invite`, {
@@ -67,7 +66,7 @@ const InviteMember = () => {
       router.push("/members");
     } catch (error) {
       console.error("Error sending invitation:", error);
-      setError(
+      errorToast(
         error instanceof Error ? error.message : "Failed to send invitation"
       );
     } finally {
@@ -79,11 +78,6 @@ const InviteMember = () => {
     <>
       <div className="w-full min-h-[calc(100vh-154px)] mx-auto md:p-8 p-6">
         <form>
-          {error && (
-            <div className="mb-4 p-2 bg-red-50 text-red-600 rounded">
-              {error}
-            </div>
-          )}
           <div className="mb-4">
             <label className="text-colorBlack font-medium mb-1 pl-0.5">
               Name
@@ -96,7 +90,6 @@ const InviteMember = () => {
               value={inviteForm.name}
               onChange={(e) => {
                 setInviteForm({ ...inviteForm, name: e.target.value });
-                setError(null);
               }}
               className="form-input mt-1"
               autoFocus
@@ -115,7 +108,6 @@ const InviteMember = () => {
               value={inviteForm.email}
               onChange={(e) => {
                 setInviteForm({ ...inviteForm, email: e.target.value });
-                setError(null);
               }}
               className="form-input mt-1"
               required

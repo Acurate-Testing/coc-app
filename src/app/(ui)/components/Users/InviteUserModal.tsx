@@ -3,6 +3,7 @@ import React, { FC, useEffect, useRef, useState } from "react";
 import { Button } from "@/stories/Button/Button";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import { Modal } from "@/stories/Modal/Modal";
+import { errorToast } from "@/hooks/useCustomToast";
 
 interface InviteUserModalProps {
   open: boolean;
@@ -12,7 +13,6 @@ interface InviteUserModalProps {
 const InviteUserModal: FC<InviteUserModalProps> = ({ open, close }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isInviting, setIsInviting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [inviteForm, setInviteForm] = useState({
     name: "",
     email: "",
@@ -28,12 +28,11 @@ const InviteUserModal: FC<InviteUserModalProps> = ({ open, close }) => {
 
   const handleSendInvitation = async () => {
     if (!inviteForm.name || !inviteForm.email) {
-      setError("Name and email are required");
+      errorToast("Name and email are required");
       return;
     }
 
     setIsInviting(true);
-    setError(null);
 
     try {
       const response = await fetch(`/api/users/invite`, {
@@ -57,7 +56,7 @@ const InviteUserModal: FC<InviteUserModalProps> = ({ open, close }) => {
       close();
     } catch (error) {
       console.error("Error sending invitation:", error);
-      setError(
+      errorToast(
         error instanceof Error ? error.message : "Failed to send invitation"
       );
     } finally {
@@ -79,9 +78,6 @@ const InviteUserModal: FC<InviteUserModalProps> = ({ open, close }) => {
           handleSendInvitation();
         }}
       >
-        {error && (
-          <div className="mb-4 p-2 bg-red-50 text-red-600 rounded">{error}</div>
-        )}
         <div className="mb-4">
           <label className="text-colorBlack font-medium mb-1 pl-0.5">
             Name
@@ -94,7 +90,6 @@ const InviteUserModal: FC<InviteUserModalProps> = ({ open, close }) => {
             value={inviteForm.name}
             onChange={(e) => {
               setInviteForm({ ...inviteForm, name: e.target.value });
-              setError(null);
             }}
             className="form-input"
             autoFocus
@@ -112,7 +107,6 @@ const InviteUserModal: FC<InviteUserModalProps> = ({ open, close }) => {
             value={inviteForm.email}
             onChange={(e) => {
               setInviteForm({ ...inviteForm, email: e.target.value });
-              setError(null);
             }}
             className="form-input"
             required

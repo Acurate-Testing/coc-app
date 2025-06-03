@@ -1,97 +1,86 @@
-import { UserRole } from "@/constants/enums";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
+import { handleDatabaseError, handleAuthError, handleApiError } from "@/lib/error-handling";
 
 export async function POST(request: Request) {
   try {
-    const { email, phone, agency_name, address, password } =
-      await request.json();
-    const cookieStore = cookies();
+    const { agency_name, email, phone, address, password } = await request.json();
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options });
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: "", ...options });
-          },
-        },
-      }
-    );
-
-    // 1. Create the user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 400 });
-    }
-
-    if (!authData.user) {
+    // Validate required fields
+    if (!agency_name || !email || !password) {
       return NextResponse.json(
-        { error: "Failed to create user" },
+        { error: "Agency name, email and password are required" },
         { status: 400 }
       );
     }
 
-    // 2. First create the user record
-    const { error: userError } = await supabase.from("users").insert({
-      id: authData.user.id,
-      email,
-      role: UserRole.AGENCY,
-    });
-
-    if (userError) {
-      // If user creation fails, clean up the auth user
-      await supabase.auth.admin.deleteUser(authData.user.id);
-      return NextResponse.json({ error: userError.message }, { status: 400 });
-    }
-
-    // 3. Create the agency record now that the user exists
+    // 1. Create the agency first
     const { data: agencyData, error: agencyError } = await supabase
       .from("agencies")
-      .insert({
-        name: agency_name,
-        contact_email: email,
-        phone,
-        address,
-        created_by: authData.user.id,
-      })
+      .insert([
+        {
+          name: agency_name,
+          email,
+          phone,
+          address,
+        },
+      ])
       .select()
       .single();
 
     if (agencyError) {
-      // If agency creation fails, clean up the user and auth user
-      await supabase.from("users").delete().eq("id", authData.user.id);
-      await supabase.auth.admin.deleteUser(authData.user.id);
-      return NextResponse.json({ error: agencyError.message }, { status: 400 });
+      const error = handleDatabaseError(agencyError);
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
 
-    // 4. Update the user with the agency_id
+    // 2. Create the auth user
+    let authData;
+    try {
+      const { data, error: createError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            role: "agency_admin",
+            agency_id: agencyData.id,
+            full_name: email.split("@")[0], // Default name from email
+          },
+        },
+      });
+
+      if (createError) {
+        const error = handleAuthError(createError);
+        // If user creation fails, clean up the agency
+        await supabase.from("agencies").delete().eq("id", agencyData.id);
+        return NextResponse.json({ error: error.message }, { status: error.statusCode });
+      }
+
+      authData = { user: data.user };
+    } catch (error) {
+      const appError = handleAuthError(error);
+      // If user creation fails, clean up the agency
+      await supabase.from("agencies").delete().eq("id", agencyData.id);
+      return NextResponse.json({ error: appError.message }, { status: appError.statusCode });
+    }
+
+    if (!authData.user) {
+      const error = new Error("Failed to create user account");
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    // 3. Update the user with the agency_id
     const { error: updateUserError } = await supabase
       .from("users")
       .update({ agency_id: agencyData.id })
       .eq("id", authData.user.id);
 
     if (updateUserError) {
+      const error = handleDatabaseError(updateUserError);
       // If user update fails, clean up everything
       await supabase.from("agencies").delete().eq("id", agencyData.id);
       await supabase.from("users").delete().eq("id", authData.user.id);
       await supabase.auth.admin.deleteUser(authData.user.id);
-      return NextResponse.json(
-        { error: updateUserError.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
 
     return NextResponse.json(
@@ -99,10 +88,10 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("Registration error:", error);
+    const appError = handleApiError(error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: appError.message },
+      { status: appError.statusCode }
     );
   }
 }

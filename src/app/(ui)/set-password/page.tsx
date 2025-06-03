@@ -4,12 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { errorToast, successToast } from "@/hooks/useCustomToast";
 
 export default function SetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,31 +16,29 @@ export default function SetPasswordPage() {
   useEffect(() => {
     const token = searchParams.get("token");
     if (!token) {
-      setError("Invalid or missing reset token");
+      errorToast("Invalid or missing reset token");
     }
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
-    setSuccess(null);
 
     const token = searchParams.get("token");
     if (!token) {
-      setError("Invalid or missing reset token");
+      errorToast("Invalid or missing reset token");
       setIsLoading(false);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      errorToast("Passwords do not match");
       setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
+      errorToast("Password must be at least 6 characters long");
       setIsLoading(false);
       return;
     }
@@ -56,12 +53,14 @@ export default function SetPasswordPage() {
         throw new Error(error.message);
       }
 
-      setSuccess("Password has been reset successfully");
+      successToast("Password has been reset successfully");
       setTimeout(() => {
         router.push("/login");
       }, 2000);
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Something went wrong");
+      errorToast(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -93,18 +92,6 @@ export default function SetPasswordPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="w-full space-y-5">
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-              {success}
-            </div>
-          )}
-
           {/* New Password */}
           <div>
             <label

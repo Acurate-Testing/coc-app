@@ -35,18 +35,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "userId and accounts[] are required" }, { status: 400 });
   }
 
-  // Verify user has access to this agency
-  const { data: userData } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.user.id)
-    .single();
-
-  if (!userData || userData.role !== "lab_admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
-  // Fetch existing accounts for this agency
+    // Fetch existing accounts for this agency
   const { data: existingAccounts, error: fetchError } = await supabase
     .from("accounts")
     .select("name")
@@ -129,17 +118,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "userId and accountName are required" }, { status: 400 });
   }
 
-  // Verify user has access to this agency
-  const { data: userData } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.user.id)
-    .single();
-
-  if (!userData || userData.role !== "lab_admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
   // Remove the account from the accounts table
   const { error } = await supabase
     .from("accounts")
@@ -184,17 +162,6 @@ export async function GET(req: NextRequest) {
 
   if (!userId) {
     return NextResponse.json({ error: "userId is required" }, { status: 400 });
-  }
-
-  // Verify user has access to this agency
-  const { data: userData } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.user.id)
-    .single();
-
-  if (!userData || userData.role !== "lab_admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   // Fetch accounts for the specified user

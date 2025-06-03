@@ -31,14 +31,16 @@ export default function RegisterPage() {
         body: JSON.stringify(signupFormData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.text();
-        throw new Error(data);
+        throw new Error(data.error || "Registration failed");
       }
+
       router.push("/login");
     } catch (error) {
       errorToast(
-        error instanceof Error ? error.message : "Something went wrong"
+        error instanceof Error ? error.message : "Registration failed"
       );
     } finally {
       setIsLoading(false);
@@ -46,141 +48,137 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="card-shadow w-full max-w-md bg-white rounded-2xl mx-auto p-8">
-        <div className="shield-icon">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-            />
-          </svg>
-        </div>
-        <h3 className="text-2xl font-semibold text-center mb-6">Register</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="agency_name">Company Name</label>
-            <input
-              type="text"
-              id="agency_name"
-              name="agency_name"
-              value={signupFormData.agency_name}
-              placeholder="Enter your agency name"
-              onChange={(e) =>
-                setSignupFormData({
-                  ...signupFormData,
-                  agency_name: e.target.value,
-                })
-              }
-              required
-              className="form-input mt-1"
-            />
-          </div>
-
-          <div className="mb-4">
-            <label htmlFor="email">Email address</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="Enter your email"
-              value={signupFormData.email}
-              onChange={(e) =>
-                setSignupFormData({
-                  ...signupFormData,
-                  email: e.target.value,
-                })
-              }
-              required
-              className="form-input mt-1"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="phone">Phone</label>
-            <input
-              type="number"
-              id="phone"
-              name="phone"
-              placeholder="Enter your phone"
-              onChange={(e) =>
-                setSignupFormData({
-                  ...signupFormData,
-                  phone: e.target.value,
-                })
-              }
-              required
-              className="form-input mt-1"
-            />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="address">Company Address</label>
-            <textarea
-              id="address"
-              name="address"
-              rows={2}
-              value={signupFormData.address ?? ""}
-              onChange={(e) =>
-                setSignupFormData({
-                  ...signupFormData,
-                  address: e.target.value,
-                })
-              }
-              placeholder="Enter address"
-              className="form-input !h-auto mt-1"
-            />
-          </div>
-
-          <div className="mb-6">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Enter password"
-              onChange={(e) =>
-                setSignupFormData({
-                  ...signupFormData,
-                  password: e.target.value,
-                })
-              }
-              required
-              className="form-input mt-1"
-            />
-          </div>
-
-          {isLoading ? (
-            <LoadingButton
-              label="Registering..."
-              size="large"
-              className="w-full h-[50px] mt-4"
-              disabled
-            />
-          ) : (
-            <Button
-              label="Register"
-              size="large"
-              type="submit"
-              className="w-full h-[50px] mt-4"
-              disabled={isLoading}
-            />
-          )}
-        </form>
-
-        <div className="mt-4 text-center">
-          <p>
-            Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 hover:underline">
-              Login
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Create your account
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{" "}
+            <Link
+              href="/login"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              sign in to your account
             </Link>
           </p>
         </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="agency_name" className="sr-only">
+                Agency Name
+              </label>
+              <input
+                id="agency_name"
+                name="agency_name"
+                type="text"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Agency Name"
+                value={signupFormData.agency_name}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    agency_name: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label htmlFor="email" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Email address"
+                value={signupFormData.email}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    email: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label htmlFor="phone" className="sr-only">
+                Phone Number
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Phone Number"
+                value={signupFormData.phone}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    phone: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label htmlFor="address" className="sr-only">
+                Address
+              </label>
+              <input
+                id="address"
+                name="address"
+                type="text"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Address"
+                value={signupFormData.address}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    address: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
+                value={signupFormData.password}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    password: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div>
+            <LoadingButton
+              type="submit"
+              loading={isLoading}
+              label="Register"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Register
+            </LoadingButton>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -107,17 +107,6 @@ export default function SampleForm() {
     window.addEventListener("offline", handleOffline);
     setIsOffline(!navigator.onLine);
 
-    // Get GPS location
-    // if (navigator.geolocation) {
-    //   navigator.geolocation.getCurrentPosition((position) => {
-    //     setFormData((prev) => ({
-    //       ...prev,
-    //       latitude: position.coords.latitude,
-    //       longitude: position.coords.longitude,
-    //     }));
-    //   });
-    // }
-
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = Number(position.coords.latitude.toFixed(2));
@@ -150,20 +139,8 @@ export default function SampleForm() {
     }
 
     // Fetch accounts from API
-
     fetchAccounts();
 
-    // Fetch test types from API
-    // const fetchTestTypes = async () => {
-    //   try {
-    //     const res = await fetch("/api/test-types");
-    //     const data = await res.json();
-    //     setTestTypes(data.testTypes || []);
-    //   } catch (e) {
-    //     setTestTypes([]);
-    //   }
-    // };
-    // fetchTestTypes();
     if (session?.user?.agency_id) {
       setFormData((prev) => ({
         ...prev,
@@ -212,7 +189,7 @@ export default function SampleForm() {
       } catch (error) {
         console.error("Error fetching sample:", error);
         setIsLoading(false);
-        alert("Failed to load sample data. Please try again.");
+        errorToast("Failed to load sample data. Please try again.");
       }
     }
   };
@@ -249,19 +226,21 @@ export default function SampleForm() {
         body: JSON.stringify(submission),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const errorData = await res.json();
         throw new Error(
-          errorData.error || `Failed to ${editMode ? "update" : "add"} sample`
+          data.error || `Failed to ${editMode ? "update" : "add"} sample`
         );
       }
-      successToast("Sample Created Successfully");
 
+      successToast(`Sample ${editMode ? "updated" : "created"} successfully`);
       router.push("/samples");
     } catch (error) {
-      console.error("Error submitting form:", error);
       errorToast(
-        `Failed to ${editMode ? "update" : "add"} sample. Please try again.`
+        error instanceof Error
+          ? error.message
+          : `Failed to ${editMode ? "update" : "add"} sample`
       );
     }
   };
@@ -285,13 +264,21 @@ export default function SampleForm() {
         body: JSON.stringify(draft),
       });
 
-      if (!res.ok)
-        throw new Error(`Failed to ${editMode ? "update" : "save"} draft`);
-      router.push("/smaples");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.error || `Failed to ${editMode ? "update" : "save"} draft`
+        );
+      }
+
+      successToast(`Draft ${editMode ? "updated" : "saved"} successfully`);
+      router.push("/samples");
     } catch (error) {
-      console.error("Error saving draft:", error);
-      alert(
-        `Failed to ${editMode ? "update" : "save"} draft. Please try again.`
+      errorToast(
+        error instanceof Error
+          ? error.message
+          : `Failed to ${editMode ? "update" : "save"} draft`
       );
     }
   };
@@ -344,7 +331,7 @@ export default function SampleForm() {
                 <option value="">Select Account</option>
                 {userAccounts.map((account) => (
                   <option key={account.id} value={account.id}>
-                    {account.id} - {account.name}
+                    {account.name}
                   </option>
                 ))}
               </select>
@@ -508,22 +495,9 @@ export default function SampleForm() {
               <label>Current GPS Location</label>
               <div className="form-input h-auto bg-white mt-1">
                 {formData.address ? formData.address : ""}
-                {/* {formData.latitude
-                  ? `${formData.latitude.toFixed(
-                      2
-                    )}° N, ${formData?.longitude?.toFixed(2)}° W`
-                  : "Acquiring location..."} */}
               </div>
             </div>
 
-            {/* <div className="mb-3">
-              <label>Sample Date</label>
-              <div className="form-input bg-white mt-1 pt-4">
-                {formData.created_at
-                  ? new Date(formData.created_at).toLocaleString()
-                  : ""}
-              </div>
-            </div> */}
             <div className="mb-3">
               <label htmlFor="sampleDate">Sample Date</label>
               <input
@@ -718,7 +692,7 @@ export default function SampleForm() {
                   <p className="text-sm text-gray-600">Date/Timestamp</p>
                   <p className="font-medium">
                     {formData.created_at
-                      ? new Date(formData.created_at).toLocaleString()
+                      ? new Date(formData.sample_collected_at).toLocaleString()
                       : "Not available"}
                   </p>
                 </div>

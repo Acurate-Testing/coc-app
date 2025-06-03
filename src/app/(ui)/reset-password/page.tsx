@@ -4,13 +4,13 @@ import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import Link from "next/link";
 import { useState } from "react";
 import { IoMdArrowRoundBack } from "react-icons/io";
+import { errorToast, successToast } from "@/hooks/useCustomToast";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
-  const [message, setMessage] = useState("");
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,13 +31,13 @@ export default function ForgotPasswordPage() {
         throw new Error(data.error || "Something went wrong");
       }
 
+      successToast("Password reset email sent. Check your inbox.");
       setStatus("success");
-      setMessage("Password reset email sent. Check your inbox.");
     } catch (error) {
-      setStatus("error");
-      setMessage(
+      errorToast(
         error instanceof Error ? error.message : "Something went wrong"
       );
+      setStatus("error");
     }
   };
 
@@ -112,15 +112,6 @@ export default function ForgotPasswordPage() {
             <IoMdArrowRoundBack size={20} /> Back to Login
           </Link>
         </div>
-        {status !== "idle" && (
-          <p
-            className={`mt-4 text-sm ${
-              status === "error" ? "text-red-500" : "text-green-600"
-            }`}
-          >
-            {message}
-          </p>
-        )}
       </div>
     </div>
   );

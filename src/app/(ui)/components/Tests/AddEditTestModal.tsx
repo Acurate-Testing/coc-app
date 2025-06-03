@@ -56,7 +56,6 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
     matrix_types: [],
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (test) {
@@ -69,18 +68,17 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           (type) => type as MatrixType
         ),
       });
-      setError(null);
     }
   }, [test]);
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      setError("Name is required");
+      errorToast("Name is required");
       return;
     }
 
     if (!form.test_code.trim()) {
-      setError("Test code is required");
+      errorToast("Test code is required");
       return;
     }
 
@@ -121,15 +119,6 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           handleSave();
         }}
       >
-        {error && (
-          <div
-            className="mb-4 p-2 bg-red-50 text-red-600 rounded"
-            role="alert"
-            aria-live="assertive"
-          >
-            {error}
-          </div>
-        )}
         <div className="mb-4">
           <label htmlFor="test-name" className="pl-0.5">
             Test Name
@@ -142,12 +131,9 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
             value={form.name}
             onChange={(e) => {
               setForm({ ...form, name: e.target.value });
-              setError(null);
             }}
             required
             aria-required="true"
-            aria-invalid={!!error}
-            aria-describedby={error ? "error-message" : undefined}
           />
         </div>
         <div className="mb-4">
@@ -161,12 +147,9 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
             value={form.test_code}
             onChange={(e) => {
               setForm({ ...form, test_code: e.target.value });
-              setError(null);
             }}
             required
             aria-required="true"
-            aria-invalid={!!error}
-            aria-describedby={error ? "error-message" : undefined}
           />
         </div>
         <div className="mb-4">

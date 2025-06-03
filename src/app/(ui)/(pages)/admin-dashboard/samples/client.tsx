@@ -79,29 +79,35 @@ export default function AdminSamplesClient({
   const fetchSamples = async () => {
     try {
       setIsLoading(true);
-      setError(null);
-      const params = [
-        `page=${currentPage}`,
-        `limit=${limitPerPage}`,
-        searchQuery ? `search=${searchQuery}` : "",
-        activeTab !== "All" ? `status=${activeTab}` : "",
-        selectedAgency ? `agencyId=${selectedAgency}` : "",
-      ]
-        .filter(Boolean)
-        .join("&");
-      const response = await fetch(`/api/samples?${params}`);
-      const data: ApiResponse = await response.json();
+      let url = `/api/admin/samples?page=${currentPage}&limit=${limitPerPage}`;
+
+      if (selectedAgency) {
+        url += `&agency=${selectedAgency}`;
+      }
+
+      if (searchQuery) {
+        url += `&search=${searchQuery}`;
+      }
+
+      // For admin users, when "All" is selected, we want to show submitted, passed, and failed samples
+      if (userRole === "lab_admin" && activeTab === "All") {
+        url += `&status=submitted,pass,fail`;
+      } else if (activeTab !== "All") {
+        url += `&status=${activeTab}`;
+      }
+
+      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch samples");
+        throw new Error("Failed to fetch samples");
       }
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      setTotalSamples(data.total);
-      setSamples(data.samples);
-      setTotalPages(data.totalPages);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch samples");
+      const data = await response.json();
+      setSamples(data.samples || []);
+      setTotalSamples(data.total || 0);
+      setTotalPages(data.totalPages || 0);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Failed to fetch samples"
+      );
     } finally {
       setIsLoading(false);
     }
