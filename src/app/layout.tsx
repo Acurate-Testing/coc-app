@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import { registerServiceWorker } from "./service-worker";
 import NextAuthProvider from "./providers";
 import { Toaster } from "sonner";
+import ErrorBoundary from "./(ui)/components/Common/ErrorBoundary";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -76,18 +77,20 @@ export default function RootLayout({
         className={`${inter.className} bg-light text-light`}
         suppressHydrationWarning
       >
-        {isOnboardingPage ? (
-          children
-        ) : (
-          <NextAuthProvider>
-            <Suspense fallback={null}>
-              <ToastContainerWrapper />
-            </Suspense>
-            <main id="main-content" className="min-h-screen">
-              {children}
-            </main>
-          </NextAuthProvider>
-        )}
+        <ErrorBoundary>
+          {isOnboardingPage ? (
+            children
+          ) : (
+            <NextAuthProvider>
+              <Suspense fallback={null}>
+                <ToastContainerWrapper />
+              </Suspense>
+              <main id="main-content" className="min-h-screen">
+                {children}
+              </main>
+            </NextAuthProvider>
+          )}
+        </ErrorBoundary>
         <Toaster />
       </body>
     </html>
