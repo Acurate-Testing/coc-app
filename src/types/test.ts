@@ -6,18 +6,18 @@ export interface Test {
   id: string;
   /** Test name */
   name: string;
-  /** Test code */
-  code: string;
   /** Test description */
-  description?: string;
-  /** Test matrix type */
-  matrix_type?: string;
-  /** Test status */
-  status?: "active" | "inactive";
+  description: string | null;
+  /** Created by user ID */
+  created_by: string | null;
   /** Creation timestamp */
-  created_at?: string;
-  /** Last update timestamp */
-  updated_at?: string;
+  created_at: string;
   /** Deletion timestamp */
-  deleted_at?: string | null;
+  deleted_at: string | null;
+  /** Test code */
+  test_code: string | null;
+  /** Matrix type */
+  matrix_type: string[] | null;
+  /** Matrix types */
+  matrix_types: string[];
 } 

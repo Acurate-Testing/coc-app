@@ -10,11 +10,7 @@ export interface LoginFormProps {
   onRegisterClick: () => void;
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({
-  onSubmit,
-  isLoading,
-  onRegisterClick,
-}) => {
+const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, isLoading, onRegisterClick }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -100,10 +96,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
       )}
 
       <div className="text-center my-4">
-        <Link
-          href="/reset-password"
-          className="text-themeColor hover:underline"
-        >
+        <Link href="/reset-password" className="text-themeColor hover:underline">
           Forgot your password?
         </Link>
       </div>

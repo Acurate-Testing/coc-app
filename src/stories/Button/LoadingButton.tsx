@@ -53,21 +53,9 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
   type = "button",
   ariaLabel,
 }) => {
-  const buttonContent = isLoading ? (
-    <div className="flex items-center justify-center gap-2">
-      <LoadingSpinner />
-      <span>{loadingMessage}</span>
-    </div>
-  ) : (
-    <div className="flex items-center justify-center gap-2">
-      {icon}
-      <span>{label}</span>
-    </div>
-  );
-
   return (
     <Button
-      label=""
+      label={isLoading ? loadingMessage : label}
       variant={variant}
       size={size}
       onClick={onClick}
@@ -76,8 +64,8 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
       type={type}
       aria-label={ariaLabel || (isLoading ? loadingMessage : label)}
       aria-busy={isLoading}
-    >
-      {buttonContent}
-    </Button>
+      loading={isLoading}
+      icon={!isLoading ? icon : undefined}
+    />
   );
 };

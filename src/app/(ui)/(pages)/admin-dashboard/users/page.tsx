@@ -41,8 +41,7 @@ export default function AdminUsersPage() {
   const [showEditAccessModal, setShowEditAccessModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedTest, setSelectedTest] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
-    useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -83,17 +82,27 @@ export default function AdminUsersPage() {
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch users");
       }
-      setTotalUsers(data.total || 0);
-      setUsers(data.users || []);
-      setTotalPages(data.totalPages || 0);
+
+      // Handle both array and paginated response formats
+      if (Array.isArray(data)) {
+        setUsers(data);
+        setTotalUsers(data.length);
+        setTotalPages(Math.ceil(data.length / 10)); // Assuming 10 items per page
+      } else {
+        setUsers(data.users || []);
+        setTotalUsers(data.total || 0);
+        setTotalPages(data.totalPages || 0);
+      }
 
       if (selectedUser) {
-        const updatedSelectedUser = data.users.find(
+        const updatedSelectedUser = (Array.isArray(data) ? data : data.users).find(
           (user: User) => user.id === selectedUser.id
         );
         if (updatedSelectedUser) {
           setSelectedUser(updatedSelectedUser);
         }
+      } else if (Array.isArray(data) && data.length > 0) {
+        setSelectedUser(data[0]);
       } else if (data && data.users && data.users.length > 0) {
         setSelectedUser(data.users[0]);
       }
@@ -157,9 +166,7 @@ export default function AdminUsersPage() {
 
       fetchUsers();
     } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Failed to remove test access"
-      );
+      setError(error instanceof Error ? error.message : "Failed to remove test access");
     } finally {
       setIsLoading(false);
       setOpenConfirmDeleteDialog(false);
@@ -167,10 +174,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const toggleActionMenu = (
-    testId: string,
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
+  const toggleActionMenu = (testId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     const button = event.currentTarget;
     menuButtonRefs.current.set(testId, button);
 
@@ -234,9 +238,7 @@ export default function AdminUsersPage() {
             <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
               <div className="flex items-center gap-2">
                 <ImSpinner8 className="animate-spin text-blue-600" />
-                <span className="text-sm font-medium text-gray-600">
-                  Loading users...
-                </span>
+                <span className="text-sm font-medium text-gray-600">Loading users...</span>
               </div>
             </div>
           )}
@@ -255,9 +257,7 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <div className="font-medium text-sm">{user.name}</div>
-                <div className="text-xs text-gray-400">
-                  {user.contact_email}
-                </div>
+                <div className="text-xs text-gray-400">{user.contact_email}</div>
               </div>
             </button>
           ))}
@@ -285,12 +285,8 @@ export default function AdminUsersPage() {
                   {(selectedUser.name ?? "")[0] || "?"}
                 </div>
                 <div>
-                  <div className="font-semibold text-lg">
-                    {selectedUser.name}
-                  </div>
-                  <div className="text-gray-400 text-sm">
-                    {selectedUser.contact_email}
-                  </div>
+                  <div className="font-semibold text-lg">{selectedUser.name}</div>
+                  <div className="text-gray-400 text-sm">{selectedUser.contact_email}</div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {(selectedUser.accounts || []).map((acc) => (
                       <span
@@ -367,30 +363,21 @@ export default function AdminUsersPage() {
                             {selectedUser.assigned_tests?.map((test) => (
                               <tr key={test.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="font-medium text-gray-900">
-                                    {test.name}
-                                  </div>
+                                  <div className="font-medium text-gray-900">{test.name}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-gray-500">
-                                    {test.test_code || "-"}
-                                  </div>
+                                  <div className="text-gray-500">{test.test_code || "-"}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-gray-500">
-                                    {test.matrix_type || "-"}
-                                  </div>
+                                  <div className="text-gray-500">{test.matrix_type || "-"}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                   <div>
                                     <button
                                       ref={(el: any) =>
-                                        el &&
-                                        menuButtonRefs.current.set(test.id, el)
+                                        el && menuButtonRefs.current.set(test.id, el)
                                       }
-                                      onClick={(e) =>
-                                        toggleActionMenu(test.id, e)
-                                      }
+                                      onClick={(e) => toggleActionMenu(test.id, e)}
                                       className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
                                     >
                                       <FiMoreVertical className="h-5 w-5" />
@@ -411,9 +398,7 @@ export default function AdminUsersPage() {
               open={showAssignModal}
               close={() => setShowAssignModal(false)}
               userId={selectedUser.id}
-              assignedTestIds={
-                selectedUser.assigned_tests?.map((t) => t.id) || []
-              }
+              assignedTestIds={selectedUser.assigned_tests?.map((t) => t.id) || []}
               onAssigned={fetchUsers}
             />
             <EditUserAccessPopover

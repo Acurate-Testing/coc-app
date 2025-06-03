@@ -16,6 +16,7 @@ import { useLoadingState } from "@/hooks/useLoadingState";
 import { LoadingButton } from "@/stories/Button/LoadingButton";
 import { TestsResponse } from "@/types/api";
 import { errorToast } from "@/hooks/useCustomToast";
+import { FaPlus } from "react-icons/fa";
 
 type Test = Database["public"]["Tables"]["test_types"]["Row"];
 
@@ -57,13 +58,21 @@ export default function AdminTestsPage() {
         .filter(Boolean)
         .join("&");
       const response = await fetch(`/api/admin/tests?${params}`);
-      const data: TestsResponse = await response.json();
+      const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch tests");
       }
-      setTotalTests(data.total || 0);
-      setTests(data.items || []);
-      setTotalPages(data.totalPages || 0);
+
+      // Handle both array and paginated response formats
+      if (Array.isArray(data)) {
+        setTests(data);
+        setTotalTests(data.length);
+        setTotalPages(Math.ceil(data.length / 10)); // Assuming 10 items per page
+      } else {
+        setTests(data.items || []);
+        setTotalTests(data.total || 0);
+        setTotalPages(data.totalPages || 0);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch tests");
       errorToast(err instanceof Error ? err.message : "Failed to fetch tests");
@@ -193,6 +202,7 @@ export default function AdminTestsPage() {
             }}
             variant="primary"
             ariaLabel="Add new test type"
+            icon={<FaPlus size={16} />}
           />
         </div>
         <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

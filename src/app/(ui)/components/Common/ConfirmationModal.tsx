@@ -41,10 +41,7 @@ const ConfirmationModal = ({
       className="z-[100] !rounded-lg"
     >
       <div className="flex flex-col items-center justify-center w-full gap-4">
-        <RiErrorWarningLine
-          className="text-red-600 text-5xl"
-          color={iconColor || ""}
-        />
+        <RiErrorWarningLine className="text-red-600 text-5xl" color={iconColor || ""} />
         <div className="text-lg font-semibold text-colorBlack text-center">
           <Label label={message ?? "Are you sure you want to delete?"} />
           {dataToDelete && (

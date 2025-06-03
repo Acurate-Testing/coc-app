@@ -28,12 +28,7 @@ interface FormData {
   matrix_types: MatrixType[];
 }
 
-const AddEditTestModal: FC<AddEditTestModalProps> = ({
-  open,
-  close,
-  onSaved,
-  test,
-}) => {
+const AddEditTestModal: FC<AddEditTestModalProps> = ({ open, close, onSaved, test }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useFocusManagement<HTMLFormElement>({
     trapFocus: true,
@@ -64,9 +59,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
         name: test.name,
         description: test?.description || "",
         test_code: test?.test_code || "",
-        matrix_types: (test?.matrix_types || []).map(
-          (type) => type as MatrixType
-        ),
+        matrix_types: (test?.matrix_types || []).map((type) => type as MatrixType),
       });
     }
   }, [test]);
@@ -184,9 +177,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
               >
                 <div
                   className={`w-4 h-4 rounded-full mr-2 ${
-                    form.matrix_types.includes(type)
-                      ? "bg-blue-500"
-                      : "bg-gray-200"
+                    form.matrix_types.includes(type) ? "bg-blue-500" : "bg-gray-200"
                   }`}
                 ></div>
                 <span>{type}</span>
@@ -196,11 +187,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
         </div>
         <div className="flex justify-end gap-2">
           {isSaving ? (
-            <LoadingButton
-              className="!min-w-fit"
-              label="Saving..."
-              aria-busy="true"
-            />
+            <LoadingButton className="!min-w-fit" label="Saving..." aria-busy="true" />
           ) : (
             <>
               <Button
