@@ -1,14 +1,13 @@
-import { toast, ToastOptions } from 'react-toastify';
-
-const defaultProps: ToastOptions = {
-  autoClose: 4000,
-  position: "top-right",
-};
+import { toast } from 'sonner';
 
 export const successToast = (message: string) => {
-  toast.success(message, defaultProps);
+  toast.success(message);
 };
 
 export const errorToast = (message: string) => {
-  toast.error(message, defaultProps);
-}; 
+  toast.error(message);
+};
+
+export const infoToast = (message: string) => {
+  toast.info(message);
+};

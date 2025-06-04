@@ -51,3 +51,48 @@ export async function GET(req: NextRequest) {
     totalPages: Math.ceil((count || 0) / limit)
   });
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Sample ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify sample exists before deleting
+    const { data: existingSample, error: fetchError } = await supabase
+      .from("samples")
+      .select("id")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchError || !existingSample) {
+      return NextResponse.json({ error: "Sample not found" }, { status: 404 });
+    }
+
+    // Soft delete the sample
+    const { error } = await supabase
+      .from("samples")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting sample:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error in DELETE /api/admin/samples:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
