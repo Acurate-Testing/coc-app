@@ -1,4 +1,5 @@
 import React, { ButtonHTMLAttributes, ReactNode } from "react";
+import { twMerge } from "tailwind-merge";
 import "./button.scss";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -80,14 +81,14 @@ export const Button = ({
   return (
     <button
       type="button"
-      className={[
+      className={twMerge(
         "storybook-button",
         `storybook-button--${size}`,
         `storybook-button--${variant}`,
         hide ? "hidden" : "",
         loading ? "storybook-button--loading" : "",
-        className,
-      ].join(" ")}
+        className
+      )}
       disabled={disabled || loading}
       aria-label={buttonLabel}
       aria-disabled={disabled || loading}
@@ -119,7 +120,11 @@ export const Button = ({
           </svg>
         </span>
       )}
-      {icon && <span className="storybook-button__icon" aria-hidden="true">{icon}</span>}
+      {icon && (
+        <span className="storybook-button__icon" aria-hidden="true">
+          {icon}
+        </span>
+      )}
       {label && <span className="storybook-button__label">{label}</span>}
     </button>
   );

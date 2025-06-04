@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase";
 import { getServerSession } from 'next-auth';
 import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
-import moment from "moment";
+import { format } from "date-fns";
+import { requireRole } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +32,12 @@ const CSV_EXPORT_CONFIG = {
     { field: 'agency_name', header: 'Agency' },
     { field: 'test_types', header: 'Test Types' },
   ]
+};
+
+// Helper function to format dates
+const formatDate = (date: string | Date | null) => {
+  if (!date) return '';
+  return format(new Date(date), "yyyy-MM-dd hh:mm a");
 };
 
 export async function GET(request: NextRequest) {
@@ -100,7 +107,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(csvContent, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="samples-export-${moment().format('YYYY-MM-DD')}.csv"`
+        'Content-Disposition': `attachment; filename="samples-export-${format(new Date(), "yyyy-MM-dd")}.csv"`
       }
     });
   } catch (error) {
@@ -139,10 +146,10 @@ function processDataForCSV(data: any[], isLabAdmin: boolean): string {
       'sample_type': sample.sample_type || '',
       'sample_location': sample.sample_location || '',
       'status': getStatusLabel(sample.status),
-      'created_at': sample.created_at ? new Date(sample.created_at).toLocaleString() : '',
+      'created_at': formatDate(sample.created_at),
       'temperature': sample.temperature || '',
       'chlorine_residual': sample.chlorine_residual || '',
-      'sample_collected_at': sample.sample_collected_at ? new Date(sample.sample_collected_at).toLocaleString() : '',
+      'sample_collected_at': formatDate(sample.sample_collected_at),
       'notes': (sample.notes || '').replace(/"/g, '""') // Escape double quotes
     };
 

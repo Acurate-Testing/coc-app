@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { User } from "@/types/user";
-import moment from "moment";
+import { format } from "date-fns";
 import { Sample } from "@/types/sample";
 import SignaturePad from "react-signature-canvas";
 import { useMediaQuery } from "react-responsive";
@@ -286,7 +286,7 @@ export default function TransferCOCPage() {
                 {!isEditing ? (
                   <div className="flex items-center gap-3">
                     <span className="text-gray-800">
-                      {moment(timestamp).format("YYYY-MM-DD hh:mm A")}
+                      {format(timestamp, "yyyy-MM-dd hh:mm a")}
                     </span>
                     <button
                       onClick={() => setIsEditing(true)}
@@ -299,7 +299,7 @@ export default function TransferCOCPage() {
                   <div className="flex items-center gap-1.5">
                     <input
                       type="datetime-local"
-                      value={moment(tempTimestamp).format("YYYY-MM-DDTHH:mm")}
+                      value={format(tempTimestamp, "yyyy-MM-ddTHH:mm")}
                       onChange={(e) =>
                         setTempTimestamp(new Date(e.target.value))
                       }

@@ -9,7 +9,7 @@ import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { Button } from "@/stories/Button/Button";
 import { Sample } from "@/types/sample";
 import { User } from "@/types/user";
-import moment from "moment";
+import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -69,7 +69,7 @@ const COCTransferItem = ({
       {/* Header */}
       <div className="flex justify-between items-start mb-1">
         <div className="text-xs text-gray-500 font-medium leading-tight pt-1">
-          {moment(transfer.timestamp).format("MMM D, YYYY h:mm A")}
+          {format(new Date(transfer.timestamp), "MMM d, yyyy h:mm a")}
           {/* Transfer text */}
           <h3
             className={`text-base font-semibold m-0 transfer-text ${
@@ -461,9 +461,11 @@ export default function InspectionDetailPage() {
             <div className="flex items-center justify-between">
               <div className="text-gray-500">Sample Date</div>
               <div className="text-gray-900">
-                {moment(formData?.sample_collected_at).format(
-                  "YYYY-MM-DD hh:mm A"
-                )}
+                {formData?.sample_collected_at &&
+                  format(
+                    new Date(formData.sample_collected_at),
+                    "yyyy-MM-dd hh:mm a"
+                  )}
               </div>
             </div>
           </div>

@@ -6,6 +6,9 @@
   --spacing-base: 16px;
   --border-radius: 12px;
   --font-size-base: 16px;
+  --mobile-spacing: 20px;
+  --mobile-input-height: 64px;
+  --mobile-button-height: 64px;
 
   /* Accessibility colors */
   --focus-ring-color: #0052ff;
@@ -33,6 +36,8 @@ input[type="reset"],
   font-size: var(--font-size-base);
   border-radius: var(--border-radius);
   position: relative;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Form inputs */
@@ -49,6 +54,49 @@ textarea {
   padding: 0 20px;
   border-radius: var(--border-radius);
   position: relative;
+  touch-action: manipulation;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  :root {
+    --spacing-base: var(--mobile-spacing);
+    --input-height: var(--mobile-input-height);
+    --button-height: var(--mobile-button-height);
+  }
+
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  .btn,
+  .button {
+    padding: var(--spacing-base) 32px;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="number"],
+  select,
+  textarea {
+    padding: 0 24px;
+  }
+
+  /* Increase spacing between interactive elements */
+  .navigation-buttons {
+    gap: var(--spacing-base);
+    padding: var(--spacing-base);
+  }
+
+  /* Larger touch targets for mobile */
+  .icon-button {
+    min-width: 64px;
+    min-height: 64px;
+  }
 }
 
 /* Icon buttons */
@@ -307,4 +355,41 @@ textarea:focus-visible,
 /* Warning focus states */
 .has-warning:focus-visible {
   outline-color: var(--warning-color);
+}
+
+/* Bottom navigation for mobile */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  padding: var(--spacing-base);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.nav-item {
+  padding: var(--spacing-base);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Modal optimizations for mobile */
+@media (max-width: 768px) {
+  .modal-content {
+    padding: var(--spacing-base);
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+    gap: var(--spacing-base);
+  }
+
+  .modal-buttons button {
+    width: 100%;
+  }
 }

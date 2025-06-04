@@ -29,4 +29,113 @@ alwaysApply: true
     - Be sure to reference file names.
     - Be concise. Minimize any other prose.
     - If you think there might not be a correct answer, you say so. If you do not know the answer, say so instead of guessing.    
+
+
+    # Water Sampling Database Schema - Cursor Rules
+
+## Database Overview
+This is a **Supabase PostgreSQL** database for a water sampling and chain-of-custody management system. All tables use **UUID primary keys** and implement **soft deletion** patterns with `deleted_at` timestamps.
+
+## Core Schema Structure
+
+### Users & Authentication (`users`)
+```sql
+-- User roles: 'lab_admin' | 'agency' | 'user'
+-- lab_admin: approve COC & test results
+-- agency: manage accounts & assign tests  
+-- user: field workers who collect samples
+```
+**Key Fields:**
+- `id` (UUID, PK)
+- `email` (unique, not null)
+- `role` (enum constraint)
+- `agency_id` (FK → agencies.id)
+- `active` (boolean) - account setup complete
+- `invitation_token` - one-time signup links
+
+### Agency & Account Management (`agencies`, `accounts`)
+```sql
+-- agencies: organizational entities (utilities, contractors)
+-- accounts: sub-entities under agencies (water systems, regions)
+```
+**Key Relationships:**
+- `users.agency_id` → `agencies.id`
+- `accounts.agency_id` → `agencies.id`
+- Each agency can have multiple accounts
+- Users are mapped to agencies, accounts inherit from agencies
+
+### Sample Data (`samples`)
+**Critical Status Flow:** `pending` → `in_coc` → `submitted` → `pass`/`fail`
+
+**Key Fields:**
+- `matrix_type`: 'Potable' | 'Wastewater' | 'Non-potable' | 'Soil' | 'Other'
+- `pws_id`: Only shown if matrix_type = 'Potable'
+- `chlorine_residual`: Only for Potable water
+- `sample_privacy`: 'Private' | 'Public'
+- `latitude`/`longitude`: GPS coordinates
+- `sample_collected_at`: When sample was taken
+- `saved_at`: For offline "Save for Later" functionality
+
+**Conditional Logic:**
+- PWS ID dropdown only appears for Potable water
+- Test types filtered by matrix_type compatibility
+- County dropdown (Kootenai, Bonner, etc.)
+
+### Chain of Custody (`coc_transfers`)
+**Workflow:** Each handoff creates a new transfer record
+```sql
+-- transferred_by → received_by (both reference users.id)
+-- Captures: timestamp, GPS, signature, photo_url
+-- ON DELETE CASCADE with samples
+```
+
+### Test Management (`test_types`, `sample_test_types`, `agency_test_types`)
+**Many-to-Many Relationships:**
+- `sample_test_types`: Which tests are requested for each sample
+- `agency_test_types`: Which tests each agency can perform
+- `test_types.matrix_types[]`: Array of compatible matrix types
+
+## Database Patterns
+
+### Soft Deletion
+**Always use:** `WHERE deleted_at IS NULL` in queries
+```sql
+-- Never hard DELETE, always:
+UPDATE table_name SET deleted_at = now() WHERE id = ?
+```
+
+### Timestamp Strategy
+- `created_at`: When record was first inserted
+- `updated_at`: Last modification (for conflict resolution)
+- `sample_collected_at`: When sample was physically taken
+- `saved_at`: For offline sync tracking
+
+### Foreign Key Behavior
+- `users.agency_id` → `agencies.id` (ON DELETE SET NULL)
+- `samples` → various tables (ON DELETE CASCADE for COC)
+- Most other FKs default to RESTRICT
+
+## Key Business Rules
+
+### Matrix Type Logic
+- **Potable Water:** Shows PWS ID, Chlorine Residual fields
+- **Other Matrix Types:** Different field requirements
+- Test types filtered by `matrix_types[]` compatibility
+
+### Status Transitions
+- `pending` → `in_coc` (when first COC transfer occurs)
+- `in_coc` → `submitted` (when lab receives)
+- `submitted` → `pass`/`fail` (lab results)
+
+### User Permissions
+- **lab_admin:** Can view/approve all samples and COC
+- **agency:** Manage their agency's accounts and tests
+- **user:** Create samples, participate in COC transfers
+
+## Query Optimization Notes
+- Always include `deleted_at IS NULL` in WHERE clauses
+- Index on `status`, `matrix_type`, `agency_id` for common filters
+- Use `sample_collected_at` for date range queries
+- GPS coordinates may need spatial indexing for location-based queries
+
     

@@ -3,7 +3,6 @@ import React, { ReactNode } from "react";
 import "./Table.scss";
 import { Label } from "../Label/Label";
 import { Pagination, PaginationProps } from "../Pagination/Pagination";
-import { isNumber } from "lodash";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa6";
 
 export interface TableColumnProps {
@@ -75,6 +74,10 @@ interface TableProps {
    */
   onRowClick?: (row: any, e: React.MouseEvent<HTMLTableRowElement>) => void;
 }
+
+// Replace isNumber check with native JavaScript
+const isNumber = (value: any): boolean =>
+  typeof value === "number" && !isNaN(value);
 
 /**
  * Primary UI component for user interaction
@@ -213,7 +216,7 @@ export const Table = ({
           <Pagination
             activePage={activePage || 0}
             setActivePage={setActivePage}
-            numberOfPage={numberOfPage}
+            numberOfPage={numberOfPage || 0}
             className={pagination?.className}
             numberOfRecords={numberOfRecords}
             itemsPerPage={itemsPerPage || 10}

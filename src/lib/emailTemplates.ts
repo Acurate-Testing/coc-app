@@ -1,131 +1,59 @@
 import { MatrixType } from "@/constants/enums";
-import moment from "moment";
+import { format } from "date-fns";
 
 export const sampleDetailTemplate = async (sampleData: any) => {
   const sectionStyle =
-    "margin-bottom: 1rem; background: #fff; border-radius: 12px;";
-  const headerStyle =
-    "padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 600; color: #2563EB; border-bottom: 1px solid #eee;";
-  const buttonStyle = 
-    "background-color: #2563EB; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; text-decoration: none; font-weight: normal;";
-  const contentStyle = "padding: 12px 16px;";
-  const labelStyle = "color: #6B7280; font-size: 14px;";
-   const firstLabelWidth = "width: 435px;";
-  const valueStyle = "color: #111827; font-size: 14px; font-weight: 600;";
-  const rowStyle =
-    "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
-  const pillStyle =
-    "background-color: #DBEAFE; color: #2563EB; padding: 6px 10px; border-radius: 9999px; font-size: 14px; display: inline-block; margin-right: 6px; margin-bottom: 6px;";
-  const remarkStyle = "color: #6B7280; font-size: 14px;";
-  const cocBoxStyle =
-    "background: #F9FAFB; padding: 8px; border-radius: 8px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); margin-bottom: 8px;";
-  const cocDateStyle = "font-size: 13px; color: #6B7280; margin-bottom: 2px;";
-  const cocNameStyle = "font-weight: 600; color: #1e293b; font-size: 15px;";
+    "padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px;";
+  const labelStyle = "font-weight: bold; color: #666; margin-bottom: 5px;";
+  const valueStyle = "color: #333;";
 
-  const renderRow = (label: string, value: string) =>
-    `<div style=\"${rowStyle}\"><span style=\"${labelStyle}\">${label}:${" "}</span><span style=\"${valueStyle}\">${
-      value || "-"
-    }</span></div>`;
+  const formatDate = (date: string | Date) => {
+    if (!date) return "N/A";
+    return format(new Date(date), "yyyy-MM-dd hh:mm a");
+  };
 
-  const renderSection = (title: string, content: string, buttonLink?: { url: string, text: string }) =>
-    `<div style=\"${sectionStyle}\">
-      <div style=\"${headerStyle}\">
-        <span style=\"${buttonLink ? `${firstLabelWidth}` : ''}\">${title}</span>
-        ${buttonLink ? `<a href="${buttonLink.url}" style="${buttonStyle}" target="_blank">${buttonLink.text}</a>` : ''}
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333; margin-bottom: 20px;">Sample Details</h2>
+      
+      <div style="${sectionStyle}">
+        <div style="${labelStyle}">Sample ID</div>
+        <div style="${valueStyle}">${sampleData.id || "N/A"}</div>
       </div>
-      <div style=\"${contentStyle}\">${content}</div>
-    </div>`;
 
-  const testTypesHtml = sampleData?.test_types?.length
-    ? sampleData.test_types
-        .map((test: any) => `<span style=\"${pillStyle}\">${test.name}</span>`)
-        .join("")
-    : `<span style=\"color: #6B7280;\">No tests selected</span>`;
+      <div style="${sectionStyle}">
+        <div style="${labelStyle}">Matrix Type</div>
+        <div style="${valueStyle}">${sampleData.matrix_type || "N/A"}</div>
+      </div>
 
-  const cocTransferHtml = sampleData?.coc_transfers?.length
-    ? sampleData.coc_transfers
-        .map(
-          (item: any) =>
-            `<div style=\"${cocBoxStyle}\">
-          <div>
-            <div style=\"${cocDateStyle}\">${moment(item.timestamp).format(
-              "YYYY-MM-DD hh:mm A"
-            )}</div>
-            <div style=\"${cocNameStyle}\">Tranferred to: <span style=\"font-weight:400;\">${
-              item.received_by_user.full_name
-            }</span></div>
-          </div>
-        </div>`
-        )
-        .join("")
-    : `<span style=\"color: #6B7280;\">No Chain Of Custody found</span>`;
+      <div style="${sectionStyle}">
+        <div style="${labelStyle}">Sample Date</div>
+        <div style="${valueStyle}">${formatDate(sampleData.sample_collected_at)}</div>
+      </div>
 
-  return `<!DOCTYPE html>
-<html>
-  <body style=\"font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4;\">
-    <div style=\"max-width: 600px; margin: 0 auto; padding: 24px;\">
-      ${renderSection(
-        "Basic Information",
-        [
-          renderRow("Sample ID", sampleData.id),
-          renderRow(
-            "Matrix Type",
-            sampleData.matrix_type +
-              (sampleData.matrix_type === MatrixType.Other
-                ? ` (${sampleData.matrix_name})`
-                : "")
-          ),
-          renderRow("Sample Type", sampleData.sample_type),
-          renderRow("Sample Privacy", sampleData.sample_privacy),
-          renderRow("Compliance", sampleData.compliance),
-        ].join(""),
-        { url: `${process.env.NEXT_PUBLIC_APP_URL}/sample/${sampleData.id}` || '#', text: "View Full Report" }
-      )}
+      <div style="${sectionStyle}">
+        <div style="${labelStyle}">Location</div>
+        <div style="${valueStyle}">
+          ${sampleData.latitude && sampleData.longitude
+            ? `${sampleData.latitude}, ${sampleData.longitude}`
+            : "N/A"}
+        </div>
+      </div>
 
-      ${renderSection(
-        "Source Information",
-        [
-          renderRow("Source", sampleData.source),
-          renderRow("Sample Location", sampleData.sample_location),
-          renderRow("County", sampleData.county),
-        ].join("")
-      )}
+      <div style="${sectionStyle}">
+        <div style="${labelStyle}">Status</div>
+        <div style="${valueStyle}">${sampleData.status || "N/A"}</div>
+      </div>
 
-      ${renderSection(
-        "Identifiers",
-        [
-          renderRow("Project ID", sampleData.project_id),
-          renderRow("PWS ID", sampleData.pws_id),
-          renderRow("Chlorine Residual", sampleData.chlorine_residual),
-        ].join("")
-      )}
+      <div style="${sectionStyle}">
+        <div style="${labelStyle}">Created At</div>
+        <div style="${valueStyle}">${formatDate(sampleData.created_at)}</div>
+      </div>
 
-      ${renderSection("Test Selection", testTypesHtml)}
-
-      ${renderSection(
-        "System Fields",
-        [
-          renderRow("Current GPS Location", sampleData.address),
-          renderRow(
-            "Sample Date",
-            sampleData?.sample_collected_at
-              ? moment(sampleData.sample_collected_at).format(
-                  "YYYY-MM-DD hh:mm A"
-                )
-              : "-"
-          ),
-        ].join("")
-      )}
-
-      ${renderSection(
-        "Remarks",
-        `<span style=\"${remarkStyle}\">${
-          sampleData?.notes || "No remarks available"
-        }</span>`
-      )}
-
-      ${renderSection("Chain of Custody", cocTransferHtml)}
+      <div style="${sectionStyle}">
+        <div style="${labelStyle}">Updated At</div>
+        <div style="${valueStyle}">${formatDate(sampleData.updated_at)}</div>
+      </div>
     </div>
-  </body>
-</html>`;
+  `;
 };

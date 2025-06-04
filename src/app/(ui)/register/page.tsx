@@ -6,9 +6,11 @@ import Link from "next/link";
 import { errorToast } from "@/hooks/useCustomToast";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import { Button } from "@/stories/Button/Button";
+import { useMediaQuery } from "react-responsive";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [isLoading, setIsLoading] = useState(false);
   const [signupFormData, setSignupFormData] = useState({
     agency_name: "",
@@ -48,26 +50,29 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-6">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="text-center text-2xl sm:text-3xl font-extrabold text-gray-900">
             Create your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{" "}
             <Link
               href="/login"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
+              className="font-medium text-themeColor hover:text-blue-700"
             >
               sign in to your account
             </Link>
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="agency_name" className="sr-only">
+              <label
+                htmlFor="agency_name"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Agency Name
               </label>
               <input
@@ -75,8 +80,8 @@ export default function RegisterPage() {
                 name="agency_name"
                 type="text"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Agency Name"
+                className="form-input w-full"
+                placeholder="Enter your agency name"
                 value={signupFormData.agency_name}
                 onChange={(e) =>
                   setSignupFormData({
@@ -87,7 +92,10 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label htmlFor="email" className="sr-only">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Email address
               </label>
               <input
@@ -96,8 +104,8 @@ export default function RegisterPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                className="form-input w-full"
+                placeholder="Enter your email"
                 value={signupFormData.email}
                 onChange={(e) =>
                   setSignupFormData({
@@ -108,15 +116,18 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label htmlFor="phone" className="sr-only">
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Phone Number
               </label>
               <input
                 id="phone"
                 name="phone"
                 type="tel"
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Phone Number"
+                className="form-input w-full"
+                placeholder="Enter your phone number"
                 value={signupFormData.phone}
                 onChange={(e) =>
                   setSignupFormData({
@@ -127,15 +138,18 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label htmlFor="address" className="sr-only">
+              <label
+                htmlFor="address"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Address
               </label>
               <input
                 id="address"
                 name="address"
                 type="text"
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Address"
+                className="form-input w-full"
+                placeholder="Enter your address"
                 value={signupFormData.address}
                 onChange={(e) =>
                   setSignupFormData({
@@ -146,7 +160,10 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Password
               </label>
               <input
@@ -155,8 +172,8 @@ export default function RegisterPage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                className="form-input w-full"
+                placeholder="Create a password"
                 value={signupFormData.password}
                 onChange={(e) =>
                   setSignupFormData({
@@ -172,11 +189,9 @@ export default function RegisterPage() {
             <LoadingButton
               type="submit"
               loading={isLoading}
-              label="Register"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Register
-            </LoadingButton>
+              label={isMobile ? "Create Account" : "Create your account"}
+              className="w-full h-[60px] text-base font-medium rounded-xl bg-themeColor hover:bg-blue-700 text-white transition-colors duration-200"
+            />
           </div>
         </form>
       </div>

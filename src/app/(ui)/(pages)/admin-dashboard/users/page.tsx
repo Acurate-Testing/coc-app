@@ -12,7 +12,6 @@ import { ImSpinner8 } from "react-icons/im";
 import { FiMoreVertical } from "react-icons/fi";
 import { LuPlus } from "react-icons/lu";
 import { createPortal } from "react-dom";
-import { Pagination } from "@/stories/Pagination/Pagination";
 
 // Use the correct User type
 type User = {
@@ -34,7 +33,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -47,11 +46,6 @@ export default function AdminUsersPage() {
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isSearching, setIsSearching] = useState<boolean>(false);
-  const [isPageChanging, setIsPageChanging] = useState<boolean>(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -74,64 +68,32 @@ export default function AdminUsersPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const params = [`page=${currentPage}`, search ? `search=${search}` : ""]
-        .filter(Boolean)
-        .join("&");
-      const response = await fetch(`/api/admin/users?${params}`);
+      const response = await fetch("/api/admin/users");
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch users");
       }
-
-      // Handle both array and paginated response formats
-      if (Array.isArray(data)) {
-        setUsers(data);
-        setTotalUsers(data.length);
-        setTotalPages(Math.ceil(data.length / 10)); // Assuming 10 items per page
-      } else {
-        setUsers(data.users || []);
-        setTotalUsers(data.total || 0);
-        setTotalPages(data.totalPages || 0);
-      }
+      setUsers(data || []);
 
       if (selectedUser) {
-        const updatedSelectedUser = (Array.isArray(data) ? data : data.users).find(
-          (user: User) => user.id === selectedUser.id
-        );
+        const updatedSelectedUser = data.find((user: User) => user.id === selectedUser.id);
         if (updatedSelectedUser) {
           setSelectedUser(updatedSelectedUser);
         }
-      } else if (Array.isArray(data) && data.length > 0) {
+      } else if (data && data.length > 0) {
         setSelectedUser(data[0]);
-      } else if (data && data.users && data.users.length > 0) {
-        setSelectedUser(data.users[0]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch users");
     } finally {
       setIsLoading(false);
       setIsInitialLoading(false);
-      setIsSearching(false);
-      setIsPageChanging(false);
     }
   };
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      setIsSearching(true);
-      fetchUsers();
-    }, 1000);
-    return () => clearTimeout(delayDebounceFn);
-  }, [search]);
-
-  useEffect(() => {
     fetchUsers();
   }, []);
-
-  const handlePageChange = (page: number) => {
-    setIsPageChanging(true);
-    setCurrentPage(page);
-  };
 
   const filteredUsers = users.filter(
     (u) =>
@@ -262,17 +224,6 @@ export default function AdminUsersPage() {
             </button>
           ))}
         </div>
-        {totalPages > 0 && (
-          <div className="p-5">
-            <Pagination
-              activePage={currentPage || 0}
-              setActivePage={handlePageChange}
-              numberOfPage={totalPages}
-              numberOfRecords={totalUsers}
-              itemsPerPage={10}
-            />
-          </div>
-        )}
       </div>
       {/* Main Panel */}
       <div className="flex-1 p-2 sm:p-8 bg-gray-50 overflow-auto">

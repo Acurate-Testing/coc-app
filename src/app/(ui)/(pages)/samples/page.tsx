@@ -7,7 +7,6 @@ import { Database } from "@/types/supabase";
 import { IoFlask, IoSearch } from "react-icons/io5";
 import LoadingSpinner from "../../components/Common/LoadingSpinner";
 import { Label } from "@/stories/Label/Label";
-import moment from "moment";
 import { Button } from "@/stories/Button/Button";
 import { LuPlus } from "react-icons/lu";
 import SampleOverview from "../../components/Samples/SampleOverview";
@@ -15,16 +14,17 @@ import { Card } from "@/stories/Card/Card";
 import { GoClock } from "react-icons/go";
 import { FaLocationDot } from "react-icons/fa6";
 import { Pagination } from "@/stories/Pagination/Pagination";
-import { FiEdit } from "react-icons/fi";
-import { Chip } from "@material-tailwind/react";
-import { SampleStatus } from "@/constants/enums";
+import { FiEdit, FiDownload } from "react-icons/fi";
+import { Chip } from "@/stories/Chip/Chip";
+import { SampleStatus, UserRole } from "@/constants/enums";
 import { useMediaQuery } from "react-responsive";
 import { RiTestTubeFill } from "react-icons/ri";
 import { Sample } from "@/types/sample";
 import { errorToast } from "@/hooks/useCustomToast";
-import { useLoadingState } from "@/hooks/useLoadingState";
-import { LoadingButton } from "@/stories/Button/LoadingButton";
-import { SamplesResponse } from "@/types/api";
+import { useLoading } from "@/app/providers/LoadingProvider";
+import { format } from "date-fns";
+
+// type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
 export default function HomePage() {
   const { data: session, status } = useSession();
@@ -32,12 +32,13 @@ export default function HomePage() {
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<SampleStatus | "All">("All");
-  const [samples, setSamples] = useState<Sample[]>([]);
-  const { isLoading, withLoading } = useLoadingState();
+  const [samples, setSamples] = useState<Partial<Sample>[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalSamples, setTotalSamples] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const { setIsLoading } = useLoading();
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -47,13 +48,16 @@ export default function HomePage() {
 
   const fetchSamples = async () => {
     try {
+      setIsLoading(true);
       setError(null);
+
       const response = await fetch(
-        `/api/samples?page=${currentPage}${searchQuery ? `&search=${searchQuery}` : ""}${
-          activeTab !== "All" ? `&status=${activeTab}` : ""
-        }`
+        `/api/samples?page=${currentPage}${
+          searchQuery ? `&search=${searchQuery}` : ""
+        }${activeTab !== "All" ? `&status=${activeTab}` : ""}
+        `
       );
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (response.status === 401) {
         router.push("/login");
@@ -64,13 +68,19 @@ export default function HomePage() {
         throw new Error(data.error || "Failed to fetch samples");
       }
 
-      setTotalSamples(data.total || 0);
-      setSamples(data.samples || []);
-      setTotalPages(Math.ceil((data.total || 0) / (data.pageSize || 10)));
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      setTotalSamples(data.total);
+      setSamples(data.samples);
+      setTotalPages(data.totalPages);
     } catch (err) {
       console.error("Error fetching samples:", err);
-      errorToast(err instanceof Error ? err.message : "Failed to fetch samples");
-      setSamples([]); // Reset samples on error
+      errorToast(
+        err instanceof Error ? err.message : "Failed to fetch samples"
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -110,20 +120,16 @@ export default function HomePage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      withLoading(fetchSamples, "Loading samples...");
+      fetchSamples();
     }
   }, [status, currentPage, activeTab]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      withLoading(fetchSamples, "Searching samples...");
+      fetchSamples();
     }, 1000);
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
 
   // const filteredSamples = samples?.filter((sample: Sample) => {
   //   const matchesSearch =
@@ -137,6 +143,51 @@ export default function HomePage() {
   //   if (activeTab === "All") return matchesSearch;
   //   return matchesSearch && sample.status === activeTab.toLowerCase();
   // });
+
+  const handleExportCSV = async () => {
+    if (!samples.length) return;
+
+    try {
+      setIsExporting(true);
+      const response = await fetch(
+        `/api/samples/export?${new URLSearchParams({
+          search: searchQuery,
+          status: activeTab !== "All" ? activeTab : "",
+        })}`
+      );
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to export samples");
+      }
+
+      // Get the blob from the response
+      const blob = await response.blob();
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link element
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `samples-export-${format(new Date(), "yyyy-MM-dd")}.csv`;
+
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export error:", err);
+      errorToast(
+        err instanceof Error ? err.message : "Failed to export samples"
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (error) {
     return (
@@ -160,32 +211,32 @@ export default function HomePage() {
       <div className="relative bg-gray-50">
         <button
           onClick={() => router.push("/sample/add")}
-          className="fixed z-[50] bottom-24 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200"
+          className="fixed z-[50] bottom-24 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200 w-16 h-16 flex items-center justify-center"
+          aria-label="Add new sample"
         >
           <LuPlus size={30} />
         </button>
       </div>
-      <div className="w-full md:p-8 p-6 md:!pt-0">
+      <div className="w-full md:p-8 p-4 md:!pt-0">
         <div className="flex gap-4 items-center">
-          <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="relative">
-              <IoSearch className="text-themeColor pointer-events-none h-5 w-5 absolute top-1/2 transform -translate-y-1/2 left-3 z-[1] ml-2" />
+              <IoSearch className="text-themeColor pointer-events-none h-6 w-6 absolute top-1/2 transform -translate-y-1/2 left-4 z-[1]" />
               <input
                 id="sample-search"
-                className={`font-medium rounded-lg py-2.5 px-4 bg-white text-base appearance-none block !pl-12 form-input`}
+                className={`font-medium rounded-lg py-3 px-4 bg-white text-base appearance-none block !pl-14 form-input h-[60px]`}
                 value={searchQuery}
                 type="search"
-                placeholder="Search"
+                placeholder="Search samples"
                 onChange={(e) => {
                   const { value } = e.target;
                   setCurrentPage(0);
                   setSearchQuery(value);
                 }}
-                aria-label="Search samples"
               />
             </div>
             <div />
-            <div>
+            <div className="flex gap-4">
               <select
                 id="type"
                 name="type"
@@ -195,7 +246,6 @@ export default function HomePage() {
                   setActiveTab(e.target.value as SampleStatus | "All");
                 }}
                 className="form-input h-[60px] md:h-full bg-white"
-                aria-label="Filter by status"
               >
                 <option value="All">All</option>
                 <option value={SampleStatus.Pending}>Pending</option>
@@ -204,11 +254,20 @@ export default function HomePage() {
                 <option value={SampleStatus.Pass}>Pass</option>
                 <option value={SampleStatus.Fail}>Fail</option>
               </select>
+              {session?.user?.role === UserRole.AGENCY && (
+                <Button
+                  className="primary"
+                  label="Export CSV"
+                  onClick={handleExportCSV}
+                  disabled={isExporting || !samples.length}
+                  icon={<FiDownload className="text-lg" />}
+                />
+              )}
             </div>
           </div>
         </div>
         <div className="overflow-x-auto">
-          {Array.isArray(samples) && samples.length > 0 ? (
+          {samples.length > 0 ? (
             <>
               {samples.map((sample) => (
                 <div key={sample.id} className="mb-4">
@@ -216,11 +275,7 @@ export default function HomePage() {
                     onClick={() => router.push(`/sample/${sample.id}`)}
                     className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between cursor-pointer"
                   >
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`View sample ${sample.project_id || "N/A"}`}
-                    >
+                    <div>
                       <div className="flex flex-row items-center md:gap-4 gap-2">
                         <div>
                           <Label
@@ -230,10 +285,23 @@ export default function HomePage() {
                         </div>
                         <div>
                           <Chip
+                            value={getStatusLabel(sample?.status as string)}
                             className={`${getStatusColor(
                               sample?.status as string
                             )} capitalize flex items-center justify-center py-1.5 w-fit rounded-full text-sm`}
-                            value={getStatusLabel(sample?.status as string)}
+                            color={
+                              sample?.status === "pending"
+                                ? "yellow"
+                                : sample?.status === "in_coc"
+                                ? "blue"
+                                : sample?.status === "submitted"
+                                ? "purple"
+                                : sample?.status === "pass"
+                                ? "green"
+                                : sample?.status === "fail"
+                                ? "red"
+                                : "gray"
+                            }
                           />
                         </div>
                       </div>
@@ -243,18 +311,25 @@ export default function HomePage() {
                           label=""
                           variant="icon"
                           icon={<IoFlask className="text-lg text-gray-600" />}
-                          ariaLabel={`Matrix type: ${sample?.matrix_type || "-"}`}
                         />
-                        <Label label={sample?.matrix_type || "-"} className="text-lg" />
+                        <Label
+                          label={sample?.matrix_type || "-"}
+                          className="text-lg"
+                        />
                       </div>
                       <div className="flex items-center md:gap-4 gap-2">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
-                          icon={<FaLocationDot className="text-lg text-gray-600" />}
+                          icon={
+                            <FaLocationDot className="text-lg text-gray-600" />
+                          }
                         />
-                        <Label label={sample?.sample_location || "-"} className="text-lg" />
+                        <Label
+                          label={sample?.sample_location || "-"}
+                          className="text-lg"
+                        />
                       </div>
                       <div className="flex items-center md:gap-4 gap-2">
                         <Button
@@ -262,12 +337,16 @@ export default function HomePage() {
                           label=""
                           variant="icon"
                           icon={<GoClock className="text-lg text-gray-600" />}
-                          ariaLabel={`Created at: ${moment(sample?.created_at).format(
-                            "YYYY-MM-DD hh:mm A"
-                          )}`}
                         />
                         <Label
-                          label={moment(sample?.created_at).format("YYYY-MM-DD hh:mm A")}
+                          label={
+                            sample?.created_at
+                              ? format(
+                                  new Date(sample.created_at),
+                                  "yyyy-MM-dd hh:mm a"
+                                )
+                              : "-"
+                          }
                           className="text-lg"
                         />
                       </div>
@@ -276,10 +355,13 @@ export default function HomePage() {
                           className="md:!min-w-fit !p-3 !cursor-default"
                           label=""
                           variant="icon"
-                          icon={<RiTestTubeFill className="text-xl text-gray-600" />}
+                          icon={
+                            <RiTestTubeFill className="text-xl text-gray-600" />
+                          }
                         />
                         <div className="flex items-center flex-wrap gap-2">
-                          {sample?.test_types && sample?.test_types?.length > 0 ? (
+                          {sample?.test_types &&
+                          sample?.test_types?.length > 0 ? (
                             sample?.test_types?.map((item, index) => (
                               <div key={index}>
                                 {item?.name && (
@@ -290,7 +372,9 @@ export default function HomePage() {
                               </div>
                             ))
                           ) : (
-                            <div className="text-sm text-gray-500">No tests selected</div>
+                            <div className="text-sm text-gray-500">
+                              No tests selected
+                            </div>
                           )}
                         </div>
                       </div>
@@ -305,7 +389,6 @@ export default function HomePage() {
                         variant="icon"
                         label={isMobile ? "" : "Edit"}
                         icon={<FiEdit className="text-lg" />}
-                        ariaLabel={`Edit sample ${sample.project_id || "N/A"}`}
                       />
                       {/* <Button
                         className="md:min-w-[110px]"
@@ -322,7 +405,7 @@ export default function HomePage() {
                 <div>
                   <Pagination
                     activePage={currentPage || 0}
-                    setActivePage={handlePageChange}
+                    setActivePage={setCurrentPage}
                     numberOfPage={totalPages}
                     numberOfRecords={totalSamples}
                     itemsPerPage={10}
@@ -333,18 +416,14 @@ export default function HomePage() {
           ) : (
             <Card className="p-4 bg-white !shadow-none rounded-xl">
               <div className="flex items-center justify-center h-64">
-                {isLoading ? (
-                  <LoadingSpinner />
-                ) : (
-                  <Label
-                    label={
-                      activeTab !== "All"
-                        ? "No sample found based on your applied filter."
-                        : "No samples found"
-                    }
-                    className="text-lg font-semibold text-gray-500"
-                  />
-                )}
+                <Label
+                  label={
+                    activeTab !== "All"
+                      ? "No sample found based on your applied filter."
+                      : "No samples found"
+                  }
+                  className="text-lg font-semibold text-gray-500"
+                />
               </div>
             </Card>
           )}

@@ -1,124 +1,64 @@
-import React, { ReactNode } from "react";
-import { placement } from "@material-tailwind/react/types/components/menu";
-// import { MenuItemProps } from "./MoreMenu";
-import { SBTooltip } from "@/stories/Tooltip/Tooltip";
+import React, { ReactNode, useState } from "react";
+import { Tooltip } from "react-tooltip";
+import "react-tooltip/dist/react-tooltip.css";
 import { Button } from "@/stories/Button/Button";
+import { FiEdit, FiMoreVertical, FiTrash2 } from "react-icons/fi";
 
-export interface MenuItemProps {
-  iconBackground?: string;
-  icon?: ReactNode;
-  label: ReactNode;
-  disabled?: boolean;
-  hide?: boolean;
-  clickAction?: VoidFunction;
-  tooltipMessage?: string;
-  items?: MenuItemProps[];
-  menuItemClassName?: string;
+interface MoreMenuWithEditDeleteIconsProps {
+  onEdit?: () => void;
+  onDelete?: () => void;
+  placement?: "top" | "bottom" | "left" | "right";
+  children?: ReactNode;
 }
 
-export interface MoreActionButtonsProps {
-  items: MenuItemProps[];
-  placement?: placement;
-  actionElement: ReactNode;
-  actionElementClass?: string;
-  disabled?: boolean;
-  hide?: boolean;
-  menuListClass?: string;
-  editView?: boolean;
-  editDelete?: boolean;
-}
+export const MoreMenuWithEditDeleteIcons: React.FC<
+  MoreMenuWithEditDeleteIconsProps
+> = ({ onEdit, onDelete, placement = "bottom", children }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuId = `more-menu-${Math.random().toString(36).substr(2, 9)}`;
 
-const MoreActionButtons: React.FC<MoreActionButtonsProps> = ({
-  items,
-  placement,
-  actionElement,
-  actionElementClass,
-  disabled,
-  hide,
-  menuListClass,
-  editDelete,
-  editView,
-}) => {
-  const handleItemClick = (clickAction: VoidFunction | undefined) => {
-    if (clickAction) {
-      clickAction();
-    }
-  };
-
-  const filterEditDeleteActions = (items: MenuItemProps[]) => {
-    return items.filter(
-      (item) => item.label === "Edit" || item.label === "Delete"
-    );
-  };
-
-  const filterEditViewActions = (items: MenuItemProps[]) => {
-    return items.filter(
-      (item) => item.label === "Edit" || item.label === "View"
-    );
-  };
-
-  const removeEditDeleteActions = (items: MenuItemProps[]) => {
-    return items.filter(
-      (item) => item.label !== "Edit" && item.label !== "Delete" && !item.hide
-    );
-  };
-  const removeEditViewActions = (items: MenuItemProps[]) => {
-    return items.filter(
-      (item) => item.label !== "Edit" && item.label !== "View" && !item.hide
-    );
-  };
-
-  const editDeleteItems = filterEditDeleteActions(items);
-
-  const editViewItems = filterEditViewActions(items);
-
-  const otherItems = editView
-    ? removeEditViewActions(items)
-    : removeEditDeleteActions(items);
+  const tooltipContent = (
+    <div className="flex flex-col gap-2 p-2">
+      {onEdit && (
+        <Button
+          className="!min-w-fit"
+          variant="icon"
+          label="Edit"
+          icon={<FiEdit className="text-lg" />}
+          onClick={onEdit}
+        />
+      )}
+      {onDelete && (
+        <Button
+          className="!min-w-fit"
+          variant="danger"
+          label="Delete"
+          icon={<FiTrash2 className="text-lg" />}
+          onClick={onDelete}
+        />
+      )}
+      {children}
+    </div>
+  );
 
   return (
-    <div className="flex gap-2 justify-end">
-      {(editView ? editViewItems : editDeleteItems).map(
-        (menuItems: MenuItemProps) =>
-          !menuItems.hide && (
-            <>
-              <Button
-                id={menuItems.label?.toString()}
-                label=""
-                key={menuItems.label?.toString()}
-                variant="more-menu-item"
-                style={{ background: menuItems?.iconBackground }}
-                size="large"
-                icon={menuItems?.icon}
-                disabled={menuItems?.disabled}
-                onClick={() =>
-                  !menuItems?.disabled &&
-                  handleItemClick(menuItems?.clickAction)
-                }
-              />
-              {menuItems?.tooltipMessage && (
-                <SBTooltip
-                  message={menuItems?.tooltipMessage}
-                  id={menuItems.label?.toString() || ""}
-                  className="max-w-[180px] -mt-4"
-                />
-              )}
-            </>
-          )
-      )}
-      {/* {otherItems.length > 0 && (
-        <MoreMenu
-          actionElement={actionElement}
-          items={otherItems}
-          placement={placement}
-          actionElementClass={actionElementClass}
-          disabled={disabled}
-          hide={hide}
-          menuListClass={menuListClass}
-        />
-      )} */}
+    <div className="relative">
+      <Button
+        id={menuId}
+        className="!min-w-fit"
+        variant="icon"
+        label=""
+        icon={<FiMoreVertical className="text-lg" />}
+        onClick={() => setIsOpen(!isOpen)}
+      />
+      <Tooltip
+        anchorSelect={`#${menuId}`}
+        place={placement}
+        isOpen={isOpen}
+        clickable
+        className="storybook-tooltip storybook-tooltip--primary"
+        content={tooltipContent as unknown as string}
+      />
     </div>
   );
 };
-
-export default MoreActionButtons;

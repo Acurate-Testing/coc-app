@@ -9,8 +9,7 @@ import { Card } from "@/stories/Card/Card";
 import { Label } from "@/stories/Label/Label";
 import { Pagination } from "@/stories/Pagination/Pagination";
 import { Database } from "@/types/supabase";
-import { Chip } from "@material-tailwind/react";
-import moment from "moment";
+import { Chip } from "@/stories/Chip/Chip";
 import { useRouter } from "next/navigation";
 import { useEffect, useCallback, useState } from "react";
 import { FaLocationDot } from "react-icons/fa6";
@@ -19,6 +18,7 @@ import { GoClock } from "react-icons/go";
 import { ImBin } from "react-icons/im";
 import { IoFlask, IoSearch } from "react-icons/io5";
 import { useMediaQuery } from "react-responsive";
+import { format } from "date-fns";
 
 type BaseSample = Database["public"]["Tables"]["samples"]["Row"];
 
@@ -225,7 +225,7 @@ export default function AdminSamplesClient({
       const a = document.createElement("a");
       a.style.display = "none";
       a.href = url;
-      a.download = `samples-export-${moment().format("YYYY-MM-DD")}.csv`;
+      a.download = `samples-export-${format(new Date(), "yyyy-MM-dd")}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -351,10 +351,23 @@ export default function AdminSamplesClient({
                         </div>
                         <div>
                           <Chip
+                            value={getStatusLabel(sample?.status as string)}
                             className={`${getStatusColor(
-                              sample?.status
-                            )} capitalize flex items-center justify-center py-1 w-fit rounded-full`}
-                            value={getStatusLabel(sample?.status)}
+                              sample?.status as string
+                            )} capitalize flex items-center justify-center py-1.5 w-fit rounded-full text-sm`}
+                            color={
+                              sample?.status === "pending"
+                                ? "yellow"
+                                : sample?.status === "in_coc"
+                                ? "blue"
+                                : sample?.status === "submitted"
+                                ? "purple"
+                                : sample?.status === "pass"
+                                ? "green"
+                                : sample?.status === "fail"
+                                ? "red"
+                                : "gray"
+                            }
                           />
                         </div>
                       </div>
@@ -392,8 +405,9 @@ export default function AdminSamplesClient({
                           icon={<GoClock className="text-lg text-gray-600" />}
                         />
                         <Label
-                          label={moment(sample?.created_at).format(
-                            "YYYY-MM-DD hh:mm A"
+                          label={format(
+                            new Date(sample?.created_at),
+                            "yyyy-MM-dd hh:mm a"
                           )}
                           className="text-lg"
                         />

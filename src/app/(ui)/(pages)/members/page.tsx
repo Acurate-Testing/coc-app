@@ -1,62 +1,38 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/stories/Button/Button";
-import { Card } from "@/stories/Card/Card";
-import { Label } from "@/stories/Label/Label";
 import { User } from "@/types/user";
-import { Chip } from "@material-tailwind/react";
-import moment from "moment";
-import { GoClock } from "react-icons/go";
-import { ImBin } from "react-icons/im";
 import LoadingSpinner from "../../components/Common/LoadingSpinner";
-import { LuPlus } from "react-icons/lu";
 import { useSession } from "next-auth/react";
-import { UserRole } from "@/constants/enums";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { useMediaQuery } from "react-responsive";
-import { IoMdRefresh } from "react-icons/io";
-import { Pagination } from "@/stories/Pagination/Pagination";
+import { format } from "date-fns";
+import { IoSearch } from "react-icons/io5";
+import { IoMailOutline, IoTrashOutline } from "react-icons/io5";
+import { LuPlus } from "react-icons/lu";
 
 const Users = () => {
   const router = useRouter();
-  const isMobile = useMediaQuery({ maxWidth: 767 });
   const { data: session } = useSession();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
   const [userList, setUserList] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isResending, setIsResending] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState<boolean>(false);
-  const [isPageChanging, setIsPageChanging] = useState<boolean>(false);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalUsers, setTotalUsers] = useState<number>(0);
-  const [totalPages, setTotalPages] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(0);
 
   const fetchUserList = async () => {
     try {
       setIsLoading(true);
-      const params = [
-        `page=${currentPage}`,
-        searchQuery ? `search=${searchQuery}` : "",
-      ]
-        .filter(Boolean)
-        .join("&");
-      const response = await fetch(`/api/users?${params}`);
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch users");
-      }
-      setTotalUsers(data.total || 0);
+      const res = await fetch("/api/users");
+      const data = await res.json();
       setUserList(data.users || []);
-      setTotalPages(data.totalPages || 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch users");
-    } finally {
       setIsLoading(false);
-      setIsSearching(false);
-      setIsPageChanging(false);
+    } catch (error) {
+      console.log(error);
+      setUserList([]);
+      setIsLoading(false);
     }
   };
 
@@ -115,144 +91,126 @@ const Users = () => {
     }
   };
 
-  const handlePageChange = (page: number) => {
-    setIsPageChanging(true);
-    setCurrentPage(page);
-  };
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      setIsSearching(true);
-      fetchUserList();
-    }, 1000);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
-
   useEffect(() => {
     fetchUserList();
   }, []);
 
-  if (isLoading || isSearching || isPageChanging) {
+  if (isLoading) {
     return <LoadingSpinner />;
   }
 
+  const filteredUsers = userList.filter((user) =>
+    user.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="md:p-8 p-6">
+    <div className="w-full md:p-8 p-4 md:!pt-0">
       <div className="relative bg-gray-50">
-        {session?.user.role === UserRole.AGENCY && (
+        {session?.user.role === "agency" && (
           <button
             onClick={() => router.push("/member/invite")}
-            className="fixed bottom-8 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200"
+            className="fixed z-[50] bottom-24 right-8 bg-themeColor hover:bg-blue-700 text-white p-4 rounded-full shadow-xl transition-colors duration-200 w-16 h-16 flex items-center justify-center"
+            aria-label="Invite new member"
           >
             <LuPlus size={30} />
           </button>
         )}
       </div>
-      {userList.length > 0 ? (
-        <>
-          {userList.map((user) => (
-            <Card
-              key={user.id}
-              className="p-4 bg-white !shadow-none rounded-xl flex items-start justify-between gap-4 mb-4"
-            >
-              <div className="flex flex-col">
-                <div className="flex gap-4">
-                  <Chip
-                    className="bg-blue-100 text-themeColor capitalize py-1 px-2 rounded-full text-sm"
-                    value={
-                      user.role === UserRole.LABADMIN
-                        ? "Lab Admin"
-                        : user.role === UserRole.AGENCY
-                        ? "Admin"
-                        : "Member"
-                    }
-                  />
-                </div>
-                <div className="flex mt-2 text-lg">
-                  <Label
-                    label={user.full_name}
-                    className="text-xl font-medium"
-                  />
-                </div>
-                <div>
-                  <Label
-                    label={user.email}
-                    className="text-lg text-gray-600 break-all"
-                  />
-                </div>
-                <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                  <GoClock className="text-lg" />
-                  <span>
-                    {moment(user.created_at).format("YYYY-MM-DD hh:mm A")}
-                  </span>
-                </div>
-              </div>
-
-              {session?.user.id !== user.id && (
-                <div className="flex flex-col gap-3">
-                  {session?.user.role === UserRole.AGENCY && !user.active && (
-                    <Button
-                      className="md:min-w-[100px]"
-                      variant="white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleResendInvite(user.id);
-                      }}
-                      disabled={isResending === user.id}
-                      label={
-                        isMobile
-                          ? ""
-                          : isResending === user.id
-                          ? "Resending..."
-                          : "Resend Invite"
-                      }
-                      icon={<IoMdRefresh className="text-lg" />}
-                    />
-                  )}
-                  {session?.user.role === UserRole.AGENCY && (
-                    <Button
-                      className="md:min-w-[100px]"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteUser(user.id);
-                      }}
-                      disabled={
-                        isDeleting === user.id || session?.user.id === user.id
-                      }
-                      label={
-                        isMobile
-                          ? ""
-                          : isDeleting === user.id
-                          ? "Deleting..."
-                          : "Delete"
-                      }
-                      variant="danger"
-                      icon={<ImBin className="text-lg" />}
-                    />
-                  )}
-                </div>
-              )}
-            </Card>
-          ))}
-          {totalPages > 0 && (
-            <div className="p-5">
-              <Pagination
-                activePage={currentPage || 0}
-                setActivePage={handlePageChange}
-                numberOfPage={totalPages}
-                numberOfRecords={totalUsers}
-                itemsPerPage={10}
-              />
-            </div>
-          )}
-        </>
-      ) : (
-        <Card className="p-4 bg-white !shadow-none rounded-xl">
-          <div className="flex items-center justify-center h-64">
-            <Label label="No users found" className="text-lg font-semibold" />
+      <div className="flex gap-4 items-center">
+        <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="relative">
+            <IoSearch className="text-themeColor pointer-events-none h-6 w-6 absolute top-1/2 transform -translate-y-1/2 left-4 z-[1]" />
+            <input
+              id="user-search"
+              className={`font-medium rounded-lg py-3 px-4 bg-white text-base appearance-none block !pl-14 form-input h-[60px]`}
+              value={searchQuery}
+              type="search"
+              placeholder="Search users"
+              onChange={(e) => {
+                const { value } = e.target;
+                setCurrentPage(0);
+                setSearchQuery(value);
+              }}
+            />
           </div>
-        </Card>
-      )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredUsers.map((user) => (
+          <div
+            key={user.id}
+            className="bg-white rounded-lg shadow-sm p-6 border border-gray-100"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {user.full_name}
+                </h3>
+                <p className="text-sm text-gray-500">{user.email}</p>
+              </div>
+              <div className="flex gap-2">
+                {user.role === "user" && !user.active && (
+                  <button
+                    onClick={() => handleResendInvite(user.id)}
+                    disabled={isResending === user.id}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    aria-label="Resend invitation"
+                  >
+                    {isResending === user.id ? (
+                      <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <IoMailOutline size={20} />
+                    )}
+                  </button>
+                )}
+                {session?.user.role === "agency" &&
+                  session?.user.id !== user.id && (
+                    <button
+                      onClick={() => handleDeleteUser(user.id)}
+                      disabled={isDeleting === user.id}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      aria-label="Delete user"
+                    >
+                      {isDeleting === user.id ? (
+                        <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <IoTrashOutline size={20} />
+                      )}
+                    </button>
+                  )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Role:</span>
+                <span className="font-medium text-gray-900">
+                  {user.role
+                    ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                    : "Unknown"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Status:</span>
+                <span
+                  className={`font-medium ${
+                    user.active ? "text-green-600" : "text-yellow-600"
+                  }`}
+                >
+                  {user.active ? "Active" : "Pending"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Created:</span>
+                <span className="font-medium text-gray-900">
+                  {user.created_at &&
+                    format(new Date(user.created_at), "yyyy-MM-dd hh:mm a")}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

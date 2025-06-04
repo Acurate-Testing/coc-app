@@ -8,7 +8,8 @@ import { Suspense } from "react";
 import { registerServiceWorker } from "./service-worker";
 import NextAuthProvider from "./providers";
 import { Toaster } from "sonner";
-import ErrorBoundary from "./(ui)/components/Common/ErrorBoundary";
+import { LoadingProvider } from "./providers/LoadingProvider";
+import "react-toastify/dist/ReactToastify.css";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -77,20 +78,20 @@ export default function RootLayout({
         className={`${inter.className} bg-light text-light`}
         suppressHydrationWarning
       >
-        <ErrorBoundary>
-          {isOnboardingPage ? (
-            children
-          ) : (
-            <NextAuthProvider>
+        {isOnboardingPage ? (
+          children
+        ) : (
+          <NextAuthProvider>
+            <LoadingProvider>
               <Suspense fallback={null}>
                 <ToastContainerWrapper />
               </Suspense>
               <main id="main-content" className="min-h-screen">
                 {children}
               </main>
-            </NextAuthProvider>
-          )}
-        </ErrorBoundary>
+            </LoadingProvider>
+          </NextAuthProvider>
+        )}
         <Toaster />
       </body>
     </html>

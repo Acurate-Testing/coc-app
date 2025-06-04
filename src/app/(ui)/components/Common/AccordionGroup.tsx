@@ -1,10 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import {
-  Accordion,
-  AccordionHeader,
-  AccordionBody,
-} from "@material-tailwind/react";
+import { Accordion, AccordionItem } from "@/stories/Accordion/Accordion";
 import { Button } from "@/stories/Button/Button";
 
 interface AccordionItem {
@@ -40,53 +36,39 @@ export default function AccordionGroup({ items }: AccordionGroupProps) {
   };
 
   return (
-    <div>
+    <Accordion>
       {items.map((item) => (
-        <div className="mb-4" key={item.id}>
-          <Accordion
-            placeholder=""
-            onPointerEnterCapture={() => {}}
-            onPointerLeaveCapture={() => {}}
-            open={openStates[item.id]}
-            className="bg-white rounded-xl"
-            onResize={() => {}}
-            onResizeCapture={() => {}}
-          >
-            <AccordionHeader
-              className="px-4"
-              placeholder=""
-              onPointerEnterCapture={() => {}}
-              onPointerLeaveCapture={() => {}}
-              onClick={() => toggleOpen(item.id)}
-              onResize={() => {}}
-              onResizeCapture={() => {}}
-            >
-              <div className="w-full flex items-center justify-between gap-2 text-lg">
-                <div className="flex items-center gap-2">
-                  {item.icon || ""} {item.title}
-                </div>
-                {item?.buttonText && (
-                  <div>
-                    <Button
-                      variant={
-                        item?.variant ? (item?.variant as "danger") : "primary"
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        item.buttonAction?.();
-                      }}
-                      icon={item?.buttonIcon}
-                      label={item?.buttonText}
-                      size="large"
-                    />
-                  </div>
-                )}
+        <AccordionItem
+          key={item.id}
+          title={
+            <div className="w-full flex items-center justify-between gap-2 text-lg">
+              <div className="flex items-center gap-2">
+                {item.icon || ""} {item.title}
               </div>
-            </AccordionHeader>
-            <AccordionBody className="px-4">{item.content}</AccordionBody>
-          </Accordion>
-        </div>
+              {item?.buttonText && (
+                <div>
+                  <Button
+                    variant={
+                      item?.variant ? (item?.variant as "danger") : "primary"
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      item.buttonAction?.();
+                    }}
+                    icon={item?.buttonIcon}
+                    label={item?.buttonText}
+                    size="large"
+                  />
+                </div>
+              )}
+            </div>
+          }
+          defaultOpen={openStates[item.id]}
+          className="bg-white rounded-xl"
+        >
+          {item.content}
+        </AccordionItem>
       ))}
-    </div>
+    </Accordion>
   );
 }

@@ -10,14 +10,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiEdit, FiEye, FiMoreVertical } from "react-icons/fi";
 import { ImBin } from "react-icons/im";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useLoadingState } from "@/hooks/useLoadingState";
-import { LoadingButton } from "@/stories/Button/LoadingButton";
-import { TestsResponse } from "@/types/api";
-import { errorToast } from "@/hooks/useCustomToast";
-import { FaPlus } from "react-icons/fa";
 
+// Use the correct Test type
 type Test = Database["public"]["Tables"]["test_types"]["Row"];
 
 interface ApiResponse {
@@ -29,10 +23,8 @@ interface ApiResponse {
 }
 
 export default function AdminTestsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [tests, setTests] = useState<TestsResponse["items"]>([]);
-  const { isLoading, withLoading } = useLoadingState();
+  const [tests, setTests] = useState<Test[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -53,6 +45,7 @@ export default function AdminTestsPage() {
 
   const fetchTests = async () => {
     try {
+      setIsLoading(true);
       setError(null);
       const params = [`page=${currentPage}`, searchQuery ? `search=${searchQuery}` : ""]
         .filter(Boolean)
@@ -62,35 +55,19 @@ export default function AdminTestsPage() {
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch tests");
       }
-
-      // Handle both array and paginated response formats
-      if (Array.isArray(data)) {
-        setTests(data);
-        setTotalTests(data.length);
-        setTotalPages(Math.ceil(data.length / 10)); // Assuming 10 items per page
-      } else {
-        setTests(data.items || []);
-        setTotalTests(data.total || 0);
-        setTotalPages(data.totalPages || 0);
-      }
+      setTotalTests(data.total || 0);
+      setTests(data.tests || data || []);
+      setTotalPages(data.totalPages || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch tests");
-      errorToast(err instanceof Error ? err.message : "Failed to fetch tests");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (status === "authenticated") {
-      withLoading(fetchTests, "Loading tests...");
-    }
-  }, [status, currentPage]);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      withLoading(fetchTests, "Searching tests...");
-    }, 1000);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
+    fetchTests();
+  }, [currentPage, searchQuery]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -126,22 +103,23 @@ export default function AdminTestsPage() {
 
   const handleDeleteTest = async () => {
     try {
-      await withLoading(async () => {
-        const response = await fetch(`/api/admin/tests`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: selectedTest }),
-        });
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || "Failed to delete test");
-        }
-        setOpenConfirmDeleteDialog(false);
-        setSelectedTest("");
-        await fetchTests();
-      }, "Deleting test...");
+      setIsLoading(true);
+      const response = await fetch(`/api/admin/tests`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedTest }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete test");
+      }
+      setOpenConfirmDeleteDialog(false);
+      setSelectedTest("");
+      fetchTests();
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to delete test");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -169,10 +147,9 @@ export default function AdminTestsPage() {
     setOpenActionMenu(testId);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
   if (error) {
     return (
       <div className="min-h-screen w-full">
@@ -194,16 +171,15 @@ export default function AdminTestsPage() {
       <div className="p-4 sm:p-8 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Test Types</h1>
-          <LoadingButton
-            label="Add Test Type"
+          <button
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
             onClick={() => {
               setEditTest(null);
               setShowModal(true);
             }}
-            variant="primary"
-            ariaLabel="Add new test type"
-            icon={<FaPlus size={16} />}
-          />
+          >
+            + Add Test Type
+          </button>
         </div>
         <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <div className="relative">
@@ -217,7 +193,6 @@ export default function AdminTestsPage() {
                 setCurrentPage(0);
                 setSearchQuery(e.target.value);
               }}
-              aria-label="Search tests"
             />
           </div>
         </div>
@@ -257,41 +232,27 @@ export default function AdminTestsPage() {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {tests.map((test) => (
-                        <tr key={test.id}>
+                        <tr key={test.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{test.name}</div>
+                            <div className="font-medium text-gray-900">{test.name}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">{test.test_code}</div>
+                            <div className="text-gray-500">{test.test_code || "-"}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-500">
+                            <div className="text-gray-500">
                               {test.matrix_types?.join(", ") || "-"}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex justify-end gap-2">
-                              <LoadingButton
-                                label="View"
-                                onClick={() => handleViewClick(test)}
-                                variant="outline-primary"
-                                icon={<FiEye className="text-lg" />}
-                                ariaLabel={`View test ${test.name}`}
-                              />
-                              <LoadingButton
-                                label="Edit"
-                                onClick={() => handleEditClick(test)}
-                                variant="outline-primary"
-                                icon={<FiEdit className="text-lg" />}
-                                ariaLabel={`Edit test ${test.name}`}
-                              />
-                              <LoadingButton
-                                label="Delete"
-                                onClick={() => handleDeleteClick(test.id)}
-                                variant="danger"
-                                icon={<ImBin className="text-lg" />}
-                                ariaLabel={`Delete test ${test.name}`}
-                              />
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div>
+                              <button
+                                ref={(el: any) => el && menuButtonRefs.current.set(test.id, el)}
+                                onClick={(e) => toggleActionMenu(test.id, e)}
+                                className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+                              >
+                                <FiMoreVertical className="h-5 w-5" />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -300,11 +261,11 @@ export default function AdminTestsPage() {
                   </table>
                 </div>
               </div>
-              {totalPages > 1 && (
+              {totalPages > 0 && (
                 <div className="p-5">
                   <Pagination
                     activePage={currentPage || 0}
-                    setActivePage={handlePageChange}
+                    setActivePage={setCurrentPage}
                     numberOfPage={totalPages}
                     numberOfRecords={totalTests}
                     itemsPerPage={10}
@@ -312,81 +273,152 @@ export default function AdminTestsPage() {
                 </div>
               )}
             </div>
-          ) : isLoading ? (
-            <LoadingSpinner />
           ) : (
             <Card className="p-4 bg-white !shadow-none rounded-xl">
               <div className="flex items-center justify-center h-64">
-                <span className="text-lg font-semibold text-gray-500">No tests found</span>
+                <span className="text-lg font-semibold">No tests found</span>
               </div>
             </Card>
           )}
         </div>
       </div>
 
-      {isMounted && showModal && (
-        <AddEditTestModal
-          open={showModal}
-          test={editTest}
-          close={() => {
-            setShowModal(false);
-            setEditTest(null);
-          }}
-          onSaved={async () => {
-            setShowModal(false);
-            setEditTest(null);
-            await fetchTests();
-          }}
-        />
-      )}
+      {/* Dropdown menu portal */}
+      {isMounted &&
+        openActionMenu &&
+        createPortal(
+          <div
+            className="fixed z-50"
+            style={{
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
+            }}
+            ref={menuRef}
+          >
+            <div className="mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+              <div className="py-1" role="menu" aria-orientation="vertical">
+                {tests.find((t) => t.id === openActionMenu) && (
+                  <>
+                    <button
+                      onClick={() => {
+                        handleViewClick(tests.find((t) => t.id === openActionMenu)!);
+                        setOpenActionMenu(null);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
+                      role="menuitem"
+                    >
+                      <FiEye className="mr-3 h-5 w-5" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleEditClick(tests.find((t) => t.id === openActionMenu)!);
+                        setOpenActionMenu(null);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
+                      role="menuitem"
+                    >
+                      <FiEdit className="mr-3 h-5 w-5" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDeleteClick(openActionMenu);
+                        setOpenActionMenu(null);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 hover:text-red-700 w-full text-left"
+                      role="menuitem"
+                    >
+                      <ImBin className="mr-3 h-5 w-5" />
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
-      {isMounted && showViewModal && viewTest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-semibold">{viewTest.name}</h2>
+      <AddEditTestModal
+        open={showModal}
+        test={editTest}
+        onSaved={fetchTests}
+        close={() => setShowModal(false)}
+      />
+      {/* View Test Modal */}
+      {viewTest && (
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
+            showViewModal ? "" : "hidden"
+          }`}
+        >
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowViewModal(false)}
+          ></div>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md z-10 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">Test Details</h3>
               <button
-                onClick={() => {
-                  setShowViewModal(false);
-                  setViewTest(null);
-                }}
-                className="text-gray-500 hover:text-gray-700"
-                aria-label="Close view modal"
+                type="button"
+                className="text-gray-400 hover:text-gray-500"
+                onClick={() => setShowViewModal(false)}
               >
-                ×
+                &times;
               </button>
             </div>
-            <div className="space-y-4">
+            <dl className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Test Type Code</h3>
-                <p className="mt-1">{viewTest.test_code}</p>
+                <dt className="text-sm font-medium text-gray-500">Name</dt>
+                <dd className="mt-1 text-base text-gray-900">{viewTest.name}</dd>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Matrix Types</h3>
-                <p className="mt-1">{viewTest.matrix_types?.join(", ") || "-"}</p>
+                <dt className="text-sm font-medium text-gray-500">Description</dt>
+                <dd className="mt-1 text-base text-gray-900">{viewTest.description || "-"}</dd>
               </div>
-              {viewTest.description && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Description</h3>
-                  <p className="mt-1">{viewTest.description}</p>
-                </div>
-              )}
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Test Code</dt>
+                <dd className="mt-1 text-base text-gray-900">{viewTest.test_code || "-"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Matrix Types</dt>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.matrix_types?.join(", ") || "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Created At</dt>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.created_at ? new Date(viewTest.created_at).toLocaleString() : "-"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">ID</dt>
+                <dd className="mt-1 text-sm text-gray-500">{viewTest.id}</dd>
+              </div>
+            </dl>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
+                onClick={() => setShowViewModal(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      {isMounted && openConfirmDeleteDialog && (
-        <ConfirmationModal
-          open={openConfirmDeleteDialog}
-          setOpenModal={setOpenConfirmDeleteDialog}
-          onConfirm={handleDeleteTest}
-          processing={isLoading}
-          message="Are you sure you want to delete this test type? This action cannot be undone."
-          buttonText="Delete"
-          whiteButtonText="Cancel"
-        />
-      )}
+      <ConfirmationModal
+        open={openConfirmDeleteDialog}
+        processing={isLoading}
+        onConfirm={handleDeleteTest}
+        setOpenModal={() => {
+          setSelectedTest("");
+          setOpenConfirmDeleteDialog(false);
+        }}
+      />
     </>
   );
 }

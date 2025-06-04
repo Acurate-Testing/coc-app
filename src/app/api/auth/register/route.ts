@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       .insert([
         {
           name: agency_name,
-          email,
+          contact_email: email,
           phone,
           address,
         },
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         password,
         options: {
           data: {
-            role: "agency_admin",
+            role: "agency",
             agency_id: agencyData.id,
             full_name: email.split("@")[0], // Default name from email
           },
@@ -68,17 +68,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // 3. Update the user with the agency_id
-    const { error: updateUserError } = await supabase
+    // 3. Create the user record
+    const { error: createUserError } = await supabase
       .from("users")
-      .update({ agency_id: agencyData.id })
-      .eq("id", authData.user.id);
+      .insert([
+        {
+          id: authData.user.id,
+          email,
+          full_name: email.split("@")[0],
+          role: "agency",
+          agency_id: agencyData.id,
+          active: true,
+        },
+      ]);
 
-    if (updateUserError) {
-      const error = handleDatabaseError(updateUserError);
-      // If user update fails, clean up everything
+    if (createUserError) {
+      const error = handleDatabaseError(createUserError);
+      // If user record creation fails, clean up everything
       await supabase.from("agencies").delete().eq("id", agencyData.id);
-      await supabase.from("users").delete().eq("id", authData.user.id);
       await supabase.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({ error: error.message }, { status: error.statusCode });
     }
@@ -89,9 +96,6 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     const appError = handleApiError(error);
-    return NextResponse.json(
-      { error: appError.message },
-      { status: appError.statusCode }
-    );
+    return NextResponse.json({ error: appError.message }, { status: appError.statusCode });
   }
 }

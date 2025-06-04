@@ -22,7 +22,7 @@ import { Sample, sampleInitialValues } from "@/types/sample";
 import { Button } from "@/stories/Button/Button";
 import AddAnotherSampleModal from "./AddAnotherSampleModal";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
-import moment from "moment";
+import { format } from "date-fns";
 // type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
 interface Account {
@@ -505,13 +505,18 @@ export default function SampleForm() {
                 id="sampleDate"
                 name="sampleDate"
                 className="form-input mt-1 w-full"
-                value={moment(formData.sample_collected_at).format(
-                  "YYYY-MM-DDTHH:mm"
-                )}
+                value={
+                  formData.sample_collected_at
+                    ? format(
+                        new Date(formData.sample_collected_at),
+                        "yyyy-MM-dd'T'HH:mm"
+                      )
+                    : ""
+                }
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
-                    sample_collected_at: new Date(e.target.value).toISOString(),
+                    sample_collected_at: e.target.value,
                   }))
                 }
               />

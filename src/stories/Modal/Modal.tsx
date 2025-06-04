@@ -4,7 +4,6 @@ import { FaTimes } from "react-icons/fa";
 
 import "./Modal.scss";
 import { Heading } from "../Heading/Heading";
-import _ from "lodash";
 
 interface ModalProps {
   /**
@@ -94,8 +93,10 @@ export const Modal = ({
       const focusableElements = modalRef.current?.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
-      const focusableArray = Array.from(focusableElements || []) as HTMLElement[];
-      
+      const focusableArray = Array.from(
+        focusableElements || []
+      ) as HTMLElement[];
+
       if (focusableArray.length === 0) return;
 
       const firstFocusableElement = focusableArray[0];
@@ -109,7 +110,7 @@ export const Modal = ({
       }
 
       const handleTabKey = (e: KeyboardEvent) => {
-        if (e.key === 'Tab') {
+        if (e.key === "Tab") {
           if (e.shiftKey) {
             if (document.activeElement === firstFocusableElement) {
               e.preventDefault();
@@ -121,15 +122,15 @@ export const Modal = ({
               firstFocusableElement?.focus();
             }
           }
-        } else if (e.key === 'Escape' && !staticModal) {
+        } else if (e.key === "Escape" && !staticModal) {
           close();
         }
       };
 
-      document.addEventListener('keydown', handleTabKey);
+      document.addEventListener("keydown", handleTabKey);
 
       return () => {
-        document.removeEventListener('keydown', handleTabKey);
+        document.removeEventListener("keydown", handleTabKey);
         // Restore focus when modal closes
         previousFocusRef.current?.focus();
       };
@@ -169,7 +170,9 @@ export const Modal = ({
           <div
             className={[
               "min-h-screen p-4",
-              _.isEmpty(position) ? "flex items-center justify-center" : "",
+              Object.keys(position || {}).length === 0
+                ? "flex items-center justify-center"
+                : "",
             ].join(" ")}
           >
             <Transition.Child
