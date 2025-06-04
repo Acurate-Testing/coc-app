@@ -47,11 +47,11 @@ const ProfileHeader = ({ sidebarOpen, setSidebarOpen }: ProfileHeaderProps) => {
   };
 
   return (
-    <header className="flex items-center justify-between bg-white shadow p-4 py-2 pl-6 relative">
-      <div className="flex items-center space-x-4">
+    <header className="flex items-center justify-between bg-white shadow relative">
+      <div className="flex items-center ">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="md:ml-4 md:mr-2 min-w-[unset]"
+          className="md:ml-0 md:mr-0 min-w-[unset]"
         >
           <FaBars size={24} />
         </button>

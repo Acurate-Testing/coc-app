@@ -121,7 +121,13 @@ export const Button = ({
         </span>
       )}
       {icon && (
-        <span className="storybook-button__icon" aria-hidden="true">
+        <span 
+          className={twMerge(
+            "storybook-button__icon",
+            label ? "mr-2" : ""
+          )} 
+          aria-hidden="true"
+        >
           {icon}
         </span>
       )}

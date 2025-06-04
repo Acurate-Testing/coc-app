@@ -1,5 +1,4 @@
 "use client";
-import AccordionGroup from "@/app/(ui)/components/Common/AccordionGroup";
 import ConfirmationModal from "@/app/(ui)/components/Common/ConfirmationModal";
 import LoadingSpinner from "@/app/(ui)/components/Common/LoadingSpinner";
 import Modal from "@/app/(ui)/components/Common/Modal";
@@ -309,14 +308,14 @@ export default function InspectionDetailPage() {
     setSelectedStatus(null);
   };
 
-  const getAccordionData = () => {
+  const getCardData = () => {
     const cocTransfers = formData?.coc_transfers || [];
     const lastIsLabAdmin =
       cocTransfers.length > 0 && cocTransfers[0].received_by === LAB_ADMIN_ID;
 
-    const baseAccordionItems = [
+    return [
       {
-        id: "acc1",
+        id: "card1",
         title: "Basic Information",
         icon: (
           <IoInformationCircleOutline size={22} color="var(--color-primary)" />
@@ -376,7 +375,7 @@ export default function InspectionDetailPage() {
         ),
       },
       {
-        id: "acc2",
+        id: "card2",
         title: "Source Information",
         icon: <LuWaves size={22} color="var(--color-primary)" />,
         content: (
@@ -401,7 +400,7 @@ export default function InspectionDetailPage() {
         ),
       },
       {
-        id: "acc3",
+        id: "card3",
         title: "Identifiers",
         icon: <FaFingerprint size={22} color="var(--color-primary)" />,
         content: (
@@ -426,7 +425,7 @@ export default function InspectionDetailPage() {
         ),
       },
       {
-        id: "acc4",
+        id: "card4",
         title: "Test Selection",
         icon: <IoFlask size={22} color="var(--color-primary)" />,
         content: (
@@ -447,7 +446,7 @@ export default function InspectionDetailPage() {
         ),
       },
       {
-        id: "acc5",
+        id: "card5",
         title: "System Fields",
         icon: <PiRobotFill size={22} color="var(--color-primary)" />,
         content: (
@@ -472,7 +471,7 @@ export default function InspectionDetailPage() {
         ),
       },
       {
-        id: "acc6",
+        id: "card6",
         title: "Remarks",
         icon: <IoChatbubble size={22} color="var(--color-primary)" />,
         content: (
@@ -481,76 +480,67 @@ export default function InspectionDetailPage() {
           </div>
         ),
       },
-    ];
-
-    const cocItem = {
-      id: "acc7",
-      title: "Chain of Custody",
-      content: (
-        <div className="relative pl-6">
-          {/* Timeline vertical line */}
-          <div
-            className="absolute left-0 top-2.5 bottom-2.5 w-0.5 bg-blue-200"
-            style={{ zIndex: 0 }}
-          />
-          <div className="space-y-6">
-            {cocTransfers.map((transfer: any, idx: number) => {
-              const isLabAdminTransfer =
-                transfer.received_by_user?.id === LAB_ADMIN_ID;
-              return (
-                <div key={transfer.id} className="relative">
-                  {/* Timeline dot */}
-                  <div
-                    className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${
-                      isLabAdminTransfer
-                        ? "bg-green-600 border-green-600"
-                        : "bg-blue-600 border-blue-600"
-                    } z-10`}
-                  />
-                  <div
-                    className={`ml-4 ${
-                      isLabAdminTransfer
-                        ? "bg-green-50 border-green-200"
-                        : "bg-gray-50 border-gray-200"
-                    } border rounded-lg p-4 shadow-sm`}
-                  >
-                    <COCTransferItem
-                      transfer={transfer}
-                      onImageSelect={(type, url) =>
-                        setSelectedImage({ type, url })
-                      }
+      {
+        id: "card7",
+        title: "Chain of Custody",
+        content: (
+          <div className="relative pl-6">
+            {/* Timeline vertical line */}
+            <div
+              className="absolute left-0 top-2.5 bottom-2.5 w-0.5 bg-blue-200"
+              style={{ zIndex: 0 }}
+            />
+            <div className="space-y-6">
+              {cocTransfers.map((transfer: any, idx: number) => {
+                const isLabAdminTransfer =
+                  transfer.received_by_user?.id === LAB_ADMIN_ID;
+                return (
+                  <div key={transfer.id} className="relative">
+                    {/* Timeline dot */}
+                    <div
+                      className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${
+                        isLabAdminTransfer
+                          ? "bg-green-600 border-green-600"
+                          : "bg-blue-600 border-blue-600"
+                      } z-10`}
                     />
+                    <div
+                      className={`ml-4 ${
+                        isLabAdminTransfer
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-200"
+                      } border rounded-lg p-4 shadow-sm`}
+                    >
+                      <COCTransferItem
+                        transfer={transfer}
+                        onImageSelect={(type, url) =>
+                          setSelectedImage({ type, url })
+                        }
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ),
-      ...(!isLabAdmin && !lastIsLabAdmin
-        ? {
-            buttonText: "+ COC",
-            buttonAction: () =>
-              router.push(`/sample/transfer-coc/${params.id}`),
-          }
-        : {}),
-    };
-
-    const deleteItem = {
-      id: "acc8",
-      title: "Action",
-      buttonText: "Delete",
-      variant: "danger",
-      buttonIcon: <ImBin className="text-lg" />,
-      buttonAction: handleDeleteClick,
-      content: "",
-      initiallyOpen: false,
-    };
-
-    return [
-      ...baseAccordionItems,
-      cocItem,
-      ...(isLabAdmin ? [] : [deleteItem]),
+        ),
+        ...(!isLabAdmin && !lastIsLabAdmin
+          ? {
+              buttonText: "+ COC",
+              buttonAction: () =>
+                router.push(`/sample/transfer-coc/${params.id}`),
+            }
+          : {}),
+      },
+      ...(isLabAdmin ? [] : [{
+        id: "card8",
+        title: "Action",
+        buttonText: "Delete",
+        variant: "danger",
+        buttonIcon: <ImBin className="text-lg" />,
+        buttonAction: handleDeleteClick,
+        content: "",
+      }]),
     ];
   };
 
@@ -559,12 +549,12 @@ export default function InspectionDetailPage() {
     const container = document.createElement("div");
     container.className = "w-full md:p-8 p-6";
 
-    getAccordionData().forEach((item) => {
-      if (item.id === "acc8") return;
+    getCardData().forEach((item) => {
+      if (item.id === "card8") return;
       const itemDiv = document.createElement("div");
       itemDiv.className = "mb-4";
 
-      // Create accordion header
+      // Create card header
       const headerDiv = document.createElement("div");
       headerDiv.className = "bg-white rounded-xl";
 
@@ -720,7 +710,44 @@ export default function InspectionDetailPage() {
           />
         </div>
       </div>
-      <AccordionGroup items={getAccordionData()} />
+      
+      {/* Simple Card Group */}
+      <div className="space-y-6">
+        {getCardData().map((item) => (
+          <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
+            {/* Card Header */}
+            <div className="px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {item.icon}
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {item.title}
+                  </h3>
+                </div>
+                {item.buttonText && (
+                  <Button
+                    variant={
+                      item.variant ? (item.variant as "danger") : "primary"
+                    }
+                    onClick={item.buttonAction}
+                    icon={item.buttonIcon}
+                    label={item.buttonText}
+                    size="large"
+                  />
+                )}
+              </div>
+            </div>
+            
+            {/* Card Content */}
+            {item.content && (
+              <div className="px-6 py-4">
+                {item.content}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
       <ConfirmationModal
         open={openConfirmDeleteDialog}
         processing={isLoading}

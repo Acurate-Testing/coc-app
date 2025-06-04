@@ -432,7 +432,7 @@ export default function AdminSamplesClient({
                         />
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
+                    {/* <div className="flex flex-col gap-2">
                       <Button
                         className="min-w-[110px]"
                         onClick={(e) => {
@@ -449,7 +449,7 @@ export default function AdminSamplesClient({
                         variant="danger"
                         icon={<ImBin className="text-lg" />}
                       />
-                    </div>
+                    </div> */}
                   </Card>
                 </div>
               ))}

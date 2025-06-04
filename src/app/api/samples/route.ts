@@ -273,6 +273,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Verify sample exists before deleting
+    const { data: existingSample, error: fetchError } = await supabase
+      .from("samples")
+      .select("id")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchError || !existingSample) {
+      return NextResponse.json({ error: "Sample not found" }, { status: 404 });
+    }
+
     const { error } = await supabase
       .from("samples")
       .update({ deleted_at: new Date().toISOString() })

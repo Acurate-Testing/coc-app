@@ -15,8 +15,8 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-      {isLoading && <LoadingSpinner />}
       {children}
+      {isLoading && <LoadingSpinner />}
     </LoadingContext.Provider>
   );
 }
