@@ -180,12 +180,12 @@ export async function POST(request: NextRequest) {
     if (
       received_by === LAB_ADMIN_ID &&
       updatedSampleData &&
-      process.env.SMTP_EMAIL
+      process.env.ADMIN_EMAIL
     ) {
       const htmlEmailData = await sampleDetailTemplate(updatedSampleData);
 
       sendEmail({
-        to: process.env.SMTP_EMAIL,
+        to: process.env.ADMIN_EMAIL,
         subject: "Sample Submitted",
         text: "",
         html: htmlEmailData,
