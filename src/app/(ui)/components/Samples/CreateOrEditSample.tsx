@@ -59,6 +59,7 @@ export default function SampleForm() {
   const [selectedTests, setSelectedTests] = useState<TestType[]>([]);
   const editMode = pathname.includes("edit");
   const sampleId = params?.sampleId as string;
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const getFilteredSources = () => {
     if (formData.matrix_type === MatrixType.PotableWater)
@@ -198,8 +199,148 @@ export default function SampleForm() {
     fetchSampleData();
   }, [editMode, sampleId]);
 
+  const validateStep = (step: number): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    switch (step) {
+      case 1:
+        if (!formData.account_id || String(formData.account_id).trim() === "") {
+          errors.push("Account Number is required");
+        }
+        if (!formData.matrix_type || String(formData.matrix_type).trim() === "") {
+          errors.push("Matrix Type is required");
+        }
+        if (formData.matrix_type === MatrixType.Other && (!formData.matrix_name || String(formData.matrix_name).trim() === "")) {
+          errors.push("Matrix Name is required when Matrix Type is Other");
+        }
+        if (formData.matrix_type === MatrixType.PotableWater && (!formData.pws_id || String(formData.pws_id).trim() === "")) {
+          errors.push("PWS ID is required for Potable Water");
+        }
+        if (!formData.project_id || String(formData.project_id).trim() === "") {
+          errors.push("Project ID is required");
+        }
+        if (!formData.sample_type || String(formData.sample_type).trim() === "") {
+          errors.push("Sample Type is required");
+        }
+        if ((formData.matrix_type === MatrixType.PotableWater || 
+             formData.matrix_type === MatrixType.Wastewater) && (!formData.source || String(formData.source).trim() === "")) {
+          errors.push("Source is required");
+        }
+        if (formData.matrix_type === MatrixType.PotableWater && (!formData.sample_privacy || String(formData.sample_privacy).trim() === "")) {
+          errors.push("Sample Privacy is required for Potable Water");
+        }
+        break;
+
+      case 2:
+        if (!selectedTests || selectedTests.length === 0) {
+          errors.push("At least one Test Type must be selected");
+        }
+        if (!formData.sample_collected_at || String(formData.sample_collected_at).trim() === "") {
+          errors.push("Sample Date is required");
+        }
+        if (!formData.sample_location || String(formData.sample_location).trim() === "") {
+          errors.push("Sample Location is required");
+        }
+        if (!formData.county || String(formData.county).trim() === "") {
+          errors.push("County is required");
+        }
+        break;
+
+      case 3:
+        if (formData.temperature === undefined || formData.temperature === null || isNaN(Number(formData.temperature))) {
+          errors.push("Temperature is required and must be a valid number");
+        }
+        if (formData.matrix_type === MatrixType.PotableWater && (!formData.compliance || String(formData.compliance).trim() === "")) {
+          errors.push("Compliance is required for Potable Water");
+        }
+        if (formData.matrix_type === MatrixType.PotableWater && (!formData.chlorine_residual || String(formData.chlorine_residual).trim() === "")) {
+          errors.push("Chlorine Residual is required for Potable Water");
+        }
+        break;
+
+      case 4:
+        // Final validation - check all previous steps but avoid infinite recursion
+        const step1Errors: string[] = [];
+        const step2Errors: string[] = [];
+        const step3Errors: string[] = [];
+
+        // Step 1 validation
+        if (!formData.account_id || String(formData.account_id).trim() === "") {
+          step1Errors.push("Account Number is required");
+        }
+        if (!formData.matrix_type || String(formData.matrix_type).trim() === "") {
+          step1Errors.push("Matrix Type is required");
+        }
+        if (formData.matrix_type === MatrixType.Other && (!formData.matrix_name || String(formData.matrix_name).trim() === "")) {
+          step1Errors.push("Matrix Name is required when Matrix Type is Other");
+        }
+        if (formData.matrix_type === MatrixType.PotableWater && (!formData.pws_id || String(formData.pws_id).trim() === "")) {
+          step1Errors.push("PWS ID is required for Potable Water");
+        }
+        if (!formData.project_id || String(formData.project_id).trim() === "") {
+          step1Errors.push("Project ID is required");
+        }
+        if (!formData.sample_type || String(formData.sample_type).trim() === "") {
+          step1Errors.push("Sample Type is required");
+        }
+        if ((formData.matrix_type === MatrixType.PotableWater || 
+             formData.matrix_type === MatrixType.Wastewater) && (!formData.source || String(formData.source).trim() === "")) {
+          step1Errors.push("Source is required");
+        }
+        if (formData.matrix_type === MatrixType.PotableWater && (!formData.sample_privacy || String(formData.sample_privacy).trim() === "")) {
+          step1Errors.push("Sample Privacy is required for Potable Water");
+        }
+
+        // Step 2 validation
+        if (!selectedTests || selectedTests.length === 0) {
+          step2Errors.push("At least one Test Type must be selected");
+        }
+        if (!formData.sample_collected_at || String(formData.sample_collected_at).trim() === "") {
+          step2Errors.push("Sample Date is required");
+        }
+        if (!formData.sample_location || String(formData.sample_location).trim() === "") {
+          step2Errors.push("Sample Location is required");
+        }
+        if (!formData.county || String(formData.county).trim() === "") {
+          step2Errors.push("County is required");
+        }
+
+        // Step 3 validation
+        if (formData.temperature === undefined || formData.temperature === null || isNaN(Number(formData.temperature))) {
+          step3Errors.push("Temperature is required and must be a valid number");
+        }
+        if (formData.matrix_type === MatrixType.PotableWater && (!formData.compliance || String(formData.compliance).trim() === "")) {
+          step3Errors.push("Compliance is required for Potable Water");
+        }
+        if (formData.matrix_type === MatrixType.PotableWater && (!formData.chlorine_residual || String(formData.chlorine_residual).trim() === "")) {
+          step3Errors.push("Chlorine Residual is required for Potable Water");
+        }
+
+        errors.push(...step1Errors, ...step2Errors, ...step3Errors);
+        break;
+    }
+
+    return { isValid: errors.length === 0, errors };
+  };
+
   const handleNext = () => {
-    if (currentStep < 5) {
+    const validation = validateStep(currentStep);
+    
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      // Show only the first few errors to avoid overwhelming the user
+      const errorsToShow = validation.errors.slice(0, 3);
+      errorsToShow.forEach(error => errorToast(error));
+      
+      // If there are more errors, show a summary
+      if (validation.errors.length > 3) {
+        errorToast(`${validation.errors.length - 3} more validation errors found. Please check all required fields.`);
+      }
+      return;
+    }
+
+    setValidationErrors([]);
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -211,6 +352,21 @@ export default function SampleForm() {
   };
 
   const handleSubmit = async () => {
+    const validation = validateStep(4);
+    
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      // Show only the first few errors to avoid overwhelming the user
+      const errorsToShow = validation.errors.slice(0, 3);
+      errorsToShow.forEach(error => errorToast(error));
+      
+      // If there are more errors, show a summary
+      if (validation.errors.length > 3) {
+        errorToast(`${validation.errors.length - 3} more validation errors found. Please complete all required fields.`);
+      }
+      return;
+    }
+
     try {
       const submission = {
         ...formData,
@@ -319,7 +475,7 @@ export default function SampleForm() {
         return (
           <div>
             <div className="mb-3">
-              <label>Account Number</label>
+              <label>Account Number <span className="text-red-500">*</span></label>
               <select
                 className="form-input bg-white mt-1"
                 value={formData.account_id ?? ""}
@@ -338,7 +494,7 @@ export default function SampleForm() {
             </div>
 
             <div className="mb-3">
-              <label>Matrix Type *</label>
+              <label>Matrix Type <span className="text-red-500">*</span></label>
               <select
                 className="form-input bg-white mt-1"
                 value={formData.matrix_type ?? ""}
@@ -356,7 +512,7 @@ export default function SampleForm() {
             </div>
             {formData?.matrix_type === MatrixType.Other ? (
               <div className="mb-3">
-                <label>Matrix Name</label>
+                <label>Matrix Name <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   className="form-input mt-1"
@@ -373,7 +529,7 @@ export default function SampleForm() {
 
             {formData?.matrix_type === MatrixType.PotableWater ? (
               <div className="mb-3">
-                <label>PWS ID</label>
+                <label>PWS ID <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   className="form-input mt-1"
@@ -389,7 +545,7 @@ export default function SampleForm() {
             )}
 
             <div className="mb-3">
-              <label>Project ID</label>
+              <label>Project ID <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 className="form-input mt-1"
@@ -401,7 +557,7 @@ export default function SampleForm() {
               />
             </div>
             <div className="mb-3">
-              <label>Sample Type *</label>
+              <label>Sample Type <span className="text-red-500">*</span></label>
               <select
                 className="form-input bg-white mt-1"
                 value={formData.sample_type ?? ""}
@@ -421,7 +577,7 @@ export default function SampleForm() {
             {(formData.matrix_type === MatrixType.PotableWater ||
               formData.matrix_type === MatrixType.Wastewater) && (
               <div className="mb-3">
-                <label>Source</label>
+                <label>Source <span className="text-red-500">*</span></label>
                 <select
                   className="form-input bg-white mt-1"
                   value={formData.source ?? ""}
@@ -441,7 +597,7 @@ export default function SampleForm() {
 
             {formData.matrix_type === MatrixType.PotableWater && (
               <div className="mb-3">
-                <label>Sample Privacy</label>
+                <label>Sample Privacy <span className="text-red-500">*</span></label>
                 <select
                   className="form-input bg-white mt-1"
                   value={formData.sample_privacy ?? ""}
@@ -469,7 +625,7 @@ export default function SampleForm() {
         return (
           <div>
             <div className="mb-3">
-              <label>Select Test Type(s) *</label>
+              <label>Select Test Type(s) <span className="text-red-500">*</span></label>
               <MultiSelect
                 className="z-2 w-full mt-1"
                 options={testTypes.map((test) => ({
@@ -499,7 +655,7 @@ export default function SampleForm() {
             </div>
 
             <div className="mb-3">
-              <label htmlFor="sampleDate">Sample Date</label>
+              <label htmlFor="sampleDate">Sample Date <span className="text-red-500">*</span></label>
               <input
                 type="datetime-local"
                 id="sampleDate"
@@ -523,7 +679,7 @@ export default function SampleForm() {
             </div>
 
             <div className="mb-3">
-              <label>Sample Location</label>
+              <label>Sample Location <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 className="form-input mt-1"
@@ -535,7 +691,7 @@ export default function SampleForm() {
               />
             </div>
             <div className="mb-3">
-              <label>County</label>
+              <label>County <span className="text-red-500">*</span></label>
               <select
                 className="form-input bg-white mt-1"
                 value={formData.county ?? ""}
@@ -558,7 +714,7 @@ export default function SampleForm() {
         return (
           <div>
             <div className="mb-3">
-              <label>Temperature</label>
+              <label>Temperature <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 className="form-input mt-1"
@@ -577,7 +733,7 @@ export default function SampleForm() {
             </div>
             {formData.matrix_type === MatrixType.PotableWater && (
               <div className="mb-3">
-                <label>Compliance</label>
+                <label>Compliance <span className="text-red-500">*</span></label>
                 <select
                   className="form-input bg-white mt-1"
                   value={formData.compliance ?? ""}
@@ -596,7 +752,7 @@ export default function SampleForm() {
             )}
             {formData.matrix_type === MatrixType.PotableWater && (
               <div className="mb-3">
-                <label>Chlorine Residual</label>
+                <label>Chlorine Residual <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   className="form-input mt-1"
@@ -882,7 +1038,7 @@ export default function SampleForm() {
               label="Next"
               size="large"
               className="w-full h-[50px]"
-              onClick={() => setCurrentStep(currentStep + 1)}
+              onClick={handleNext}
             />
           </div>
         )}

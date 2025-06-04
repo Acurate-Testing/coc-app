@@ -1,13 +1,13 @@
-import { showToast } from "@/app/components/Toast";
+import { toast } from "sonner";
 
 export const successToast = (message: string) => {
-  showToast(message, "success");
+  toast.success(message);
 };
 
 export const errorToast = (message: string) => {
-  showToast(message, "error");
+  toast.error(message);
 };
 
 export const infoToast = (message: string) => {
-  showToast(message, "info");
+  toast.info(message);
 };

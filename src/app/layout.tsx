@@ -9,22 +9,12 @@ import { registerServiceWorker } from "./service-worker";
 import NextAuthProvider from "./providers";
 import { Toaster } from "sonner";
 import { LoadingProvider } from "./providers/LoadingProvider";
-import "react-toastify/dist/ReactToastify.css";
 
 const inter = Inter({
   subsets: ["latin"],
   display: "swap", // Optimize font loading
   preload: true,
 });
-
-// Dynamically import the auth provider with no SSR
-const ToastContainerWrapper = dynamic(
-  () => import("./components/ToastContainerWrapper"),
-  {
-    ssr: false,
-    loading: () => null,
-  }
-);
 
 export const metadata: Metadata = {
   title: "COC App",
@@ -83,16 +73,13 @@ export default function RootLayout({
         ) : (
           <NextAuthProvider>
             <LoadingProvider>
-              <Suspense fallback={null}>
-                <ToastContainerWrapper />
-              </Suspense>
               <main id="main-content" className="min-h-screen">
                 {children}
               </main>
             </LoadingProvider>
           </NextAuthProvider>
         )}
-        <Toaster />
+        <Toaster position="top-right" />
       </body>
     </html>
   );

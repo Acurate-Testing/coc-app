@@ -117,7 +117,7 @@ const Users = () => {
         )}
       </div>
       <div className="flex gap-4 items-center">
-        <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="w-full pb-6 pt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="relative">
             <IoSearch className="text-themeColor pointer-events-none h-6 w-6 absolute top-1/2 transform -translate-y-1/2 left-4 z-[1]" />
             <input

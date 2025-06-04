@@ -190,7 +190,7 @@ export default function AdminUsersPage() {
           />
           <button
             onClick={() => setShowInviteModal(true)}
-            className="ml-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="ml-2 p-1 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <LuPlus size={20} />
           </button>
