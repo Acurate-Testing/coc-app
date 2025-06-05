@@ -460,6 +460,7 @@ export default function TransferCOCPage() {
                 type="button"
                 className="w-full h-[50px]"
                 onClick={handleSubmit}
+                disabled={isLoading}
               />
             </>
           )}

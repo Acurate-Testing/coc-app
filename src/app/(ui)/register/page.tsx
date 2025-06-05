@@ -117,6 +117,30 @@ export default function RegisterPage() {
             </div>
             <div>
               <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                className="form-input w-full"
+                placeholder="Create a password"
+                value={signupFormData.password}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    password: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label
                 htmlFor="phone"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
@@ -155,30 +179,6 @@ export default function RegisterPage() {
                   setSignupFormData({
                     ...signupFormData,
                     address: e.target.value,
-                  })
-                }
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="form-input w-full"
-                placeholder="Create a password"
-                value={signupFormData.password}
-                onChange={(e) =>
-                  setSignupFormData({
-                    ...signupFormData,
-                    password: e.target.value,
                   })
                 }
               />

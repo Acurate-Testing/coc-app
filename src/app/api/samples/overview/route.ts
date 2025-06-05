@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       if (status) {
         query = query.eq("status", status);
       }
-      if (!isLabAdmin) {
+      if (!isLabAdmin && agencyId) {
         query = query.eq("agency_id", agencyId);
       }
       return query.is("deleted_at", null);

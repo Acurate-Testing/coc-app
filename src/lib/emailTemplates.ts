@@ -3,145 +3,125 @@ import { format } from "date-fns";
 
 export const sampleDetailTemplate = async (sampleData: any) => {
   const sectionStyle =
-    "padding: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px;";
-  const labelStyle = "font-weight: bold; color: #666; margin-bottom: 5px;";
-  const valueStyle = "color: #333;";
+    "margin-bottom: 1rem; background: #fff; border-radius: 12px;";
+  const headerStyle =
+    "padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 600; color: #2563EB; border-bottom: 1px solid #eee;";
+  const buttonStyle =
+    "background-color: #2563EB; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; text-decoration: none; font-weight: normal;";
+  const contentStyle = "padding: 12px 16px;";
+  const labelStyle = "color: #6B7280; font-size: 14px;";
+   const firstLabelWidth = "width: 435px;";
+  const valueStyle = "color: #111827; font-size: 14px; font-weight: 600;";
+  const rowStyle =
+    "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
+  const pillStyle =
+    "background-color: #DBEAFE; color: #2563EB; padding: 6px 10px; border-radius: 9999px; font-size: 14px; display: inline-block; margin-right: 6px; margin-bottom: 6px;";
+  const remarkStyle = "color: #6B7280; font-size: 14px;";
+  const cocBoxStyle =
+    "background: #F9FAFB; padding: 8px; border-radius: 8px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); margin-bottom: 8px;";
+  const cocDateStyle = "font-size: 13px; color: #6B7280; margin-bottom: 2px;";
+  const cocNameStyle = "font-weight: 600; color: #1e293b; font-size: 15px;";
 
-  const formatDate = (date: string | Date | null) => {
-    if (!date) return "N/A";
-    return format(new Date(date), "yyyy-MM-dd hh:mm a");
-  };
+  const renderRow = (label: string, value: string) =>
+    `<div style=\"${rowStyle}\"><span style=\"${labelStyle}\">${label}:${" "}</span><span style=\"${valueStyle}\">${
+      value || "-"
+    }</span></div>`;
 
-  const renderCocTransfers = (transfers: any[]) => {
-    if (!transfers?.length) return "No transfers recorded";
-    
-    return transfers.map(transfer => `
-      <div style="margin-bottom: 10px; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-        <div style="${labelStyle}">Transfer Date</div>
-        <div style="${valueStyle}">${formatDate(transfer.timestamp)}</div>
-        <div style="${labelStyle}">Transferred By</div>
-        <div style="${valueStyle}">${transfer.transferred_by_user?.full_name || "N/A"}</div>
-        <div style="${labelStyle}">Received By</div>
-        <div style="${valueStyle}">${transfer.received_by_user?.full_name || "N/A"}</div>
-        ${transfer.notes ? `
-          <div style="${labelStyle}">Notes</div>
-          <div style="${valueStyle}">${transfer.notes}</div>
-        ` : ""}
+  const renderSection = (title: string, content: string, buttonLink?: { url: string, text: string }) =>
+    `<div style=\"${sectionStyle}\">
+      <div style=\"${headerStyle}\">
+        <span style=\"${buttonLink ? `${firstLabelWidth}` : ''}\">${title}</span>
+        ${buttonLink ? `<a href="${buttonLink.url}" style="${buttonStyle}" target="_blank">${buttonLink.text}</a>` : ''}
       </div>
-    `).join("");
-  };
+      <div style=\"${contentStyle}\">${content}</div>
+    </div>`;
 
-  return `
-    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
-      <h2 style="color: #333; margin-bottom: 20px;">Sample Details</h2>
-      
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Sample ID</div>
-        <div style="${valueStyle}">${sampleData.id || "N/A"}</div>
-      </div>
+  const testTypesHtml = sampleData?.test_types?.length
+    ? sampleData.test_types
+        .map((test: any) => `<span style=\"${pillStyle}\">${test.name}</span>`)
+        .join("")
+    : `<span style=\"color: #6B7280;\">No tests selected</span>`;
 
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Project ID</div>
-        <div style="${valueStyle}">${sampleData.project_id || "N/A"}</div>
-      </div>
+  const cocTransferHtml = sampleData?.coc_transfers?.length
+    ? sampleData.coc_transfers
+        .map(
+          (item: any) =>
+            `<div style="${cocBoxStyle}">
+          <div>
+            <div style="${cocDateStyle}">${item.timestamp ? format(new Date(item.timestamp), "yyyy-MM-dd hh:mm a") : "-"}</div>
+            <div style="${cocNameStyle}">Tranferred to: <span style="font-weight:400;">${
+              item.received_by_user.full_name
+            }</span></div>
+          </div>
+        </div>`
+        )
+        .join("")
+    : `<span style=\"color: #6B7280;\">No Chain Of Custody found</span>`;
 
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Matrix Type</div>
-        <div style="${valueStyle}">${sampleData.matrix_type || "N/A"}</div>
-      </div>
+  return `<!DOCTYPE html>
+<html>
+  <body style=\"font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4;\">
+    <div style=\"max-width: 600px; margin: 0 auto; padding: 24px;\">
+      ${renderSection(
+        "Basic Information",
+        [
+          renderRow("Sample ID", sampleData.id),
+          renderRow(
+            "Matrix Type",
+            sampleData.matrix_type +
+              (sampleData.matrix_type === MatrixType.Other
+                ? ` (${sampleData.matrix_name})`
+                : "")
+          ),
+          renderRow("Sample Type", sampleData.sample_type),
+          renderRow("Sample Privacy", sampleData.sample_privacy),
+          renderRow("Compliance", sampleData.compliance),
+        ].join(""),
+        { url: `${process.env.NEXT_PUBLIC_APP_URL}/sample/${sampleData.id}` || '#', text: "View Full Report" }
+      )}
 
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Sample Type</div>
-        <div style="${valueStyle}">${sampleData.sample_type || "N/A"}</div>
-      </div>
+      ${renderSection(
+        "Source Information",
+        [
+          renderRow("Source", sampleData.source),
+          renderRow("Sample Location", sampleData.sample_location),
+          renderRow("County", sampleData.county),
+        ].join("")
+      )}
 
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Sample Privacy</div>
-        <div style="${valueStyle}">${sampleData.sample_privacy || "N/A"}</div>
-      </div>
+      ${renderSection(
+        "Identifiers",
+        [
+          renderRow("Project ID", sampleData.project_id),
+          renderRow("PWS ID", sampleData.pws_id),
+          renderRow("Chlorine Residual", sampleData.chlorine_residual),
+        ].join("")
+      )}
 
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Compliance</div>
-        <div style="${valueStyle}">${sampleData.compliance || "N/A"}</div>
-      </div>
+      ${renderSection("Test Selection", testTypesHtml)}
 
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Source</div>
-        <div style="${valueStyle}">${sampleData.source || "N/A"}</div>
-      </div>
+      ${renderSection(
+        "System Fields",
+        [
+          renderRow("Current GPS Location", sampleData.address),
+          renderRow(
+            "Sample Date",
+            sampleData?.sample_collected_at
+              ? format(new Date(sampleData.sample_collected_at), "yyyy-MM-dd hh:mm a")
+              : "-"
+          ),
+        ].join("")
+      )}
 
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Sample Location</div>
-        <div style="${valueStyle}">${sampleData.sample_location || "N/A"}</div>
-      </div>
+      ${renderSection(
+        "Remarks",
+        `<span style=\"${remarkStyle}\">${
+          sampleData?.notes || "No remarks available"
+        }</span>`
+      )}
 
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">County</div>
-        <div style="${valueStyle}">${sampleData.county || "N/A"}</div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">PWS ID</div>
-        <div style="${valueStyle}">${sampleData.pws_id || "N/A"}</div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Chlorine Residual</div>
-        <div style="${valueStyle}">${sampleData.chlorine_residual || "N/A"}</div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Temperature</div>
-        <div style="${valueStyle}">${sampleData.temperature || "N/A"}</div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Sample Date</div>
-        <div style="${valueStyle}">${formatDate(sampleData.sample_collected_at)}</div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Location</div>
-        <div style="${valueStyle}">
-          ${sampleData.latitude && sampleData.longitude
-            ? `${sampleData.latitude}, ${sampleData.longitude}`
-            : "N/A"}
-        </div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Status</div>
-        <div style="${valueStyle}">${sampleData.status || "N/A"}</div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Test Types</div>
-        <div style="${valueStyle}">
-          ${sampleData.test_types?.map((test: any) => test.name).join(", ") || "N/A"}
-        </div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Notes</div>
-        <div style="${valueStyle}">${sampleData.notes || "N/A"}</div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Chain of Custody Transfers</div>
-        <div style="${valueStyle}">
-          ${renderCocTransfers(sampleData.coc_transfers)}
-        </div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Created At</div>
-        <div style="${valueStyle}">${formatDate(sampleData.created_at)}</div>
-      </div>
-
-      <div style="${sectionStyle}">
-        <div style="${labelStyle}">Updated At</div>
-        <div style="${valueStyle}">${formatDate(sampleData.updated_at)}</div>
-      </div>
+      ${renderSection("Chain of Custody", cocTransferHtml)}
     </div>
-  `;
+  </body>
+</html>`;
 };
