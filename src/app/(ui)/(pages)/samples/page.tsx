@@ -365,7 +365,7 @@ export default function HomePage() {
                             sample?.test_types?.map((item, index) => (
                               <div key={index}>
                                 {item?.name && (
-                                  <div className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-full text-sm">
+                                  <div className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-lg text-sm">
                                     {item?.name}
                                   </div>
                                 )}
