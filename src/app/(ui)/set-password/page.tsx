@@ -14,22 +14,41 @@ export default function SetPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
-    const token = searchParams.get("token");
-    if (!token) {
-      errorToast("Invalid or missing reset token");
-    }
-  }, [searchParams]);
+    const handleHashFragment = async () => {
+      // Get the hash fragment from the URL
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      const type = params.get('type');
+
+      if (accessToken && type === 'recovery') {
+        try {
+          // Set the session with the access token
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: params.get('refresh_token') || '',
+          });
+
+          if (error) {
+            throw error;
+          }
+        } catch (error) {
+          console.error('Error setting session:', error);
+          errorToast('Failed to process password reset link');
+          router.push('/login');
+        }
+      } else {
+        errorToast('Invalid or missing reset token');
+        router.push('/login');
+      }
+    };
+
+    handleHashFragment();
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-
-    const token = searchParams.get("token");
-    if (!token) {
-      errorToast("Invalid or missing reset token");
-      setIsLoading(false);
-      return;
-    }
 
     if (password !== confirmPassword) {
       errorToast("Passwords do not match");
