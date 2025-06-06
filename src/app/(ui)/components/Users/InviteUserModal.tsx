@@ -3,7 +3,7 @@ import React, { FC, useEffect, useRef, useState } from "react";
 import { Button } from "@/stories/Button/Button";
 import { LoadingButton } from "@/stories/Loading-Button/LoadingButton";
 import { Modal } from "@/stories/Modal/Modal";
-import { errorToast } from "@/hooks/useCustomToast";
+import { errorToast, successToast } from "@/hooks/useCustomToast";
 
 interface InviteUserModalProps {
   open: boolean;
@@ -53,6 +53,8 @@ const InviteUserModal: FC<InviteUserModalProps> = ({ open, close }) => {
         throw new Error(data.error || "Failed to send invitation");
       }
 
+      successToast("Invitation sent successfully!");
+      setInviteForm({ name: "", email: "" }); // Reset form
       close();
     } catch (error) {
       console.error("Error sending invitation:", error);

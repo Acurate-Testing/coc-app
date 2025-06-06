@@ -142,20 +142,21 @@ const Users = () => {
             key={user.id}
             className="bg-white rounded-lg shadow-sm p-6 border border-gray-100"
           >
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-4 flex-col">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">
                   {user.full_name}
                 </h3>
                 <p className="text-sm text-gray-500">{user.email}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2 mt-4 w-full">
                 {user.role === "user" && !user.active && (
                   <button
                     onClick={() => handleResendInvite(user.id)}
                     disabled={isResending === user.id}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center bg-blue-50"
                     aria-label="Resend invitation"
+                    title="Resend invitation"
                   >
                     {isResending === user.id ? (
                       <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -169,8 +170,9 @@ const Users = () => {
                     <button
                       onClick={() => handleDeleteUser(user.id)}
                       disabled={isDeleting === user.id}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center bg-red-50"
                       aria-label="Delete user"
+                      title="Delete"
                     >
                       {isDeleting === user.id ? (
                         <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />

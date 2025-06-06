@@ -234,13 +234,17 @@ export default function AdminTestsPage() {
                       {tests.map((test) => (
                         <tr key={test.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="font-medium text-gray-900">{test.name}</div>
+                            <div className="font-medium text-gray-900 truncate max-w-xs" title={test.name}>
+                              {test.name}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-gray-500">{test.test_code || "-"}</div>
+                            <div className="text-gray-500 truncate max-w-xs" title={test.test_code || "-"}>
+                              {test.test_code || "-"}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-gray-500">
+                            <div className="text-gray-500 truncate max-w-xs" title={test.matrix_types?.join(", ") || "-"}>
                               {test.matrix_types?.join(", ") || "-"}
                             </div>
                           </td>
