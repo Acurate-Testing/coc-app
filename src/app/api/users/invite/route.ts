@@ -44,12 +44,15 @@ export async function POST(request: NextRequest) {
     // Generate invite token
     const inviteToken = crypto.randomBytes(32).toString("hex");
 
+    // Set role based on inviter's role
+    const newUserRole = session.user.role === UserRole.LABADMIN ? UserRole.AGENCY : UserRole.USER;
+
     // Store user in database with invitation token
     const { data: newUser, error: inviteError } = await supabase
       .from("users")
       .insert({
         email,
-        role: UserRole.USER,
+        role: newUserRole,
         active: false,
         full_name: name,
         agency_id: session.user.agency_id,
