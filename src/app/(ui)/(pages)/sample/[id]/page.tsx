@@ -360,6 +360,15 @@ export default function InspectionDetailPage() {
                 {formData.status || "Pending"}
               </div>
             </div>
+            {(formData.status === SampleStatus.Pass ||
+              formData.status === SampleStatus.Fail) && (
+              <div className="flex items-center justify-between">
+                <div className="text-gray-500">Pass/Fail Notes</div>
+                <div className="font-semibold text-gray-900">
+                  {formData.pass_fail_notes || "No notes"}
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div className="text-gray-500">Matrix Type</div>
               <div className="text-gray-900">
