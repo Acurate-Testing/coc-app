@@ -555,7 +555,9 @@ export default function InspectionDetailPage() {
       },
       ...(isLabAdmin
         ? []
-        : [
+        : formData.status !== SampleStatus.Submitted &&
+          formData.status !== SampleStatus.Pass
+        ? [
             {
               id: "card8",
               title: "Action",
@@ -565,7 +567,8 @@ export default function InspectionDetailPage() {
               buttonAction: handleDeleteClick,
               content: "",
             },
-          ]),
+          ]
+        : []),
     ];
   };
 
