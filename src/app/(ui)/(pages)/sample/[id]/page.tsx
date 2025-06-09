@@ -335,6 +335,18 @@ export default function InspectionDetailPage() {
               </div>
             </div>
             <div className="flex items-center justify-between">
+              <div className="text-gray-500">Customer</div>
+              <div className="text-gray-900">
+                {formData.agency?.name || "-"}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-gray-500">Account</div>
+              <div className="text-gray-900">
+                {formData.account?.name || "-"}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
               <div className="text-gray-500">Status</div>
               <div
                 className={`font-semibold ${
@@ -532,15 +544,19 @@ export default function InspectionDetailPage() {
             }
           : {}),
       },
-      ...(isLabAdmin ? [] : [{
-        id: "card8",
-        title: "Action",
-        buttonText: "Delete",
-        variant: "danger",
-        buttonIcon: <ImBin className="text-lg" />,
-        buttonAction: handleDeleteClick,
-        content: "",
-      }]),
+      ...(isLabAdmin
+        ? []
+        : [
+            {
+              id: "card8",
+              title: "Action",
+              buttonText: "Delete",
+              variant: "danger",
+              buttonIcon: <ImBin className="text-lg" />,
+              buttonAction: handleDeleteClick,
+              content: "",
+            },
+          ]),
     ];
   };
 
@@ -710,11 +726,14 @@ export default function InspectionDetailPage() {
           />
         </div>
       </div>
-      
+
       {/* Simple Card Group */}
       <div className="space-y-6">
         {getCardData().map((item) => (
-          <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div
+            key={item.id}
+            className="bg-white rounded-xl shadow-sm border border-gray-200"
+          >
             {/* Card Header */}
             <div className="px-6 py-4 border-b border-gray-100">
               <div className="flex items-center justify-between">
@@ -737,13 +756,9 @@ export default function InspectionDetailPage() {
                 )}
               </div>
             </div>
-            
+
             {/* Card Content */}
-            {item.content && (
-              <div className="px-6 py-4">
-                {item.content}
-              </div>
-            )}
+            {item.content && <div className="px-6 py-4">{item.content}</div>}
           </div>
         ))}
       </div>

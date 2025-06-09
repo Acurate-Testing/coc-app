@@ -61,7 +61,7 @@ export async function GET(
     const details = [
       `Sample ID: ${sample.id}`,
       `Project ID: ${sample.project_id}`,
-      `Agency: ${sample.agency?.name}`,
+      `Customer: ${sample.agency?.name}`,
       `Account: ${sample.account?.name}`,
       `Status: ${sample.status}`,
       `Created At: ${new Date(sample.created_at).toLocaleString()}`,

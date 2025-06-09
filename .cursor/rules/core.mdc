@@ -53,7 +53,7 @@ This is a **Supabase PostgreSQL** database for a water sampling and chain-of-cus
 - `active` (boolean) - account setup complete
 - `invitation_token` - one-time signup links
 
-### Agency & Account Management (`agencies`, `accounts`)
+### Customer & Account Management (`agencies`, `accounts`)
 ```sql
 -- agencies: organizational entities (utilities, contractors)
 -- accounts: sub-entities under agencies (water systems, regions)

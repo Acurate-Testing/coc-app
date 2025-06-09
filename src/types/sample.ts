@@ -9,41 +9,47 @@ export interface TestType {
 export interface Sample {
   id: string;
   project_id: string | null;
-  agency_id: string | null;
-  account_id: string | null;
-  created_by: string | null;
-  pws_id: string | null;
   matrix_type: string | null;
   matrix_name: string | null;
-  sample_privacy: PrivacyPolicy.Private | PrivacyPolicy.Public | null;
-  compliance: "Yes" | "No" | null;
-  chlorine_residual: string | null;
-  county: string | null;
   sample_type: string | null;
   sample_location: string | null;
-  address: string | null;
-  source: string | null;
-  latitude: number | null | undefined;
-  longitude: number | null | undefined;
+  sample_privacy: string | null;
+  status: string;
   sample_collected_at: string | null;
-  temperature: number | null | undefined;
+  created_at: string;
+  updated_at: string;
+  temperature: number | null;
   notes: string | null;
-  status: SampleStatusType;
   pass_fail_notes: string | null;
   attachment_url: string | null;
-  created_at: string;
-  updated_at?: string;
-  saved_at: string;
-  deleted_at: string | null;
-  coc_transfers?: any[];
-  test_types?: TestType[];
-  sample_test_types?: {
-    test_types: TestType;
-  }[];
+  latitude: number | null;
+  longitude: number | null;
+  county: string | null;
+  compliance: string | null;
+  chlorine_residual: string | null;
+  pws_id: string | null;
+  source: string | null;
+  address: string | null;
+  account_id: string | null;
+  agency_id: string | null;
+  created_by: string | null;
   created_by_user?: {
     id: string;
     full_name: string;
-  }
+  };
+  agency?: {
+    id: string;
+    name: string;
+  };
+  account?: {
+    id: string;
+    name: string;
+  };
+  test_types?: {
+    id: string;
+    name: string;
+  }[];
+  coc_transfers?: any[];
 }
 
 export const sampleInitialValues: Partial<Sample> = {

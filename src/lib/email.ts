@@ -107,7 +107,7 @@ export async function sendAgencyInviteEmail(
 
   return sendEmail({
     to: email,
-    subject: "Complete Your Agency Onboarding",
+    subject: "Complete Your Customer Onboarding",
     text: `Click the following link to complete your agency onboarding: ${inviteUrl}`,
     html: `
       <!DOCTYPE html>
@@ -115,18 +115,18 @@ export async function sendAgencyInviteEmail(
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Complete Your Agency Onboarding</title>
+          <title>Complete Your Customer Onboarding</title>
         </head>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-            <h1 style="color: #2d3748; margin-bottom: 20px; font-size: 24px;">Welcome to Agency Onboarding</h1>
+            <h1 style="color: #2d3748; margin-bottom: 20px; font-size: 24px;">Welcome to Customer Onboarding</h1>
             
             <p style="margin-bottom: 20px;">You've been invited to join as an agency. Click the button below to complete your agency onboarding process:</p>
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${inviteUrl}" 
                  style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                Complete Agency Setup
+                Complete Customer Setup
               </a>
             </div>
             

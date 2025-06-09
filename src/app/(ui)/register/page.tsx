@@ -73,7 +73,7 @@ export default function RegisterPage() {
                 htmlFor="agency_name"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Agency Name
+                Customer Name
               </label>
               <input
                 id="agency_name"
@@ -81,7 +81,7 @@ export default function RegisterPage() {
                 type="text"
                 required
                 className="form-input w-full"
-                placeholder="Enter your agency name"
+                placeholder="Enter your customer name"
                 value={signupFormData.agency_name}
                 onChange={(e) =>
                   setSignupFormData({

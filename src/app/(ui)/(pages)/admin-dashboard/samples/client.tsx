@@ -19,20 +19,53 @@ import { ImBin } from "react-icons/im";
 import { IoFlask, IoSearch } from "react-icons/io5";
 import { useMediaQuery } from "react-responsive";
 import { format } from "date-fns";
+import Link from "next/link";
 
 type BaseSample = Database["public"]["Tables"]["samples"]["Row"];
 
 // Extended Sample type with creator information
-interface Sample extends BaseSample {
-  creator?: {
-    full_name: string;
+interface Sample {
+  id: string;
+  project_id: string;
+  matrix_type: string;
+  matrix_name: string;
+  sample_type: string;
+  sample_location: string;
+  sample_privacy: string;
+  status: string;
+  sample_collected_at: string;
+  created_at: string;
+  updated_at: string;
+  temperature: number;
+  notes: string;
+  pass_fail_notes: string;
+  attachment_url: string;
+  latitude: number;
+  longitude: number;
+  county: string;
+  compliance: string;
+  chlorine_residual: string;
+  pws_id: string;
+  created_by: {
+    id: string;
     email: string;
+    full_name: string;
+    role: string;
+  };
+  agency: {
+    id: string;
+    name: string;
+  };
+  account: {
+    id: string;
+    name: string;
   };
 }
 
 interface Agency {
   id: string;
   name: string;
+  contact_email: string;
 }
 
 interface ApiResponse {
@@ -75,6 +108,7 @@ export default function AdminSamplesClient({
   const [agencies, setAgencies] = useState<Agency[]>(initialAgencies);
   const [selectedAgency, setSelectedAgency] = useState<string>("");
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [agenciesLoading, setAgenciesLoading] = useState(true);
 
   const fetchSamples = async () => {
     try {
@@ -130,6 +164,27 @@ export default function AdminSamplesClient({
     );
     return () => clearTimeout(delayDebounceFn);
   }, [currentPage, activeTab, limitPerPage, selectedAgency, searchQuery]);
+
+  // Fetch agencies
+  useEffect(() => {
+    const fetchAgencies = async () => {
+      try {
+        const response = await fetch("/api/agencies");
+        if (!response.ok) {
+          throw new Error("Failed to fetch agencies");
+        }
+        const data = await response.json();
+        setAgencies(data.agencies);
+      } catch (error) {
+        console.error("Error fetching agencies:", error);
+        setError("Failed to load agencies");
+      } finally {
+        setAgenciesLoading(false);
+      }
+    };
+
+    fetchAgencies();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -269,6 +324,15 @@ export default function AdminSamplesClient({
     <>
       {!isMobile && renderSampleOverview()}
       <div className="w-full md:p-8 p-6 !pt-0">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-semibold text-gray-900">Samples</h1>
+          <Link
+            href="/admin-dashboard/samples/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            New Sample
+          </Link>
+        </div>
         <div className="flex gap-4 items-center">
           <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="relative col-span-1">
@@ -298,11 +362,12 @@ export default function AdminSamplesClient({
                 value={selectedAgency}
                 onChange={(e) => setSelectedAgency(e.target.value)}
                 className="form-input bg-white w-full"
+                disabled={agenciesLoading}
               >
-                <option value="">All Accounts</option>
+                <option value="">All Customers</option>
                 {agencies.map((agency) => (
                   <option key={agency.id} value={agency.id}>
-                    {agency.name}
+                    {agency.name} ({agency.contact_email})
                   </option>
                 ))}
               </select>
@@ -413,6 +478,24 @@ export default function AdminSamplesClient({
                         />
                       </div>
                       {/* creator information */}
+                      {/* <div className="flex items-center md:gap-4 gap-2">
+                        <Button
+                          className="md:!min-w-fit !p-3 !cursor-default"
+                          label=""
+                          variant="icon"
+                          icon={<FiUser className="text-lg text-gray-600" />}
+                        />
+                        <Label
+                          label={
+                            sample?.created_by?.full_name
+                              ? `Created by: ${sample.created_by.full_name}`
+                              : sample?.created_by?.email
+                              ? `Created by: ${sample.created_by.email}`
+                              : "Created by: -"
+                          }
+                          className="text-lg"
+                        />
+                      </div> */}
                       <div className="flex items-center md:gap-4 gap-2">
                         <Button
                           className="md:!min-w-fit !p-3 !cursor-default"
@@ -422,11 +505,25 @@ export default function AdminSamplesClient({
                         />
                         <Label
                           label={
-                            sample?.creator?.full_name
-                              ? `Created by: ${sample.creator.full_name}`
-                              : sample?.creator?.email
-                              ? `Created by: ${sample.creator.email}`
-                              : "Created by: -"
+                            sample?.account?.name
+                              ? `Account: ${sample.account.name}`
+                              : "Account: -"
+                          }
+                          className="text-lg"
+                        />
+                      </div>
+                      <div className="flex items-center md:gap-4 gap-2">
+                        <Button
+                          className="md:!min-w-fit !p-3 !cursor-default"
+                          label=""
+                          variant="icon"
+                          icon={<FiUser className="text-lg text-gray-600" />}
+                        />
+                        <Label
+                          label={
+                            sample?.agency?.name
+                              ? `Customer: ${sample.agency.name}`
+                              : "Customer: -"
                           }
                           className="text-lg"
                         />

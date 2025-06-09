@@ -2,28 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.supabaseToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data, error } = await supabase
+    const supabase = createRouteHandlerClient({ cookies });
+
+    const { data: agencies, error } = await supabase
       .from("agencies")
-      .select("*")
+      .select("id, name, contact_email")
+      .is("deleted_at", null)
       .order("name");
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Error fetching agencies:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch agencies" },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ agencies: data });
+    return NextResponse.json({ agencies });
   } catch (error) {
-    console.error("Get agencies error:", error);
+    console.error("Error in GET /api/agencies:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

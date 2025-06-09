@@ -23,6 +23,7 @@ import { Button } from "@/stories/Button/Button";
 import AddAnotherSampleModal from "./AddAnotherSampleModal";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { format } from "date-fns";
+import ConfirmationModal from "../Common/ConfirmationModal";
 // type Sample = Database["public"]["Tables"]["samples"]["Row"];
 
 interface Account {
@@ -61,6 +62,8 @@ export default function SampleForm() {
   const sampleId = params?.sampleId as string;
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showStatusWarning, setShowStatusWarning] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState(false);
 
   const getFilteredSources = () => {
     if (formData.matrix_type === MatrixType.PotableWater)
@@ -109,7 +112,8 @@ export default function SampleForm() {
     window.addEventListener("offline", handleOffline);
     setIsOffline(!navigator.onLine);
 
-    if (navigator.geolocation) {
+    // Only fetch GPS if we don't already have coordinates
+    if (navigator.geolocation && (!formData.latitude || !formData.longitude)) {
       navigator.geolocation.getCurrentPosition(async (position) => {
         const lat = Number(position.coords.latitude.toFixed(2));
         const lon = Number(position.coords.longitude.toFixed(2));
@@ -131,7 +135,7 @@ export default function SampleForm() {
           if (data && data.display_name) {
             setFormData((prev) => ({
               ...prev,
-              address: data.display_name, // Add this to your formData state
+              address: data.display_name,
             }));
           }
         } catch (error) {
@@ -155,7 +159,7 @@ export default function SampleForm() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [status, router, session]);
+  }, [status, router, session, formData.latitude, formData.longitude]);
 
   useEffect(() => {
     fetchTestTypes();
@@ -431,11 +435,9 @@ export default function SampleForm() {
 
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
-      // Show only the first few errors to avoid overwhelming the user
       const errorsToShow = validation.errors.slice(0, 3);
       errorsToShow.forEach((error) => errorToast(error));
 
-      // If there are more errors, show a summary
       if (validation.errors.length > 3) {
         errorToast(
           `${
@@ -446,12 +448,44 @@ export default function SampleForm() {
       return;
     }
 
+    // Check if sample is in submitted or fail status
+    if (
+      editMode &&
+      (formData.status === SampleStatus.Submitted ||
+        formData.status === SampleStatus.Fail)
+    ) {
+      setShowStatusWarning(true);
+      setPendingUpdate(true);
+      return;
+    }
+
+    // If sample is in pass status, prevent editing
+    if (editMode && formData.status === SampleStatus.Pass) {
+      errorToast("Cannot edit a sample that has passed inspection");
+      router.push(`/sample/${sampleId}`);
+      return;
+    }
+
+    await submitSample();
+  };
+
+  const submitSample = async () => {
     setIsSubmitting(true);
     try {
+      // If status was fail, change it to submitted
+      const newStatus =
+        formData.status === SampleStatus.Fail
+          ? SampleStatus.Submitted
+          : formData.status;
+
       const submission = {
         ...formData,
-        status: "pending",
+        status: newStatus,
         saved_at: new Date().toISOString(),
+        // Include a flag to indicate this is an update
+        is_update: editMode,
+        // Include the original status for email notification
+        original_status: formData.status,
       };
 
       const url = editMode ? `/api/samples/${sampleId}` : "/api/samples";
@@ -1163,6 +1197,19 @@ export default function SampleForm() {
         onChooseOption={(retainPrevious) =>
           retainPrevious ? handleAddAnother(retainPrevious) : handleSubmit()
         }
+      />
+      <ConfirmationModal
+        open={showStatusWarning}
+        setOpenModal={setShowStatusWarning}
+        onConfirm={() => {
+          setShowStatusWarning(false);
+          submitSample();
+        }}
+        processing={isSubmitting}
+        message="This sample was already submitted to the lab admin. Are you sure you want to update it?"
+        buttonText="Update"
+        whiteButtonText="Cancel"
+        variant="primary"
       />
     </>
   );

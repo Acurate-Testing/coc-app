@@ -6,6 +6,8 @@ import { getToken } from 'next-auth/jwt';
 import { NextRequest, NextResponse } from 'next/server';
 import { format } from "date-fns";
 import { requireRole } from "@/lib/auth";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +31,7 @@ const CSV_EXPORT_CONFIG = {
   
   // Additional columns for admin users
   adminColumns: [
-    { field: 'agency_name', header: 'Agency' },
+    { field: 'agency_name', header: 'Customer' },
     { field: 'test_types', header: 'Test Types' },
   ]
 };
@@ -40,78 +42,154 @@ const formatDate = (date: string | Date | null) => {
   return format(new Date(date), "yyyy-MM-dd hh:mm a");
 };
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.supabaseToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const startDate = searchParams.get("startDate");
-    const endDate = searchParams.get("endDate");
+    const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
-    const agencyId = searchParams.get("agencyId");
-    const status = searchParams.get("status");
+    const status = searchParams.get("status") || "";
+    const agencyId = searchParams.get("agencyId") || "";
+
+    const supabase = createRouteHandlerClient({ cookies });
 
     let query = supabase
       .from("samples")
-      .select(
-        `
+      .select(`
         *,
-        account:accounts(name),
-        agency:agencies(name),
-        test_types:test_types(id,name),
-        created_by_user:users(id, full_name)
-      `
-      )
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
+        created_by_user:users!samples_created_by_fkey(id, full_name, email),
+        agency:agencies!samples_agency_id_fkey(id, name),
+        account:accounts!samples_account_id_fkey(id, name),
+        test_types:test_types(id, name),
+        coc_transfers(
+          id,
+          transferred_by,
+          received_by,
+          timestamp,
+          latitude,
+          longitude,
+          signature,
+          photo_url,
+          received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email)
+        )
+      `)
+      .is("deleted_at", null);
 
-    // Apply date filters if provided
-    if (startDate) {
-      query = query.gte("created_at", startDate);
-    }
-    if (endDate) {
-      query = query.lte("created_at", endDate);
-    }
-
-    // Apply search filter if provided
     if (search) {
       query = query.or(
-        `pws_id.ilike.%${search}%,matrix_name.ilike.%${search}%,sample_location.ilike.%${search}%`
+        `project_id.ilike.%${search}%,sample_location.ilike.%${search}%,notes.ilike.%${search}%`
       );
     }
 
-    // Apply agency filter if provided
+    if (status) {
+      query = query.in("status", status.split(","));
+    }
+
     if (agencyId) {
       query = query.eq("agency_id", agencyId);
     }
 
-    // Apply status filter if provided
-    if (status) {
-      query = query.eq("status", status);
-    }
-
-    const { data, error } = await query;
+    const { data: samples, error } = await query;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Error fetching samples for export:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch samples" },
+        { status: 500 }
+      );
     }
 
-    // Process data for CSV export
-    const isLabAdmin = session.user.role === UserRole.LABADMIN;
-    const csvContent = processDataForCSV(data, isLabAdmin);
+    // Define CSV headers
+    const headers = [
+      "Project ID",
+      "Matrix Type",
+      "Sample Type",
+      "Sample Location",
+      "Sample Privacy",
+      "Status",
+      "Sample Collected At",
+      "Temperature",
+      "Notes",
+      "Pass/Fail Notes",
+      "County",
+      "Compliance",
+      "Chlorine Residual",
+      "PWS ID",
+      "GPS Coordinates",
+      "Created By",
+      "Customer",
+      "Account",
+      "Test Types",
+      "Chain of Custody",
+      "Created At",
+      "Updated At"
+    ];
 
-    // Return CSV file
-    return new NextResponse(csvContent, {
-      headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="samples-export-${format(new Date(), "yyyy-MM-dd")}.csv"`
-      }
+    // Convert samples to CSV rows
+    const rows = samples.map((sample) => {
+      const gpsLocation = sample.latitude && sample.longitude 
+        ? `${sample.latitude}, ${sample.longitude}`
+        : "-";
+
+      const testTypes = sample.test_types
+        ?.map((test: any) => test.name)
+        .join(", ") || "-";
+
+      const cocInfo = sample.coc_transfers
+        ?.map((transfer: any) => {
+          const from = transfer.transferred_by_user?.full_name || transfer.transferred_by_user?.email || "-";
+          const to = transfer.received_by_user?.full_name || transfer.received_by_user?.email || "-";
+          const timestamp = transfer.timestamp ? format(new Date(transfer.timestamp), "yyyy-MM-dd HH:mm:ss") : "-";
+          return `${from} → ${to} (${timestamp})`;
+        })
+        .join(" | ") || "-";
+
+      return [
+        sample.project_id || "-",
+        sample.matrix_type || "-",
+        sample.sample_type || "-",
+        sample.sample_location || "-",
+        sample.sample_privacy || "-",
+        sample.status || "-",
+        sample.sample_collected_at ? format(new Date(sample.sample_collected_at), "yyyy-MM-dd HH:mm:ss") : "-",
+        sample.temperature?.toString() || "-",
+        sample.notes || "-",
+        sample.pass_fail_notes || "-",
+        sample.county || "-",
+        sample.compliance || "-",
+        sample.chlorine_residual || "-",
+        sample.pws_id || "-",
+        gpsLocation,
+        sample.created_by_user?.full_name || sample.created_by_user?.email || "-",
+        sample.agency?.name || "-",
+        sample.account?.name || "-",
+        testTypes,
+        cocInfo,
+        sample.created_at ? format(new Date(sample.created_at), "yyyy-MM-dd HH:mm:ss") : "-",
+        sample.updated_at ? format(new Date(sample.updated_at), "yyyy-MM-dd HH:mm:ss") : "-"
+      ];
     });
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))
+    ].join("\n");
+
+    // Create response with CSV file
+    const response = new NextResponse(csvContent);
+    response.headers.set("Content-Type", "text/csv");
+    response.headers.set(
+      "Content-Disposition",
+      `attachment; filename="samples-export-${format(new Date(), "yyyy-MM-dd")}.csv"`
+    );
+
+    return response;
   } catch (error) {
-    console.error("Export samples error:", error);
+    console.error("Error in GET /api/samples/export:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -127,7 +205,7 @@ function processDataForCSV(data: any[], isLabAdmin: boolean): string {
   if (isLabAdmin) {
     columns = [
       ...columns.slice(0, 2), // Project ID, PWS ID
-      ...CSV_EXPORT_CONFIG.adminColumns.filter(col => col.field === 'agency_name'), // Insert Agency after PWS ID
+      ...CSV_EXPORT_CONFIG.adminColumns.filter(col => col.field === 'agency_name'), // Insert Customer after PWS ID
       ...columns.slice(2), // Rest of base columns
       ...CSV_EXPORT_CONFIG.adminColumns.filter(col => col.field === 'test_types') // Test Types at the end
     ];

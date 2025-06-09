@@ -66,7 +66,7 @@ const InviteUserModal: FC<InviteUserModalProps> = ({ open, close }) => {
 
   return (
     <Modal
-      title="Invite Agency User"
+      title="Invite Customer User"
       open={open}
       close={close}
       staticModal={true}

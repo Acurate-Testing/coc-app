@@ -135,7 +135,7 @@ export default function ProfilePage() {
         },
       });
 
-      successToast("Agency information updated successfully");
+      successToast("Customer information updated successfully");
     } catch (error) {
       errorToast("Failed to update agency information");
       console.error("Error updating agency information:", error);
@@ -173,21 +173,21 @@ export default function ProfilePage() {
 
       <div className="space-y-8 mt-6">
         {session.user.role === "agency" ? (
-          // Agency Profile Form
+          // Customer Profile Form
           <Card className="p-6 !shadow-none rounded-xl">
             <h2 className="text-xl font-semibold mb-4">
-              Update Agency Information
+              Update Customer Information
             </h2>
             <form onSubmit={handleAgencyUpdate} className="space-y-4">
               <div>
-                <label htmlFor="name">Agency Name</label>
+                <label htmlFor="name">Customer Name</label>
                 <input
                   type="text"
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="mt-1 form-input"
-                  placeholder="Enter agency name"
+                  placeholder="Enter customer name"
                   required
                 />
               </div>
@@ -210,7 +210,7 @@ export default function ProfilePage() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="mt-1 form-input"
-                  placeholder="Enter agency address"
+                  placeholder="Enter customer address"
                   required
                   rows={3}
                 />
@@ -224,7 +224,7 @@ export default function ProfilePage() {
                 />
               ) : (
                 <Button
-                  label="Update Agency Information"
+                  label="Update Customer Information"
                   size="large"
                   type="submit"
                   className="w-full h-[50px] mt-4"

@@ -30,7 +30,11 @@ export default async function AdminSamplesPage() {
   );
 
   // Fetch initial data
-  const { data: agencies } = await supabase.from("agencies").select("id, name");
+  const { data: agencies } = await supabase
+    .from("agencies")
+    .select("id, name, contact_email")
+    .is("deleted_at", null)
+    .order("name");
 
   const { data: samples, error } = await supabase
     .from("samples")

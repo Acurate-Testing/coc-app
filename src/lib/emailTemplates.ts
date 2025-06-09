@@ -10,7 +10,7 @@ export const sampleDetailTemplate = async (sampleData: any) => {
     "background-color: #2563EB; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; text-decoration: none; font-weight: normal;";
   const contentStyle = "padding: 12px 16px;";
   const labelStyle = "color: #6B7280; font-size: 14px;";
-   const firstLabelWidth = "width: 435px;";
+  const firstLabelWidth = "width: 435px;";
   const valueStyle = "color: #111827; font-size: 14px; font-weight: 600;";
   const rowStyle =
     "display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;";
@@ -58,6 +58,15 @@ export const sampleDetailTemplate = async (sampleData: any) => {
         .join("")
     : `<span style=\"color: #6B7280;\">No Chain Of Custody found</span>`;
 
+  const getGpsLocation = (data: any) => {
+    if (data.latitude && data.longitude) {
+      const lat = parseFloat(data.latitude).toFixed(6);
+      const lon = parseFloat(data.longitude).toFixed(6);
+      return `${lat}, ${lon}`;
+    }
+    return "-";
+  };
+
   return `<!DOCTYPE html>
 <html>
   <body style=\"font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f4f4f4;\">
@@ -66,6 +75,9 @@ export const sampleDetailTemplate = async (sampleData: any) => {
         "Basic Information",
         [
           renderRow("Sample ID", sampleData.id),
+          renderRow("Customer", sampleData.agency?.name || "-"),
+          renderRow("Account", sampleData.account?.name || "-"),
+          renderRow("Status", sampleData.status || "-"),
           renderRow(
             "Matrix Type",
             sampleData.matrix_type +
@@ -74,8 +86,8 @@ export const sampleDetailTemplate = async (sampleData: any) => {
                 : "")
           ),
           renderRow("Sample Type", sampleData.sample_type),
-          renderRow("Sample Privacy", sampleData.sample_privacy),
-          renderRow("Compliance", sampleData.compliance),
+          renderRow("Sample Privacy", sampleData.sample_privacy || "Public"),
+          renderRow("Compliance", sampleData.compliance || "Compliant"),
         ].join(""),
         { url: `${process.env.NEXT_PUBLIC_APP_URL}/sample/${sampleData.id}` || '#', text: "View Full Report" }
       )}
@@ -83,9 +95,10 @@ export const sampleDetailTemplate = async (sampleData: any) => {
       ${renderSection(
         "Source Information",
         [
-          renderRow("Source", sampleData.source),
+          renderRow("Source", sampleData.source || "Not specified"),
           renderRow("Sample Location", sampleData.sample_location),
           renderRow("County", sampleData.county),
+          renderRow("Temperature", sampleData.temperature ? `${sampleData.temperature}°C` : "-"),
         ].join("")
       )}
 
@@ -93,8 +106,8 @@ export const sampleDetailTemplate = async (sampleData: any) => {
         "Identifiers",
         [
           renderRow("Project ID", sampleData.project_id),
-          renderRow("PWS ID", sampleData.pws_id),
-          renderRow("Chlorine Residual", sampleData.chlorine_residual),
+          renderRow("PWS ID", sampleData.pws_id || "Not applicable"),
+          renderRow("Chlorine Residual", sampleData.chlorine_residual || "Not measured"),
         ].join("")
       )}
 
@@ -103,13 +116,15 @@ export const sampleDetailTemplate = async (sampleData: any) => {
       ${renderSection(
         "System Fields",
         [
-          renderRow("Current GPS Location", sampleData.address),
+          renderRow("GPS Coordinates", getGpsLocation(sampleData)),
           renderRow(
             "Sample Date",
             sampleData?.sample_collected_at
               ? format(new Date(sampleData.sample_collected_at), "yyyy-MM-dd hh:mm a")
               : "-"
           ),
+          renderRow("Created At", sampleData?.created_at ? format(new Date(sampleData.created_at), "yyyy-MM-dd hh:mm a") : "-"),
+          renderRow("Updated At", sampleData?.updated_at ? format(new Date(sampleData.updated_at), "yyyy-MM-dd hh:mm a") : "-"),
         ].join("")
       )}
 

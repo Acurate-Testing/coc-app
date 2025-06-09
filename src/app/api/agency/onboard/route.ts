@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       .single();
 
     if (agencyError) {
-      console.error("Agency creation error:", agencyError);
+      console.error("Customer creation error:", agencyError);
       return NextResponse.json(
         { error: "Failed to create agency" },
         { status: 500 }
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       user: authData.user,
     });
   } catch (error) {
-    console.error("Agency onboard error:", error);
+    console.error("Customer onboard error:", error);
     return NextResponse.json(
       { error: "Failed to onboard agency" },
       { status: 500 }
