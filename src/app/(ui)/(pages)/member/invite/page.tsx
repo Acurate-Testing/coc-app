@@ -44,7 +44,7 @@ const InviteMember = () => {
           agency_id: session?.user?.agency_id,
           email: inviteForm.email,
           name: inviteForm.name,
-          role: "user",
+          role: session?.user?.role === "labadmin" ? "agency" : "user",
         }),
       });
 

@@ -314,13 +314,13 @@ export default function AdminUsersPage() {
                             {selectedUser.assigned_tests?.map((test) => (
                               <tr key={test.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="font-medium text-gray-900">{test.name}</div>
+                                  <div className="font-medium text-gray-900 truncate max-w-xs" title={test.name}>{test.name}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-gray-500">{test.test_code || "-"}</div>
+                                  <div className="text-gray-500 truncate max-w-xs" title={test.test_code || "-"}>{test.test_code || "-"}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-gray-500">{test.matrix_type || "-"}</div>
+                                  <div className="text-gray-500 truncate max-w-xs" title={Array.isArray(test.matrix_type) ? test.matrix_type.join(", ") : test.matrix_type || "-"}>{Array.isArray(test.matrix_type) ? test.matrix_type.join(", ") : test.matrix_type || "-"}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                   <div>
