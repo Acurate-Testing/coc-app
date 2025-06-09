@@ -380,16 +380,18 @@ export default function HomePage() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
-                      <Button
-                        className="md:min-w-[110px] !bg-[#DBEAFE]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/sample/edit/${sample.id}`);
-                        }}
-                        variant="icon"
-                        label={isMobile ? "" : "Edit"}
-                        icon={<FiEdit className="text-lg" />}
-                      />
+                      {sample.status !== SampleStatus.Pass && (
+                        <Button
+                          className="md:min-w-[110px] !bg-[#DBEAFE]"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/sample/edit/${sample.id}`);
+                          }}
+                          variant="icon"
+                          label={isMobile ? "" : "Edit"}
+                          icon={<FiEdit className="text-lg" />}
+                        />
+                      )}
                       {/* <Button
                         className="md:min-w-[110px]"
                         onClick={(e) => handleDeleteClick(e, sample.id)}
