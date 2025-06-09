@@ -326,12 +326,6 @@ export default function AdminSamplesClient({
       <div className="w-full md:p-8 p-6 !pt-0">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-gray-900">Samples</h1>
-          <Link
-            href="/admin-dashboard/samples/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            New Sample
-          </Link>
         </div>
         <div className="flex gap-4 items-center">
           <div className="w-full pb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
