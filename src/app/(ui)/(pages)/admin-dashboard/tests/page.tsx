@@ -33,7 +33,8 @@ export default function AdminTestsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editTest, setEditTest] = useState<Test | null>(null);
   const [selectedTest, setSelectedTest] = useState<string>("");
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
+    useState<boolean>(false);
   const [viewTest, setViewTest] = useState<Test | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
@@ -47,7 +48,10 @@ export default function AdminTestsPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const params = [`page=${currentPage}`, searchQuery ? `search=${searchQuery}` : ""]
+      const params = [
+        `page=${currentPage}`,
+        searchQuery ? `search=${searchQuery}` : "",
+      ]
         .filter(Boolean)
         .join("&");
       const response = await fetch(`/api/admin/tests?${params}`);
@@ -66,7 +70,13 @@ export default function AdminTestsPage() {
   };
 
   useEffect(() => {
-    fetchTests();
+    const delayDebounceFn = setTimeout(
+      () => {
+        fetchTests();
+      },
+      searchQuery ? 1000 : 0
+    );
+    return () => clearTimeout(delayDebounceFn);
   }, [currentPage, searchQuery]);
 
   useEffect(() => {
@@ -117,13 +127,18 @@ export default function AdminTestsPage() {
       setSelectedTest("");
       fetchTests();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to delete test");
+      setError(
+        error instanceof Error ? error.message : "Failed to delete test"
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const toggleActionMenu = (testId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+  const toggleActionMenu = (
+    testId: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     const button = event.currentTarget;
     menuButtonRefs.current.set(testId, button);
 
@@ -147,9 +162,6 @@ export default function AdminTestsPage() {
     setOpenActionMenu(testId);
   };
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
   if (error) {
     return (
       <div className="min-h-screen w-full">
@@ -170,7 +182,9 @@ export default function AdminTestsPage() {
     <>
       <div className="p-4 sm:p-8 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Test Types</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Test Types
+          </h1>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
             onClick={() => {
@@ -196,95 +210,111 @@ export default function AdminTestsPage() {
             />
           </div>
         </div>
-        <div className="overflow-x-auto w-full">
-          {tests.length > 0 ? (
-            <div className="w-full">
-              <div className="rounded-xl overflow-hidden shadow">
-                <div className="w-full overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-300">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
-                        >
-                          Name
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
-                        >
-                          Test Type Code
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
-                        >
-                          Matrix Type
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-right text-sm font-medium text-gray-800 uppercase tracking-wider w-24"
-                        >
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {tests.map((test) => (
-                        <tr key={test.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="font-medium text-gray-900 truncate max-w-xs" title={test.name}>
-                              {test.name}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-gray-500 truncate max-w-xs" title={test.test_code || "-"}>
-                              {test.test_code || "-"}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-gray-500 truncate max-w-xs" title={test.matrix_types?.join(", ") || "-"}>
-                              {test.matrix_types?.join(", ") || "-"}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <div>
-                              <button
-                                ref={(el: any) => el && menuButtonRefs.current.set(test.id, el)}
-                                onClick={(e) => toggleActionMenu(test.id, e)}
-                                className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
-                              >
-                                <FiMoreVertical className="h-5 w-5" />
-                              </button>
-                            </div>
-                          </td>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <div className="overflow-x-auto w-full">
+            {tests.length > 0 ? (
+              <div className="w-full">
+                <div className="rounded-xl overflow-hidden shadow">
+                  <div className="w-full overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-300">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
+                          >
+                            Name
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
+                          >
+                            Test Type Code
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider"
+                          >
+                            Matrix Type
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-right text-sm font-medium text-gray-800 uppercase tracking-wider w-24"
+                          >
+                            Actions
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {tests.map((test) => (
+                          <tr key={test.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div
+                                className="font-medium text-gray-900 truncate max-w-xs"
+                                title={test.name}
+                              >
+                                {test.name}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div
+                                className="text-gray-500 truncate max-w-xs"
+                                title={test.test_code || "-"}
+                              >
+                                {test.test_code || "-"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div
+                                className="text-gray-500 truncate max-w-xs"
+                                title={test.matrix_types?.join(", ") || "-"}
+                              >
+                                {test.matrix_types?.join(", ") || "-"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <div>
+                                <button
+                                  ref={(el: any) =>
+                                    el &&
+                                    menuButtonRefs.current.set(test.id, el)
+                                  }
+                                  onClick={(e) => toggleActionMenu(test.id, e)}
+                                  className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+                                >
+                                  <FiMoreVertical className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+                {totalPages > 0 && (
+                  <div className="p-5">
+                    <Pagination
+                      activePage={currentPage || 0}
+                      setActivePage={setCurrentPage}
+                      numberOfPage={totalPages}
+                      numberOfRecords={totalTests}
+                      itemsPerPage={10}
+                    />
+                  </div>
+                )}
               </div>
-              {totalPages > 0 && (
-                <div className="p-5">
-                  <Pagination
-                    activePage={currentPage || 0}
-                    setActivePage={setCurrentPage}
-                    numberOfPage={totalPages}
-                    numberOfRecords={totalTests}
-                    itemsPerPage={10}
-                  />
+            ) : (
+              <Card className="p-4 bg-white !shadow-none rounded-xl">
+                <div className="flex items-center justify-center h-64">
+                  <span className="text-lg font-semibold">No tests found</span>
                 </div>
-              )}
-            </div>
-          ) : (
-            <Card className="p-4 bg-white !shadow-none rounded-xl">
-              <div className="flex items-center justify-center h-64">
-                <span className="text-lg font-semibold">No tests found</span>
-              </div>
-            </Card>
-          )}
-        </div>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Dropdown menu portal */}
@@ -305,7 +335,9 @@ export default function AdminTestsPage() {
                   <>
                     <button
                       onClick={() => {
-                        handleViewClick(tests.find((t) => t.id === openActionMenu)!);
+                        handleViewClick(
+                          tests.find((t) => t.id === openActionMenu)!
+                        );
                         setOpenActionMenu(null);
                       }}
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
@@ -316,7 +348,9 @@ export default function AdminTestsPage() {
                     </button>
                     <button
                       onClick={() => {
-                        handleEditClick(tests.find((t) => t.id === openActionMenu)!);
+                        handleEditClick(
+                          tests.find((t) => t.id === openActionMenu)!
+                        );
                         setOpenActionMenu(null);
                       }}
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 w-full text-left"
@@ -363,7 +397,9 @@ export default function AdminTestsPage() {
           ></div>
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md z-10 p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">Test Details</h3>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Test Details
+              </h3>
               <button
                 type="button"
                 className="text-gray-400 hover:text-gray-500"
@@ -375,26 +411,40 @@ export default function AdminTestsPage() {
             <dl className="space-y-4">
               <div>
                 <dt className="text-sm font-medium text-gray-500">Name</dt>
-                <dd className="mt-1 text-base text-gray-900">{viewTest.name}</dd>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.name}
+                </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Description</dt>
-                <dd className="mt-1 text-base text-gray-900">{viewTest.description || "-"}</dd>
+                <dt className="text-sm font-medium text-gray-500">
+                  Description
+                </dt>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.description || "-"}
+                </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Test Code</dt>
-                <dd className="mt-1 text-base text-gray-900">{viewTest.test_code || "-"}</dd>
+                <dd className="mt-1 text-base text-gray-900">
+                  {viewTest.test_code || "-"}
+                </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Matrix Types</dt>
+                <dt className="text-sm font-medium text-gray-500">
+                  Matrix Types
+                </dt>
                 <dd className="mt-1 text-base text-gray-900">
                   {viewTest.matrix_types?.join(", ") || "-"}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Created At</dt>
+                <dt className="text-sm font-medium text-gray-500">
+                  Created At
+                </dt>
                 <dd className="mt-1 text-base text-gray-900">
-                  {viewTest.created_at ? new Date(viewTest.created_at).toLocaleString() : "-"}
+                  {viewTest.created_at
+                    ? new Date(viewTest.created_at).toLocaleString()
+                    : "-"}
                 </dd>
               </div>
               <div>
