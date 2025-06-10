@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, address, city, state, zip, phone, email } = body;
+    const { name, street, city, state, zip, phone, email } = body;
 
     const { data, error } = await supabase
       .from("agencies")
       .insert([
         {
           name,
-          address,
+          street,
           city,
           state,
           zip,

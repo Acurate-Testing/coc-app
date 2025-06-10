@@ -277,13 +277,6 @@ export default function SampleForm() {
 
       case 3:
         if (
-          formData.temperature === undefined ||
-          formData.temperature === null ||
-          isNaN(Number(formData.temperature))
-        ) {
-          errors.push("Temperature is required and must be a valid number");
-        }
-        if (
           formData.matrix_type === MatrixType.PotableWater &&
           (!formData.compliance || String(formData.compliance).trim() === "")
         ) {
@@ -368,15 +361,6 @@ export default function SampleForm() {
         }
 
         // Step 3 validation
-        if (
-          formData.temperature === undefined ||
-          formData.temperature === null ||
-          isNaN(Number(formData.temperature))
-        ) {
-          step3Errors.push(
-            "Temperature is required and must be a valid number"
-          );
-        }
         if (
           formData.matrix_type === MatrixType.PotableWater &&
           (!formData.compliance || String(formData.compliance).trim() === "")
@@ -852,66 +836,6 @@ export default function SampleForm() {
         return (
           <div>
             <div className="mb-3">
-              <label>
-                Temperature <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                className="form-input mt-1"
-                value={formData.temperature ?? ""}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    temperature:
-                      e.target.value === ""
-                        ? undefined
-                        : Number(e.target.value),
-                  })
-                }
-                placeholder="Enter temperature"
-              />
-            </div>
-            {formData.matrix_type === MatrixType.PotableWater && (
-              <div className="mb-3">
-                <label>
-                  Compliance <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className="form-input bg-white mt-1"
-                  value={formData.compliance ?? ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      compliance: e.target.value as "Yes" | "No",
-                    })
-                  }
-                >
-                  <option value="">Select Compliance</option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-            )}
-            {formData.matrix_type === MatrixType.PotableWater && (
-              <div className="mb-3">
-                <label>
-                  Chlorine Residual <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-input mt-1"
-                  value={formData.chlorine_residual ?? ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      chlorine_residual: e.target.value,
-                    })
-                  }
-                  placeholder="Enter Chlorine Residual"
-                />
-              </div>
-            )}
-            <div className="mb-3">
               <label>Remark</label>
               <textarea
                 rows={4}
@@ -1033,30 +957,6 @@ export default function SampleForm() {
                 Temperature & Notes
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Temperature</p>
-                  <p className="font-medium">
-                    {formData.temperature
-                      ? `${formData.temperature}°C`
-                      : "Not recorded"}
-                  </p>
-                </div>
-                {formData.matrix_type === MatrixType.PotableWater && (
-                  <>
-                    <div>
-                      <p className="text-sm text-gray-600">Compliance</p>
-                      <p className="font-medium">
-                        {formData.compliance || "Not specified"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Chlorine Residual</p>
-                      <p className="font-medium">
-                        {formData.chlorine_residual || "Not recorded"}
-                      </p>
-                    </div>
-                  </>
-                )}
                 <div className="col-span-2">
                   <p className="text-sm text-gray-600">Remarks</p>
                   <p className="font-medium mt-1">

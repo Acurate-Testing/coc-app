@@ -38,7 +38,10 @@ create table public.agencies (
   created_at timestamp with time zone null default now(),
   deleted_at timestamp with time zone null,
   phone text null,
-  address text null,
+  street text null,
+  city text null,
+  state text null,
+  zip text null,
   constraint agencies_pkey primary key (id),
   constraint agencies_created_by_fkey foreign KEY (created_by) references users (id)
 ) TABLESPACE pg_default;
@@ -149,7 +152,6 @@ create table public.test_types (
   created_at timestamp with time zone null default now(),
   deleted_at timestamp with time zone null,
   test_code text null,
-  matrix_type text null,
   matrix_types text[] null default array['Potable Water'::text],
   constraint test_types_pkey primary key (id),
   constraint test_types_created_by_fkey foreign KEY (created_by) references users (id)

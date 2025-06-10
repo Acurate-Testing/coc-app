@@ -4,7 +4,7 @@ import { handleDatabaseError, handleAuthError, handleApiError } from "@/lib/erro
 
 export async function POST(request: Request) {
   try {
-    const { agency_name, email, phone, address, password } = await request.json();
+    const { agency_name, email, phone, street, city, state, zip, password } = await request.json();
 
     // Validate required fields
     if (!agency_name || !email || !password) {
@@ -22,7 +22,10 @@ export async function POST(request: Request) {
           name: agency_name,
           contact_email: email,
           phone,
-          address,
+          street,
+          city,
+          state,
+          zip,
         },
       ])
       .select()

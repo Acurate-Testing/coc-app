@@ -25,6 +25,7 @@ import { LuWaves, LuSignature } from "react-icons/lu";
 import { MdOutlineUpdate } from "react-icons/md";
 import { PiRobotFill } from "react-icons/pi";
 import { BiCamera, BiImage } from "react-icons/bi";
+import { supabase } from "@/lib/supabase";
 
 const LAB_ADMIN_ID = process.env.NEXT_PUBLIC_LAB_ADMIN_ID;
 
@@ -135,6 +136,7 @@ export default function InspectionDetailPage() {
     type: "signature" | "photo";
     url: string;
   } | null>(null);
+  const [temperature, setTemperature] = useState<number | undefined>(undefined);
 
   const isLabAdmin = session?.user?.role === UserRole.LABADMIN;
 
@@ -254,49 +256,29 @@ export default function InspectionDetailPage() {
   };
 
   const handleSaveStatus = async () => {
-    if (!selectedStatus) {
-      errorToast("Please select a status");
-      return;
-    }
-
+    setUpdatingStatus(true);
     try {
-      setUpdatingStatus(true);
-      const response = await fetch(`/api/samples/${sampleId}/change-status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: selectedStatus,
-          notes: statusNotes,
-        }),
-      });
+      const { error } = await supabase
+        .from("samples")
+        .update({
+          status:
+            selectedStatus === "pass" ? SampleStatus.Pass : SampleStatus.Fail,
+          pass_fail_notes: statusNotes,
+          temperature: temperature,
+        })
+        .eq("id", sampleId);
 
-      const data = await response.json();
+      if (error) throw error;
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update sample status");
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        status:
-          selectedStatus === "pass" ? SampleStatus.Pass : SampleStatus.Fail,
-        pass_fail_notes: statusNotes,
-      }));
-
-      successToast(`Sample status updated to ${selectedStatus}`);
       setOpenStatusUpdateModal(false);
-      setStatusNotes("");
       setSelectedStatus(null);
-
+      setStatusNotes("");
+      setTemperature(undefined);
       fetchSampleData();
+      successToast("Sample status updated successfully");
     } catch (error) {
-      errorToast(
-        error instanceof Error
-          ? error.message
-          : "Failed to update sample status"
-      );
+      errorToast("Failed to update sample status");
+      console.error("Error updating sample status:", error);
     } finally {
       setUpdatingStatus(false);
     }
@@ -826,6 +808,23 @@ export default function InspectionDetailPage() {
                 <span>Fail</span>
               </div>
             </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">
+              Temperature (°C)
+            </label>
+            <input
+              type="number"
+              className="form-input w-full"
+              value={temperature}
+              onChange={(e) =>
+                setTemperature(
+                  e.target.value === "" ? undefined : Number(e.target.value)
+                )
+              }
+              placeholder="Enter temperature"
+            />
           </div>
 
           <TextArea

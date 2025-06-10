@@ -16,7 +16,10 @@ export default function RegisterPage() {
     agency_name: "",
     email: "",
     phone: "",
-    address: "",
+    street: "",
+    city: "",
+    state: "",
+    zip: "",
     password: "",
   });
 
@@ -163,22 +166,88 @@ export default function RegisterPage() {
             </div>
             <div>
               <label
-                htmlFor="address"
+                htmlFor="street"
                 className="block text-sm font-medium text-gray-700 mb-1"
               >
-                Address
+                Street Address
               </label>
               <input
-                id="address"
-                name="address"
+                id="street"
+                name="street"
                 type="text"
                 className="form-input w-full"
-                placeholder="Enter your address"
-                value={signupFormData.address}
+                placeholder="Enter street address"
+                value={signupFormData.street}
                 onChange={(e) =>
                   setSignupFormData({
                     ...signupFormData,
-                    address: e.target.value,
+                    street: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="city"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                City
+              </label>
+              <input
+                id="city"
+                name="city"
+                type="text"
+                className="form-input w-full"
+                placeholder="Enter city"
+                value={signupFormData.city}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    city: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="state"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                State
+              </label>
+              <input
+                id="state"
+                name="state"
+                type="text"
+                className="form-input w-full"
+                placeholder="Enter state"
+                value={signupFormData.state}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    state: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="zip"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                ZIP Code
+              </label>
+              <input
+                id="zip"
+                name="zip"
+                type="text"
+                className="form-input w-full"
+                placeholder="Enter ZIP code"
+                value={signupFormData.zip}
+                onChange={(e) =>
+                  setSignupFormData({
+                    ...signupFormData,
+                    zip: e.target.value,
                   })
                 }
               />
@@ -186,7 +255,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <LoadingButton
+            <Button
               type="submit"
               loading={isLoading}
               label={isMobile ? "Create Account" : "Create your account"}

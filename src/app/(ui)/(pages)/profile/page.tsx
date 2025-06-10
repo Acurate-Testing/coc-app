@@ -15,7 +15,10 @@ export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
   const [name, setName] = useState(session?.user?.name || "");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const supabase = createClientComponentClient();
 
@@ -43,7 +46,7 @@ export default function ProfilePage() {
       if (userData?.role === "agency" && userData?.agency_id) {
         const { data: agencyData, error: agencyError } = await supabase
           .from("agencies")
-          .select("name, contact_email, phone, address")
+          .select("name, contact_email, phone, street, city, state, zip")
           .eq("id", userData.agency_id)
           .single();
 
@@ -55,7 +58,10 @@ export default function ProfilePage() {
         if (agencyData) {
           setName(agencyData.name || userData.full_name);
           setPhone(agencyData.phone || "");
-          setAddress(agencyData.address || "");
+          setStreet(agencyData.street || "");
+          setCity(agencyData.city || "");
+          setState(agencyData.state || "");
+          setZip(agencyData.zip || "");
         }
       }
     };
@@ -112,7 +118,10 @@ export default function ProfilePage() {
         .update({
           name: name,
           phone: phone || null,
-          address: address || null,
+          street: street || null,
+          city: city || null,
+          state: state || null,
+          zip: zip || null,
         })
         .eq("id", session.user.agency_id);
 
@@ -204,33 +213,62 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <label htmlFor="address">Address</label>
-                <textarea
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                <label htmlFor="street">Street Address</label>
+                <input
+                  type="text"
+                  id="street"
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
                   className="mt-1 form-input"
-                  placeholder="Enter customer address"
+                  placeholder="Enter street address"
                   required
-                  rows={3}
                 />
               </div>
-              {isLoading ? (
-                <LoadingButton
-                  label="Updating..."
-                  size="large"
-                  className="h-[50px] mt-4"
-                  disabled
+              <div>
+                <label htmlFor="city">City</label>
+                <input
+                  type="text"
+                  id="city"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="mt-1 form-input"
+                  placeholder="Enter city"
+                  required
                 />
-              ) : (
-                <Button
-                  label="Update Customer Information"
-                  size="large"
-                  type="submit"
-                  className="w-full h-[50px] mt-4"
-                  disabled={isLoading}
+              </div>
+              <div>
+                <label htmlFor="state">State</label>
+                <input
+                  type="text"
+                  id="state"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className="mt-1 form-input"
+                  placeholder="Enter state"
+                  required
                 />
-              )}
+              </div>
+              <div>
+                <label htmlFor="zip">ZIP Code</label>
+                <input
+                  type="text"
+                  id="zip"
+                  value={zip}
+                  onChange={(e) => setZip(e.target.value)}
+                  className="mt-1 form-input"
+                  placeholder="Enter ZIP code"
+                  required
+                />
+              </div>
+              <Button
+                label={
+                  isLoading ? "Updating..." : "Update Customer Information"
+                }
+                size="large"
+                type="submit"
+                className="w-full h-[50px] mt-4"
+                disabled={isLoading}
+              />
             </form>
           </Card>
         ) : (
@@ -250,22 +288,13 @@ export default function ProfilePage() {
                   required
                 />
               </div>
-              {isLoading ? (
-                <LoadingButton
-                  label="Updating..."
-                  size="large"
-                  className="h-[50px] mt-4"
-                  disabled
-                />
-              ) : (
-                <Button
-                  label="Update Name"
-                  size="large"
-                  type="submit"
-                  className="w-full h-[50px] mt-4"
-                  disabled={isLoading}
-                />
-              )}
+              <Button
+                label={isLoading ? "Updating..." : "Update Name"}
+                size="large"
+                type="submit"
+                className="w-full h-[50px] mt-4"
+                disabled={isLoading}
+              />
             </form>
           </Card>
         )}
