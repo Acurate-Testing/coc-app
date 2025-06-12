@@ -15,6 +15,7 @@ interface AddEditTestModalProps {
   close: () => void;
   onSaved: () => void;
   test?: Test | null;
+  onRefresh?: () => void; // Add this to ensure data refetch
 }
 
 interface FormData {
@@ -33,6 +34,7 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
   close,
   onSaved,
   test,
+  onRefresh,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useFocusManagement<HTMLFormElement>({
@@ -68,8 +70,16 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
           (type) => type as MatrixType
         ),
       });
+    } else if (open) {
+      setForm({
+        id: "",
+        name: "",
+        description: "",
+        test_code: "",
+        matrix_types: [],
+      });
     }
-  }, [test]);
+  }, [test, open]);
 
   const handleSave = async () => {
     if (!form.name.trim()) {
@@ -89,16 +99,26 @@ const AddEditTestModal: FC<AddEditTestModalProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, id: test?.id }),
       });
-      const data = await res.json();
+
       if (!res.ok) {
+        const data = await res.json();
         throw new Error(data.error || "Failed to save test");
       }
+
+      const data = await res.json();
       successToast(`Test ${test ? "updated" : "created"} successfully`);
+
+      // Trigger data refetch
+      if (onRefresh) {
+        onRefresh();
+      }
+
       onSaved();
       close();
     } catch (err) {
-      console.error(err);
+      console.error("Error saving test:", err);
       errorToast(err instanceof Error ? err.message : "Failed to save test");
+      // Don't close modal or navigate on error - just show toast
     } finally {
       setIsSaving(false);
     }

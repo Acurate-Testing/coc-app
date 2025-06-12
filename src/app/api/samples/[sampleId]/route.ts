@@ -30,6 +30,7 @@ export async function GET(
       agency:agencies(name),
       test_types:test_types(id,name),
       created_by_user:users(id, full_name),
+      test_group:test_groups(id, name, description),
         coc_transfers(
           id,
           transferred_by,
@@ -80,14 +81,20 @@ export async function PUT(
 
     const { sampleId } = params;
     const body = await request.json();
-    const { is_update, original_status, account, agency, created_by_user, test_types, coc_transfers, address, ...updateData } = body;
+    const { is_update, original_status, account, agency, created_by_user, test_types, coc_transfers, address, test_group_id, ...updateData } = body;
 
     console.log("Updating sample:", {
       sampleId,
       is_update,
       original_status,
-      new_status: updateData.status
+      new_status: updateData.status,
+      test_group_id
     });
+
+    // Include test_group_id in update data if provided
+    if (test_group_id !== undefined) {
+      updateData.test_group_id = test_group_id;
+    }
 
     // Update the sample
     const { data: updatedSample, error: updateError } = await supabase

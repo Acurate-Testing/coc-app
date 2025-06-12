@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
         account:accounts(name),
         agency:agencies(name),
         test_types:test_types(id,name),
+        test_group:test_groups(id, name, description),
         created_by_user:users(id, full_name)
       `,
         { count: "exact" }
@@ -167,6 +168,7 @@ export async function POST(request: NextRequest) {
       "updated_at",
       "saved_at",
       "deleted_at",
+      "test_group_id",
     ];
 
     const filteredSampleData: Record<string, any> = {};
@@ -221,6 +223,19 @@ export async function POST(request: NextRequest) {
       if (testSampleError) {
         const appError = handleDatabaseError(testSampleError);
         return NextResponse.json({ error: appError.message }, { status: appError.statusCode });
+      }
+    }
+
+    // Store test group information if provided
+    if (sampleData.test_group_id) {
+      const { error: testGroupError } = await supabase
+        .from("samples")
+        .update({ test_group_id: sampleData.test_group_id })
+        .eq("id", data.id);
+
+      if (testGroupError) {
+        console.error("Error updating sample with test group:", testGroupError);
+        // Don't fail the request for test group error, just log it
       }
     }
 

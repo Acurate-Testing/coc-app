@@ -44,6 +44,7 @@ export default async function AdminSamplesPage() {
       account:accounts(name),
       agency:agencies(name),
       test_types:test_types(id,name),
+      test_group:test_groups(id, name, description),
       created_by_user:users(id, full_name)
     `
     )

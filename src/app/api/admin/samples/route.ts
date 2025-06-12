@@ -48,7 +48,8 @@ export async function GET(req: NextRequest) {
         account:accounts!samples_account_id_fkey (
           id,
           name
-        )
+        ),
+        test_group:test_groups(id, name, description)
       `, { count: "exact" })
       .is("deleted_at", null);
 

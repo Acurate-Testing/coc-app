@@ -68,7 +68,7 @@ export async function DELETE(
     // Verify test type exists
     const { data: existingType, error: fetchError } = await supabase
       .from("test_types")
-      .select("id")
+      .select("id, name")
       .eq("id", params.id)
       .is("deleted_at", null)
       .single();
@@ -77,6 +77,31 @@ export async function DELETE(
       return NextResponse.json(
         { error: "Test type not found" },
         { status: 404 }
+      );
+    }
+
+    // Check if test type is referenced in any test groups
+    const { data: testGroups, error: groupError } = await supabase
+      .from("test_groups")
+      .select("id, name")
+      .contains("test_type_ids", [params.id])
+      .is("deleted_at", null);
+
+    if (groupError) {
+      console.error("Error checking test groups:", groupError);
+      return NextResponse.json(
+        { error: "Failed to check test group references" },
+        { status: 500 }
+      );
+    }
+
+    if (testGroups && testGroups.length > 0) {
+      const groupNames = testGroups.map((group) => group.name).join(", ");
+      return NextResponse.json(
+        {
+          error: `Cannot delete test type "${existingType.name}" because it is used in the following test groups: ${groupNames}. Please remove it from these groups first.`,
+        },
+        { status: 400 }
       );
     }
 

@@ -172,8 +172,8 @@ export default function InspectionDetailPage() {
         if (data.sample) {
           setFormData(data.sample);
           handleGetLocation(
-            Number(data.sample.latitude.toFixed(2)),
-            Number(data.sample.longitude.toFixed(2))
+            Number(data.sample.latitude?.toFixed(2) || 0),
+            Number(data.sample.longitude?.toFixed(2) || 0)
           );
         }
       } catch (error) {
@@ -432,19 +432,35 @@ export default function InspectionDetailPage() {
         title: "Test Selection",
         icon: <IoFlask size={22} color="var(--color-primary)" />,
         content: (
-          <div className="flex flex-wrap gap-2">
-            {formData?.test_types?.length ? (
-              formData?.test_types.map((test, index) => (
-                <span
-                  key={test.id}
-                  className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-full text-sm"
-                >
-                  {test.name}
+          <div className="space-y-3">
+            {formData?.test_group && (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Test Group</p>
+                <span className="bg-[#E0E7FF] text-[#3730A3] px-3 py-2 rounded-full text-sm font-medium">
+                  {formData.test_group.name}
                 </span>
-              ))
-            ) : (
-              <span className="text-gray-500">No tests selected</span>
+                {formData.test_group.description && (
+                  <p className="text-xs text-gray-500 mt-1">{formData.test_group.description}</p>
+                )}
+              </div>
             )}
+            <div>
+              <p className="text-sm text-gray-600 mb-2">Selected Tests</p>
+              <div className="flex flex-wrap gap-2">
+                {formData?.test_types?.length ? (
+                  formData?.test_types.map((test, index) => (
+                    <span
+                      key={test.id}
+                      className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-full text-sm"
+                    >
+                      {test.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500">No tests selected</span>
+                )}
+              </div>
+            </div>
           </div>
         ),
       },
