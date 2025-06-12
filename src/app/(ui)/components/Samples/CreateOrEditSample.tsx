@@ -34,6 +34,19 @@ interface TestType {
   id: string;
   name: string;
 }
+interface TestGroup {
+  id: string;
+  name: string;
+  description: string | null;
+  test_type_ids: string[];
+  test_types?: {
+    id: string;
+    name: string;
+    test_code: string | null;
+    matrix_types: string[];
+    description: string | null;
+  }[];
+}
 
 export default function SampleForm() {
   // "Pass/Fail Notes",
@@ -57,7 +70,9 @@ export default function SampleForm() {
     useState<Partial<Sample>>(sampleInitialValues);
 
   const [testTypes, setTestTypes] = useState<TestType[]>([]);
+  const [testGroups, setTestGroups] = useState<TestGroup[]>([]);
   const [selectedTests, setSelectedTests] = useState<TestType[]>([]);
+  const [selectedTestGroup, setSelectedTestGroup] = useState<string>("");
   const editMode = pathname.includes("edit");
   const sampleId = params?.sampleId as string;
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -86,6 +101,17 @@ export default function SampleForm() {
     } catch (error) {
       console.error("Error fetching test types:", error);
       setTestTypes([]);
+    }
+  };
+
+  const fetchTestGroups = async () => {
+    try {
+      const res = await fetch("/api/test-groups");
+      const data = await res.json();
+      setTestGroups(data.groups || []);
+    } catch (error) {
+      console.error("Error fetching test groups:", error);
+      setTestGroups([]);
     }
   };
 
@@ -163,6 +189,7 @@ export default function SampleForm() {
 
   useEffect(() => {
     fetchTestTypes();
+    fetchTestGroups();
   }, []);
 
   const handleTestSelection = (
@@ -179,6 +206,22 @@ export default function SampleForm() {
     }));
   };
 
+  const handleGroupSelection = (groupId: string) => {
+    const group = testGroups.find((g) => g.id === groupId);
+    if (group && group.test_types) {
+      // Now we can use the test_types directly instead of filtering from testTypes
+      const groupTestTypes = group.test_types.map(test => ({
+        id: test.id,
+        name: test.name
+      }));
+      setSelectedTests(groupTestTypes);
+      setFormData((prev) => ({
+        ...prev,
+        test_types: groupTestTypes,
+      }));
+    }
+  };
+
   const fetchSampleData = async () => {
     if (editMode && sampleId) {
       setIsLoading(true);
@@ -190,7 +233,13 @@ export default function SampleForm() {
         }
         const data = await response.json();
         setFormData(data.sample);
-        setSelectedTests(data.sample.test_types);
+        setSelectedTests(data.sample.test_types || []);
+        
+        // Set the selected test group if available
+        if (data.sample.test_group_id) {
+          setSelectedTestGroup(data.sample.test_group_id);
+        }
+        
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching sample:", error);
@@ -466,6 +515,8 @@ export default function SampleForm() {
         ...formData,
         status: newStatus,
         saved_at: new Date().toISOString(),
+        // Include test group information
+        test_group_id: selectedTestGroup || null,
         // Include a flag to indicate this is an update
         is_update: editMode,
         // Include the original status for email notification
@@ -507,6 +558,7 @@ export default function SampleForm() {
         ...formData,
         status: "draft",
         saved_at: new Date().toISOString(),
+        test_group_id: selectedTestGroup || null,
       };
 
       const url = editMode
@@ -567,6 +619,22 @@ export default function SampleForm() {
     }
     setCurrentStep(1);
     setShowAddAnotherPopup(false);
+  };
+
+  const getFilteredTestTypes = () => {
+    if (!selectedTestGroup) {
+      return testTypes; // Show all tests if no group is selected
+    }
+    
+    const group = testGroups.find(g => g.id === selectedTestGroup);
+    if (group && group.test_types) {
+      return group.test_types.map(test => ({
+        id: test.id,
+        name: test.name
+      }));
+    }
+    
+    return testTypes;
   };
 
   const renderStep = () => {
@@ -739,12 +807,45 @@ export default function SampleForm() {
         return (
           <div>
             <div className="mb-3">
+              <label>Select Test Type Group</label>
+              <select
+                className="form-input bg-white mt-1"
+                value={selectedTestGroup}
+                onChange={(e) => {
+                  setSelectedTestGroup(e.target.value);
+                  if (e.target.value) {
+                    handleGroupSelection(e.target.value);
+                  } else {
+                    // Clear selection when "All Tests" is selected
+                    setSelectedTests([]);
+                    setFormData((prev) => ({
+                      ...prev,
+                      test_types: [],
+                    }));
+                  }
+                }}
+              >
+                <option value="">N/A</option>
+                {testGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name} ({group.test_types?.length || 0} tests)
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {selectedTestGroup 
+                  ? "Showing tests from selected group only" 
+                  : "Showing all available tests"}
+              </p>
+            </div>
+
+            <div className="mb-3">
               <label>
                 Select Test Type(s) <span className="text-red-500">*</span>
               </label>
               <MultiSelect
                 className="z-2 w-full mt-1"
-                options={testTypes.map((test) => ({
+                options={getFilteredTestTypes().map((test) => ({
                   label:
                     test.name.length > 25
                       ? test.name.substring(0, 25) + "..."
@@ -758,7 +859,9 @@ export default function SampleForm() {
                 onChange={handleTestSelection}
                 labelledBy="Select Test Type(s)"
                 overrideStrings={{
-                  selectSomeItems: "Select Test Type(s)",
+                  selectSomeItems: selectedTestGroup 
+                    ? `Select from ${testGroups.find(g => g.id === selectedTestGroup)?.name || 'group'} tests`
+                    : "Select Test Type(s)",
                   search: "Search Test Type(s)",
                 }}
               />

@@ -6,6 +6,12 @@ export interface TestType {
   name: string;
 }
 
+export interface TestGroup {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
 export interface Sample {
   id: string;
   project_id: string | null;
@@ -45,10 +51,13 @@ export interface Sample {
     id: string;
     name: string;
   };
-  test_types?: {
+  test_types?: TestType[];
+  test_group_id?: string | null;
+  test_group?: {
     id: string;
     name: string;
-  }[];
+    description?: string | null;
+  };
   coc_transfers?: any[];
 }
 
@@ -69,6 +78,7 @@ export const sampleInitialValues: Partial<Sample> = {
   sample_location: "",
   coc_transfers: [],
   test_types: [],
+  test_group_id: null,
   latitude: undefined,
   longitude: undefined,
   temperature: undefined,

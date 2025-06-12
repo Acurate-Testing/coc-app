@@ -171,6 +171,7 @@ export interface Database {
           updated_at: string;
           saved_at: string;
           deleted_at: string | null;
+          test_group_id: string | null;
         };
         Insert: {
           id?: string;
@@ -196,6 +197,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           deleted_at?: string | null;
+          test_group_id?: string | null;
         };
         Update: {
           id?: string;
@@ -221,6 +223,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           deleted_at?: string | null;
+          test_group_id?: string | null;
         };
       };
       sample_test_types: {
@@ -272,6 +275,46 @@ export interface Database {
           latitude?: number | null;
           longitude?: number | null;
           signature?: string | null;
+          deleted_at?: string | null;
+        };
+      };
+      test_groups: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          test_type_ids: string[];
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+          // Add this for the joined data
+          test_types?: {
+            id: string;
+            name: string;
+            test_code: string | null;
+            matrix_types: string[];
+            description: string | null;
+          }[];
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          test_type_ids: string[];
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          deleted_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          test_type_ids?: string[];
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
           deleted_at?: string | null;
         };
       };
