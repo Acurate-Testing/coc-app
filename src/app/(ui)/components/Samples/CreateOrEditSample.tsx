@@ -634,7 +634,25 @@ export default function SampleForm() {
       }));
     }
     
-    return testTypes;
+    return testTypes; // Fallback to all tests if group not found
+  };
+
+  // Format test selection with one line per selection
+  const formatTestSelection = () => {
+    if (!formData?.test_types?.length) {
+      return "No tests selected";
+    }
+    
+    const lines = [];
+    if (formData.test_group?.name) {
+      lines.push(`Group: ${formData.test_group.name}`);
+    }
+    
+    formData.test_types.forEach(test => {
+      lines.push(` ${test.name}`);
+    });
+    
+    return lines.join("\n");
   };
 
   const renderStep = () => {
@@ -815,13 +833,6 @@ export default function SampleForm() {
                   setSelectedTestGroup(e.target.value);
                   if (e.target.value) {
                     handleGroupSelection(e.target.value);
-                  } else {
-                    // Clear selection when "All Tests" is selected
-                    setSelectedTests([]);
-                    setFormData((prev) => ({
-                      ...prev,
-                      test_types: [],
-                    }));
                   }
                 }}
               >
@@ -834,8 +845,8 @@ export default function SampleForm() {
               </select>
               <p className="text-xs text-gray-500 mt-1">
                 {selectedTestGroup 
-                  ? "Showing tests from selected group only" 
-                  : "Showing all available tests"}
+                  ? `Showing ${getFilteredTestTypes().length} tests from selected group` 
+                  : `Showing all ${testTypes.length} available tests`}
               </p>
             </div>
 
@@ -861,7 +872,7 @@ export default function SampleForm() {
                 overrideStrings={{
                   selectSomeItems: selectedTestGroup 
                     ? `Select from ${testGroups.find(g => g.id === selectedTestGroup)?.name || 'group'} tests`
-                    : "Select Test Type(s)",
+                    : "Select from all available tests",
                   search: "Search Test Type(s)",
                 }}
               />
