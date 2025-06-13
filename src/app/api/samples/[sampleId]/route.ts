@@ -30,7 +30,6 @@ export async function GET(
       agency:agencies(name),
       test_types:test_types(id,name),
       created_by_user:users(id, full_name),
-      test_group:test_groups(id, name, description),
         coc_transfers(
           id,
           transferred_by,
@@ -88,7 +87,8 @@ export async function PUT(
       is_update,
       original_status,
       new_status: updateData.status,
-      test_group_id
+      test_group_id,
+      test_types_count: test_types?.length || 0
     });
 
     // Include test_group_id in update data if provided
@@ -105,7 +105,6 @@ export async function PUT(
         *,
         account:accounts!samples_account_id_fkey(name),
         agency:agencies!samples_agency_id_fkey(name),
-        test_types:test_types(id,name),
         created_by_user:users!samples_created_by_fkey(id, full_name),
         coc_transfers(
           id,
@@ -129,18 +128,82 @@ export async function PUT(
       );
     }
 
+    // Handle test_types updates if provided
+    if (test_types && Array.isArray(test_types)) {
+      // First, delete existing test type associations
+      const { error: deleteError } = await supabase
+        .from("sample_test_types")
+        .delete()
+        .eq("sample_id", sampleId);
+
+      if (deleteError) {
+        console.error("Error deleting existing test types:", deleteError);
+        // Continue with the operation - log but don't fail
+      }
+
+      // Then, insert new test type associations
+      if (test_types.length > 0) {
+        const testTypeEntries = test_types.map((testType: any) => ({
+          sample_id: sampleId,
+          test_type_id: testType.id,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("sample_test_types")
+          .insert(testTypeEntries);
+
+        if (insertError) {
+          console.error("Error inserting new test types:", insertError);
+          return NextResponse.json(
+            { error: "Failed to update test types" },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
+    // Fetch updated sample with test_types
+    const { data: finalSample, error: fetchError } = await supabase
+      .from("samples")
+      .select(`
+        *,
+        account:accounts!samples_account_id_fkey(name),
+        agency:agencies!samples_agency_id_fkey(name),
+        test_types:test_types(id,name),
+        created_by_user:users!samples_created_by_fkey(id, full_name),
+        coc_transfers(
+          id,
+          transferred_by,
+          received_by,
+          timestamp,
+          latitude,
+          longitude,
+          signature,
+          photo_url,
+          received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email,role)
+        )
+      `)
+      .eq("id", sampleId)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching updated sample:", fetchError);
+      // Return the sample without test_types if fetch fails
+    }
+
+    const sampleToReturn = finalSample || updatedSample;
+
     console.log("Sample updated successfully:", {
-      id: updatedSample.id,
-      status: updatedSample.status,
-      project_id: updatedSample.project_id
+      id: sampleToReturn.id,
+      status: sampleToReturn.status,
+      project_id: sampleToReturn.project_id,
+      test_types_count: sampleToReturn.test_types?.length || 0
     });
 
-    // Send email notification in these cases:
-    // 1. When status changes to "submitted"
-    // 2. When any field is updated for a sample that is already in "submitted" status
+    // Send email notification logic remains the same
     const shouldSendEmail = 
-      (is_update && updateData.status === "submitted") || // Status changed to submitted
-      (is_update && original_status === "submitted"); // Sample was already submitted
+      (is_update && updateData.status === "submitted") ||
+      (is_update && original_status === "submitted");
 
     if (shouldSendEmail) {
       console.log("Preparing to send email notification:", {
@@ -150,26 +213,38 @@ export async function PUT(
       });
 
       try {
-        const emailHtml = await sampleDetailTemplate(updatedSample);
-        console.log("Email template generated successfully");
+        console.log("Starting email template generation...");
+        const emailHtml = await sampleDetailTemplate(sampleToReturn);
+        console.log("Email template generated successfully, length:", emailHtml.length);
 
         const subject = updateData.status === "submitted" 
-          ? `Sample ${updatedSample.project_id} has been submitted`
-          : `Sample ${updatedSample.project_id} has been updated`;
+          ? `Sample ${sampleToReturn.project_id} has been submitted`
+          : `Sample ${sampleToReturn.project_id} has been updated`;
 
         const text = updateData.status === "submitted"
-          ? `Sample ${updatedSample.project_id} has been submitted. Please check the attached HTML email for details.`
-          : `Sample ${updatedSample.project_id} has been updated. Please check the attached HTML email for details.`;
+          ? `Sample ${sampleToReturn.project_id} has been submitted. Please check the attached HTML email for details.`
+          : `Sample ${sampleToReturn.project_id} has been updated. Please check the attached HTML email for details.`;
 
-        await sendEmail({
+        const emailResult = await sendEmail({
           to: "dev.accuratetesting@gmail.com",
           subject,
           text,
           html: emailHtml,
         });
-        console.log("Email sent successfully");
+
+        console.log("Email send result:", emailResult);
+        
+        if (emailResult) {
+          console.log("Email sent successfully");
+        } else {
+          console.error("Email sending failed - sendEmail returned false");
+        }
       } catch (emailError) {
-        console.error("Error sending email:", emailError);
+        console.error("Error in email sending process:", {
+          error: emailError,
+          message: emailError instanceof Error ? emailError.message : 'Unknown error',
+          stack: emailError instanceof Error ? emailError.stack : undefined
+        });
       }
     } else {
       console.log("No email sent - conditions not met:", {
@@ -180,7 +255,7 @@ export async function PUT(
       });
     }
 
-    return NextResponse.json({ sample: updatedSample });
+    return NextResponse.json({ sample: sampleToReturn });
   } catch (error) {
     console.error("Error in PUT /api/samples/[sampleId]:", error);
     return NextResponse.json(
