@@ -127,16 +127,6 @@ create table public.coc_transfers (
   constraint coc_transfers_transferred_by_fkey foreign KEY (transferred_by) references users (id)
 ) TABLESPACE pg_default;
 
-
-create table public.sample_test_types (
-  sample_id uuid not null,
-  test_type_id uuid not null,
-  deleted_at timestamp with time zone null,
-  constraint sample_test_types_pkey primary key (sample_id, test_type_id),
-  constraint sample_test_types_sample_id_fkey foreign KEY (sample_id) references samples (id) on delete CASCADE,
-  constraint sample_test_types_test_type_id_fkey foreign KEY (test_type_id) references test_types (id) on delete CASCADE
-) TABLESPACE pg_default;
-
 create table public.test_types (
   id uuid not null default extensions.uuid_generate_v4 (),
   name text not null,

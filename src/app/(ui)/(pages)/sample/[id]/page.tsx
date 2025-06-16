@@ -290,335 +290,94 @@ export default function InspectionDetailPage() {
     setSelectedStatus(null);
   };
 
-  const getCardData = () => {
+  const getReportData = () => {
     const cocTransfers = formData?.coc_transfers || [];
     const lastIsLabAdmin =
       cocTransfers.length > 0 && cocTransfers[0].received_by === LAB_ADMIN_ID;
 
-    return [
-      {
-        id: "card1",
-        title: "Basic Information",
-        icon: (
-          <IoInformationCircleOutline size={22} color="var(--color-primary)" />
-        ),
-        content: (
-          <div className="grid grid-cols-1 gap-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Sample ID</div>
-              <div className="font-semibold text-gray-900 truncate md:max-w-[unset] max-w-[160px]">
-                {formData.id}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Created By</div>
-              <div className="text-gray-900">
-                {formData.created_by_user?.full_name || "-"}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Customer</div>
-              <div className="text-gray-900">
-                {formData.agency?.name || "-"}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Account</div>
-              <div className="text-gray-900">
-                {formData.account?.name || "-"}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Status</div>
-              <div
-                className={`font-semibold ${
-                  formData.status === SampleStatus.Pass
-                    ? "text-green-600"
-                    : formData.status === SampleStatus.Fail
-                    ? "text-red-600"
-                    : "text-gray-900"
-                }`}
-              >
-                {formData.status || "Pending"}
-              </div>
-            </div>
-            {(formData.status === SampleStatus.Pass ||
-              formData.status === SampleStatus.Fail) && (
-              <div className="flex items-center justify-between">
-                <div className="text-gray-500">Pass/Fail Notes</div>
-                <div className="font-semibold text-gray-900">
-                  {formData.pass_fail_notes || "No notes"}
-                </div>
-              </div>
-            )}
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Matrix Type</div>
-              <div className="text-gray-900">
-                {formData.matrix_type}{" "}
-                {formData.matrix_type === MatrixType.Other
-                  ? `(${formData.matrix_name})`
-                  : ""}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Sample Type</div>
-              <div className="text-gray-900">{formData.sample_type || "-"}</div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Sample Privacy</div>
-              <div className="text-gray-900">
-                {formData.sample_privacy || "-"}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Compliance</div>
-              <div className="text-gray-900">{formData.compliance || "-"}</div>
-            </div>
-          </div>
-        ),
-      },
-      {
-        id: "card2",
-        title: "Source Information",
-        icon: <LuWaves size={22} color="var(--color-primary)" />,
-        content: (
-          <div className="grid grid-cols-1 gap-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Source</div>
-              <div className="font-semibold text-gray-900">
-                {formData.source || "-"}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Sample Location</div>
-              <div className="text-gray-900">
-                {formData.sample_location || "-"}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">County</div>
-              <div className="text-gray-900">{formData.county || "-"}</div>
-            </div>
-          </div>
-        ),
-      },
-      {
-        id: "card3",
-        title: "Identifiers",
-        icon: <FaFingerprint size={22} color="var(--color-primary)" />,
-        content: (
-          <div className="grid grid-cols-1 gap-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Project ID</div>
-              <div className="font-semibold text-gray-900">
-                {formData.project_id || "-"}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">PWS ID</div>
-              <div className="text-gray-900">{formData.pws_id || "-"}</div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Chlorine Residual</div>
-              <div className="text-gray-900">
-                {formData.chlorine_residual || "-"}
-              </div>
-            </div>
-          </div>
-        ),
-      },
-      {
-        id: "card4",
-        title: "Test Selection",
-        icon: <IoFlask size={22} color="var(--color-primary)" />,
-        content: (
-          <div className="space-y-3">
-            {formData?.test_group && (
-              <div>
-                <p className="text-sm text-gray-600 mb-2">Test Group</p>
-                <span className="bg-[#E0E7FF] text-[#3730A3] px-3 py-2 rounded-full text-sm font-medium">
-                  {formData.test_group.name}
-                </span>
-                {formData.test_group.description && (
-                  <p className="text-xs text-gray-500 mt-1">{formData.test_group.description}</p>
-                )}
-              </div>
-            )}
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Selected Tests</p>
-              <div className="flex flex-wrap gap-2">
-                {formData?.test_types?.length ? (
-                  formData?.test_types.map((test, index) => (
-                    <span
-                      key={test.id}
-                      className="bg-[#DBEAFE] text-themeColor px-2.5 py-1.5 rounded-full text-sm"
-                    >
-                      {test.name}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-500">No tests selected</span>
-                )}
-              </div>
-            </div>
-          </div>
-        ),
-      },
-      {
-        id: "card5",
-        title: "System Fields",
-        icon: <PiRobotFill size={22} color="var(--color-primary)" />,
-        content: (
-          <div className="grid grid-cols-1 gap-y-3 text-sm">
-            <div className="flex items-center justify-between gap-10">
-              <div className="text-gray-500">Current GPS Location</div>
-              <div className="md:max-w-[unset] max-w-[120px] break-all font-semibold text-themeColor">
-                {formData.address}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="text-gray-500">Sample Date</div>
-              <div className="text-gray-900">
-                {formData?.sample_collected_at &&
-                  format(
-                    new Date(formData.sample_collected_at),
-                    "yyyy-MM-dd hh:mm a"
-                  )}
-              </div>
-            </div>
-          </div>
-        ),
-      },
-      {
-        id: "card6",
-        title: "Remarks",
-        icon: <IoChatbubble size={22} color="var(--color-primary)" />,
-        content: (
-          <div className="text-gray-500">
-            {formData?.notes || "No remarks available"}
-          </div>
-        ),
-      },
-      {
-        id: "card7",
-        title: "Chain of Custody",
-        content: (
-          <div className="relative pl-6">
-            {/* Timeline vertical line */}
-            <div
-              className="absolute left-0 top-2.5 bottom-2.5 w-0.5 bg-blue-200"
-              style={{ zIndex: 0 }}
-            />
-            <div className="space-y-6">
-              {cocTransfers.map((transfer: any, idx: number) => {
-                const isLabAdminTransfer =
-                  transfer.received_by_user?.id === LAB_ADMIN_ID;
-                return (
-                  <div key={transfer.id} className="relative">
-                    {/* Timeline dot */}
-                    <div
-                      className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${
-                        isLabAdminTransfer
-                          ? "bg-green-600 border-green-600"
-                          : "bg-blue-600 border-blue-600"
-                      } z-10`}
-                    />
-                    <div
-                      className={`ml-4 ${
-                        isLabAdminTransfer
-                          ? "bg-green-50 border-green-200"
-                          : "bg-gray-50 border-gray-200"
-                      } border rounded-lg p-4 shadow-sm`}
-                    >
-                      <COCTransferItem
-                        transfer={transfer}
-                        onImageSelect={(type, url) =>
-                          setSelectedImage({ type, url })
-                        }
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ),
-        ...(!isLabAdmin && !lastIsLabAdmin
-          ? {
-              buttonText: "+ COC",
-              buttonAction: () =>
-                router.push(`/sample/transfer-coc/${params.id}`),
-            }
-          : {}),
-      },
-      ...(isLabAdmin
-        ? []
-        : formData.status !== SampleStatus.Submitted &&
-          formData.status !== SampleStatus.Pass
-        ? [
-            {
-              id: "card8",
-              title: "Action",
-              buttonText: "Delete",
-              variant: "danger",
-              buttonIcon: <ImBin className="text-lg" />,
-              buttonAction: handleDeleteClick,
-              content: "",
-            },
-          ]
-        : []),
-    ];
+    // Format test selection with one line per selection
+    const formatTestSelection = () => {
+      if (!formData?.test_types?.length) {
+        return "No tests selected";
+      }
+      
+      const lines = [];
+      if (formData.test_group?.name) {
+        lines.push(`Group: ${formData.test_group.name}`);
+      }
+      
+      formData.test_types.forEach(test => {
+        lines.push(`${test.name}`);
+      });
+      
+      return lines.join("\n");
+    };
+
+    // Format Chain of Custody transfers
+    const formatCocTransfers = () => {
+      if (cocTransfers.length === 0) {
+        return "No transfers recorded";
+      }
+      
+      return cocTransfers.map((transfer: any, index: number) => {
+        const isLabAdminTransfer = transfer.received_by_user?.id === LAB_ADMIN_ID;
+        const timestamp = transfer.timestamp ? format(new Date(transfer.timestamp), "MMM d, yyyy h:mm a") : "No timestamp";
+        const receivedBy = isLabAdminTransfer ? "Lab Admin" : transfer.received_by_user?.full_name || "Unknown";
+        
+        return `${index + 1}. ${timestamp} - Transferred to: ${receivedBy}`;
+      }).join("\n");
+    };
+
+    return {
+      basicInfo: [
+        { label: "Sample ID", value: formData.id },
+        { label: "Project ID", value: formData.project_id || "" },
+        { label: "PWS ID", value: formData.pws_id || "" },
+        { label: "Account Name", value: formData.account?.name || "" },
+        { label: "Address", value: formData.address || "" },
+        { label: "Created By", value: formData.created_by_user?.full_name || "(Sampler)" },
+        { label: "County", value: formData.county || "" },
+        { label: "Sample Privacy", value: formData.sample_privacy || "" },
+        { label: "Compliance", value: formData.compliance || "" },
+        { label: "Matrix Type", value: `${formData.matrix_type}${formData.matrix_type === MatrixType.Other ? ` (${formData.matrix_name})` : ""}` || "" },
+        { label: "Sample Location", value: formData.sample_location || "" },
+        { label: "GPS Location", value: formData.latitude && formData.longitude ? `${formData.latitude.toFixed(6)}, ${formData.longitude.toFixed(6)}` : "" },
+        { label: "Source", value: formData.source || "" },
+        { label: "Sample Type", value: formData.sample_type || "" },
+        { label: "Chlorine Residual", value: formData.chlorine_residual || "" },
+        { label: "Sample Date", value: formData?.sample_collected_at ? format(new Date(formData.sample_collected_at), "yyyy-MM-dd hh:mm a") : "" },
+        { label: "Test Selection", value: formatTestSelection(), isMultiline: true },
+        { label: "Remarks", value: formData?.notes || "" },
+        { label: "Chain of Custody", value: formatCocTransfers(), isMultiline: true },
+      ],
+      cocTransfers,
+      lastIsLabAdmin,
+      showDeleteButton: !isLabAdmin && !lastIsLabAdmin && 
+        formData.status !== SampleStatus.Submitted && 
+        formData.status !== SampleStatus.Pass
+    };
   };
 
   const handlePrint = () => {
-    // Create a container for the print content
-    const container = document.createElement("div");
-    container.className = "w-full md:p-8 p-6";
-
-    getCardData().forEach((item) => {
-      if (item.id === "card8") return;
-      const itemDiv = document.createElement("div");
-      itemDiv.className = "mb-4";
-
-      // Create card header
-      const headerDiv = document.createElement("div");
-      headerDiv.className = "bg-white rounded-xl";
-
-      const headerContent = document.createElement("div");
-      headerContent.className = "px-4 py-3 flex items-center gap-2 text-lg";
-
-      // Only render icon if it exists
-      if ("icon" in item && item.icon) {
-        const iconDiv = document.createElement("div");
-        const tempIconDiv = document.createElement("div");
-        ReactDOM.render(item.icon, tempIconDiv);
-        iconDiv.innerHTML = tempIconDiv.innerHTML;
-        headerContent.appendChild(iconDiv);
-      }
-
-      // Add title
-      const titleSpan = document.createElement("span");
-      titleSpan.textContent = item.title;
-      headerContent.appendChild(titleSpan);
-
-      headerDiv.appendChild(headerContent);
-      itemDiv.appendChild(headerDiv);
-
-      // Add content
-      const contentDiv = document.createElement("div");
-      contentDiv.className = "px-4 py-3";
-
-      if (React.isValidElement(item.content)) {
-        const tempDiv = document.createElement("div");
-        ReactDOM.render(item.content, tempDiv);
-        contentDiv.innerHTML = tempDiv.innerHTML;
-      } else {
-        contentDiv.textContent = String(item.content);
-      }
-
-      itemDiv.appendChild(contentDiv);
-      container.appendChild(itemDiv);
-    });
+    const reportData = getReportData();
+    
+    // Create print content with table format
+    const printContent = `
+      <div class="print-container">
+      <h1 class="print-title">Accurate Testing Labs</h1>
+      <h1 class="print-title2">Sample Report</h1>
+        <table class="print-table">
+          <tbody>
+            ${reportData.basicInfo.map(field => `
+              <tr>
+                <td class="print-label">${field.label}</td>
+                <td class="print-value">${field.isMultiline ? `<span class="multiline-text">${field.value || ''}</span>` : (field.value || '')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
 
     // Create print window
     const printWindow = window.open("", "_blank");
@@ -626,78 +385,107 @@ export default function InspectionDetailPage() {
       printWindow.document.write(`
         <html>
           <head>
-            <title>Sample Details</title>
+            <title>Report - ${formData.id}</title>
             <style>
-              body { 
-                font-family: Arial, sans-serif;
+              * {
                 margin: 0;
                 padding: 0;
+                box-sizing: border-box;
               }
-              .w-full { width: 100%; }
-              .md\\:p-8 { padding: 2rem; }
-              .p-6 { padding: 1.5rem; }
-              .mb-4 { margin-bottom: 1rem; }
-              .bg-white { background-color: white; }
-              .rounded-xl { border-radius: 0.75rem; }
-              .px-4 { padding-left: 1rem; padding-right: 1rem; }
-              .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-              .flex { display: flex; }
-              .items-center { align-items: center; }
-              .gap-2 { gap: 0.5rem; }
-              .text-lg { font-size: 1.125rem; }
-              .text-gray-500 { color: #6B7280; }
-              .text-gray-900 { color: #111827; }
-              .font-semibold { font-weight: 600; }
-              .grid { display: grid; }
-              .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-              .gap-y-3 { row-gap: 0.75rem; }
-              .text-sm { font-size: 0.875rem; }
-              .justify-between { justify-content: space-between; }
-              .bg-\\[\\#DBEAFE\\] { background-color: #DBEAFE; }
-              .text-themeColor { color: var(--color-primary); }
-              .px-2\\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
-              .py-1\\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
-              .rounded-full { border-radius: 9999px; }
-              .border-l-2 { border-left-width: 2px; }
-              .border-blue-500 { border-color: #3B82F6; }
-              .ml-4 { margin-left: 1rem; }
-              .space-y-6 > * + * { margin-top: 1.5rem; }
-              .relative { position: relative; }
-              .pl-6 { padding-left: 1.5rem; }
-              .absolute { position: absolute; }
-              .left-\\[-0\\.6rem\\] { left: -0.6rem; }
-              .top-2\\.5 { top: 0.625rem; }
-              .w-3 { width: 0.75rem; }
-              .h-3 { height: 0.75rem; }
-              .rounded-full { border-radius: 9999px; }
-              .bg-blue-600 { background-color: #2563EB; }
-              .border-2 { border-width: 2px; }
-              .border-white { border-color: white; }
-              .bg-gray-50 { background-color: #F9FAFB; }
-              .p-4 { padding: 1rem; }
-              .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-              .mt-4 { margin-top: 1rem; }
-              .gap-3 { gap: 0.75rem; }
-              .text-2xl { font-size: 1.5rem; }
-              .text-red-600 { color: #DC2626; }
-              .mt-1 { margin-top: 0.25rem; }
+              
+              body {
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                line-height: 1.4;
+                color: #333;
+                padding: 20px;
+              }
+              
+              .print-container {
+                max-width: 800px;
+                margin: 0 auto;
+              }
+              
+              .print-title {
+                font-size: 24px;
+                font-weight: bold;
+                margin: 10px 0;
+              }
+
+              .print-title2 {
+                font-size: 14px;
+                font-weight: bold;
+                margin-bottom: 20px;
+                border-bottom: 1px solid #333;
+                padding-bottom: 10px;
+              }
+              
+              .print-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 30px;
+                border: 1px solid #ccc;
+              }
+              
+              .print-table tr {
+                border-bottom: 1px solid #e5e5e5;
+              }
+              
+              .print-table tr:last-child {
+                border-bottom: none;
+              }
+              
+              .print-label {
+                padding: 8px 12px;
+                font-weight: bold;
+                vertical-align: top;
+                width: 35%;
+                color: #333;
+                border-right: 1px solid #e5e5e5;
+              }
+              
+              .print-value {
+                padding: 8px 12px;
+                vertical-align: top;
+                word-wrap: break-word;
+                background-color: white;
+              }
+              
+              .multiline-text {
+                white-space: pre-wrap;
+                margin: 0;
+              }
+              
               @media print {
-                body { padding: 20px; }
+                body {
+                  padding: 0;
+                }
+                
+                .print-container {
+                  max-width: none;
+                }
+                
+                .print-label {
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                }
               }
             </style>
-              <script>
+            <script>
+              window.onload = function() {
+                window.print();
+              };
               window.onafterprint = function() {
                 window.close();
               };
             </script>
           </head>
           <body>
-            ${container.innerHTML}
+            ${printContent}
           </body>
         </html>
       `);
       printWindow.document.close();
-      printWindow.print();
     }
   };
 
@@ -737,41 +525,142 @@ export default function InspectionDetailPage() {
         </div>
       </div>
 
-      {/* Simple Card Group */}
-      <div className="space-y-6">
-        {getCardData().map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-xl shadow-sm border border-gray-200"
-          >
-            {/* Card Header */}
-            <div className="px-6 py-4 border-b border-gray-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {item.icon}
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {item.title}
-                  </h3>
-                </div>
-                {item.buttonText && (
-                  <Button
-                    variant={
-                      item.variant ? (item.variant as "danger") : "primary"
-                    }
-                    onClick={item.buttonAction}
-                    icon={item.buttonIcon}
-                    label={item.buttonText}
-                    size="large"
-                  />
-                )}
+      {/* Simple Table Report View */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="text-xl font-semibold text-gray-900">Sample Report</h2>
+        </div>
+        
+        <div className="px-6 py-4">
+          {/* Status Badge */}
+          {formData.status && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-500">Status:</span>
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    formData.status === SampleStatus.Pass
+                      ? "bg-green-100 text-green-800"
+                      : formData.status === SampleStatus.Fail
+                      ? "bg-red-100 text-red-800"
+                      : "bg-yellow-100 text-yellow-800"
+                  }`}
+                >
+                  {formData.status}
+                </span>
               </div>
+              {(formData.status === SampleStatus.Pass || formData.status === SampleStatus.Fail) && formData.pass_fail_notes && (
+                <div className="mt-2">
+                  <span className="text-sm font-medium text-gray-500">Pass/Fail Notes:</span>
+                  <span className="ml-2 text-sm text-gray-900">{formData.pass_fail_notes}</span>
+                </div>
+              )}
             </div>
+          )}
 
-            {/* Card Content */}
-            {item.content && <div className="px-6 py-4">{item.content}</div>}
+          {/* Simple Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-auto">
+              <tbody>
+                {getReportData().basicInfo.map((field, index) => (
+                  <tr key={index} className="border border-gray-200 ">
+                    <td className="p-3 pr-4 text-sm font-medium text-gray-600 align-top w-1/3 border-r border-gray-200">
+                      {field.label}
+                    </td>
+                    <td className="p-3 text-sm text-gray-900 break-words">
+                      {field.isMultiline ? (
+                        <pre className="whitespace-pre-wrap font-sans text-sm">{field.value || ""}</pre>
+                      ) : (
+                        field.value || ""
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
+        </div>
       </div>
+
+      {/* Chain of Custody Section */}
+      <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Chain of Custody</h3>
+            {!isLabAdmin && !getReportData().lastIsLabAdmin && (
+              <Button
+                variant="primary"
+                size="large"
+                label="+ COC"
+                onClick={() => router.push(`/sample/transfer-coc/${params.id}`)}
+              />
+            )}
+          </div>
+        </div>
+        
+        <div className="px-6 py-4">
+          <div className="relative pl-6">
+            {/* Timeline vertical line */}
+            <div
+              className="absolute left-0 top-2.5 bottom-2.5 w-0.5 bg-blue-200"
+              style={{ zIndex: 0 }}
+            />
+            <div className="space-y-6">
+              {getReportData().cocTransfers.map((transfer: any, idx: number) => {
+                const isLabAdminTransfer =
+                  transfer.received_by_user?.id === LAB_ADMIN_ID;
+                return (
+                  <div key={transfer.id} className="relative">
+                    {/* Timeline dot */}
+                    <div
+                      className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${
+                        isLabAdminTransfer
+                          ? "bg-green-600 border-green-600"
+                          : "bg-blue-600 border-blue-600"
+                      } z-10`}
+                    />
+                    <div
+                      className={`ml-4 ${
+                        isLabAdminTransfer
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-200"
+                      } border rounded-lg p-4 shadow-sm`}
+                    >
+                      <COCTransferItem
+                        transfer={transfer}
+                        onImageSelect={(type, url) =>
+                          setSelectedImage({ type, url })
+                        }
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Action */}
+      {getReportData().showDeleteButton && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm border border-red-200">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-red-600">Danger Zone</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone.</p>
+              </div>
+              <Button
+                variant="danger"
+                size="large"
+                label="Delete Sample"
+                icon={<ImBin className="text-lg" />}
+                onClick={handleDeleteClick}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmationModal
         open={openConfirmDeleteDialog}

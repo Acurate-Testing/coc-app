@@ -776,13 +776,6 @@ export default function SampleForm() {
                   setSelectedTestGroup(e.target.value);
                   if (e.target.value) {
                     handleGroupSelection(e.target.value);
-                  } else {
-                    // Clear selection when "All Tests" is selected
-                    setSelectedTests([]);
-                    setFormData((prev) => ({
-                      ...prev,
-                      test_types: [],
-                    }));
                   }
                 }}
               >
