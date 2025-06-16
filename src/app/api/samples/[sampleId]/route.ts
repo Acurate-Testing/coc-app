@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { TestType } from "@/types/sample";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import { SampleStatus } from "@/constants/enums";
 import { sendEmail } from "@/lib/email";
 import { sampleDetailTemplate } from "@/lib/emailTemplates";
 
@@ -225,20 +223,13 @@ export async function PUT(
           ? `Sample ${sampleToReturn.project_id} has been submitted. Please check the attached HTML email for details.`
           : `Sample ${sampleToReturn.project_id} has been updated. Please check the attached HTML email for details.`;
 
-        const emailResult = await sendEmail({
-          to: "dev.accuratetesting@gmail.com",
+        await sendEmail({
+          to: process.env.ADMIN_EMAIL || "",
           subject,
           text,
           html: emailHtml,
         });
-
-        console.log("Email send result:", emailResult);
         
-        if (emailResult) {
-          console.log("Email sent successfully");
-        } else {
-          console.error("Email sending failed - sendEmail returned false");
-        }
       } catch (emailError) {
         console.error("Error in email sending process:", {
           error: emailError,

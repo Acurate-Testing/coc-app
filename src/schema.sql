@@ -1,23 +1,14 @@
-create table public.users (
-  id uuid not null default gen_random_uuid (),
-  full_name text null,
-  email text not null,
-  role text not null,
+create table public.test_types (
+  id uuid not null default extensions.uuid_generate_v4 (),
+  name text not null,
+  description text null,
+  created_by uuid null,
   created_at timestamp with time zone null default now(),
   deleted_at timestamp with time zone null,
-  agency_id uuid null,
-  invitation_token text null,
-  active boolean null default false,
-  constraint users_pkey primary key (id),
-  constraint users_email_key unique (email),
-  constraint users_agency_id_fkey foreign KEY (agency_id) references agencies (id) on update CASCADE on delete set null,
-  constraint users_role_check check (
-    (
-      role = any (
-        array['lab_admin'::text, 'agency'::text, 'user'::text]
-      )
-    )
-  )
+  test_code text null,
+  matrix_types text[] null default array['Potable Water'::text],
+  constraint test_types_pkey primary key (id),
+  constraint test_types_created_by_fkey foreign KEY (created_by) references users (id)
 ) TABLESPACE pg_default;
 
 create table public.accounts (
@@ -74,10 +65,12 @@ create table public.samples (
   saved_at timestamp with time zone null default now(),
   source text null,
   matrix_name text null,
+  test_group_id uuid null,
   constraint samples_pkey primary key (id),
-  constraint samples_account_id_fkey foreign KEY (account_id) references accounts (id),
   constraint samples_agency_id_fkey foreign KEY (agency_id) references agencies (id),
   constraint samples_created_by_fkey foreign KEY (created_by) references users (id),
+  constraint samples_account_id_fkey foreign KEY (account_id) references accounts (id),
+  constraint samples_test_group_id_fkey foreign KEY (test_group_id) references test_groups (id),
   constraint samples_sample_privacy_check check (
     (
       sample_privacy = any (array['Private'::text, 'Public'::text])
@@ -151,7 +144,7 @@ create table public.test_groups (
   id uuid not null default extensions.uuid_generate_v4 (),
   name text not null,
   description text null,
-  test_type_ids text[] not null default array[]::text[],
+  test_type_ids uuid[] null default '{}'::uuid[],
   created_by uuid null,
   created_at timestamp with time zone null default now(),
   updated_at timestamp with time zone null default now(),
