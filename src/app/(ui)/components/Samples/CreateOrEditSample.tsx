@@ -210,9 +210,9 @@ export default function SampleForm() {
     const group = testGroups.find((g) => g.id === groupId);
     if (group && group.test_types) {
       // Now we can use the test_types directly instead of filtering from testTypes
-      const groupTestTypes = group.test_types.map(test => ({
+      const groupTestTypes = group.test_types.map((test) => ({
         id: test.id,
-        name: test.name
+        name: test.name,
       }));
       setSelectedTests(groupTestTypes);
       setFormData((prev) => ({
@@ -234,12 +234,12 @@ export default function SampleForm() {
         const data = await response.json();
         setFormData(data.sample);
         setSelectedTests(data.sample.test_types || []);
-        
+
         // Set the selected test group if available
         if (data.sample.test_group_id) {
           setSelectedTestGroup(data.sample.test_group_id);
         }
-        
+
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching sample:", error);
@@ -552,45 +552,6 @@ export default function SampleForm() {
     }
   };
 
-  const handleSaveDraft = async () => {
-    try {
-      const draft = {
-        ...formData,
-        status: "draft",
-        saved_at: new Date().toISOString(),
-        test_group_id: selectedTestGroup || null,
-      };
-
-      const url = editMode
-        ? `/api/samples/${params?.sampleId}`
-        : "/api/samples";
-      const method = editMode ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(
-          data.error || `Failed to ${editMode ? "update" : "save"} draft`
-        );
-      }
-
-      successToast(`Draft ${editMode ? "updated" : "saved"} successfully`);
-      router.push("/samples");
-    } catch (error) {
-      errorToast(
-        error instanceof Error
-          ? error.message
-          : `Failed to ${editMode ? "update" : "save"} draft`
-      );
-    }
-  };
-
   const handleAddAnother = (retainDetails: boolean) => {
     if (retainDetails) {
       // Retain specific details
@@ -625,15 +586,15 @@ export default function SampleForm() {
     if (!selectedTestGroup) {
       return testTypes; // Show all tests if no group is selected
     }
-    
-    const group = testGroups.find(g => g.id === selectedTestGroup);
+
+    const group = testGroups.find((g) => g.id === selectedTestGroup);
     if (group && group.test_types) {
-      return group.test_types.map(test => ({
+      return group.test_types.map((test) => ({
         id: test.id,
-        name: test.name
+        name: test.name,
       }));
     }
-    
+
     return testTypes;
   };
 
@@ -833,8 +794,8 @@ export default function SampleForm() {
                 ))}
               </select>
               <p className="text-xs text-gray-500 mt-1">
-                {selectedTestGroup 
-                  ? "Showing tests from selected group only" 
+                {selectedTestGroup
+                  ? "Showing tests from selected group only"
                   : "Showing all available tests"}
               </p>
             </div>
@@ -859,8 +820,11 @@ export default function SampleForm() {
                 onChange={handleTestSelection}
                 labelledBy="Select Test Type(s)"
                 overrideStrings={{
-                  selectSomeItems: selectedTestGroup 
-                    ? `Select from ${testGroups.find(g => g.id === selectedTestGroup)?.name || 'group'} tests`
+                  selectSomeItems: selectedTestGroup
+                    ? `Select from ${
+                        testGroups.find((g) => g.id === selectedTestGroup)
+                          ?.name || "group"
+                      } tests`
                     : "Select Test Type(s)",
                   search: "Search Test Type(s)",
                 }}
@@ -938,6 +902,46 @@ export default function SampleForm() {
       case 3:
         return (
           <div>
+            {formData.matrix_type === MatrixType.PotableWater && (
+              <div className="mb-3">
+                <label>
+                  Compliance <span className="text-red-500">*</span>
+                </label>
+                <select
+                  className="form-input bg-white mt-1"
+                  value={formData.compliance ?? ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      compliance: e.target.value as "Yes" | "No",
+                    })
+                  }
+                >
+                  <option value="">Select Compliance</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+            )}
+            {formData.matrix_type === MatrixType.PotableWater && (
+              <div className="mb-3">
+                <label>
+                  Chlorine Residual <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="form-input mt-1"
+                  value={formData.chlorine_residual ?? ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      chlorine_residual: e.target.value,
+                    })
+                  }
+                  placeholder="Enter Chlorine Residual"
+                />
+              </div>
+            )}
             <div className="mb-3">
               <label>Remark</label>
               <textarea
@@ -1060,6 +1064,22 @@ export default function SampleForm() {
                 Temperature & Notes
               </h3>
               <div className="grid grid-cols-2 gap-4">
+                {formData.matrix_type === MatrixType.PotableWater && (
+                  <>
+                    <div>
+                      <p className="text-sm text-gray-600">Compliance</p>
+                      <p className="font-medium">
+                        {formData.compliance || "Not specified"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Chlorine Residual</p>
+                      <p className="font-medium">
+                        {formData.chlorine_residual || "Not recorded"}
+                      </p>
+                    </div>
+                  </>
+                )}
                 <div className="col-span-2">
                   <p className="text-sm text-gray-600">Remarks</p>
                   <p className="font-medium mt-1">

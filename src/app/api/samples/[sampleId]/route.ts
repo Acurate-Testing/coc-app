@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { TestType } from "@/types/sample";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import { SampleStatus } from "@/constants/enums";
 import { sendEmail } from "@/lib/email";
 import { sampleDetailTemplate } from "@/lib/emailTemplates";
 
@@ -162,7 +160,7 @@ export async function PUT(
           : `Sample ${updatedSample.project_id} has been updated. Please check the attached HTML email for details.`;
 
         await sendEmail({
-          to: "dev.accuratetesting@gmail.com",
+          to: process.env.ADMIN_EMAIL || "",
           subject,
           text,
           html: emailHtml,
