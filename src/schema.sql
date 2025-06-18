@@ -1,3 +1,24 @@
+create table public.users (
+  id uuid not null default gen_random_uuid (),
+  full_name text null,
+  email text not null,
+  role text not null,
+  created_at timestamp with time zone null default now(),
+  deleted_at timestamp with time zone null,
+  agency_id uuid null,
+  invitation_token text null,
+  active boolean null default false,
+  constraint users_pkey primary key (id),
+  constraint users_email_key unique (email),
+  constraint users_agency_id_fkey foreign KEY (agency_id) references agencies (id) on update CASCADE on delete set null,
+  constraint users_role_check check (
+    (
+      role = any (
+        array['lab_admin'::text, 'agency'::text, 'user'::text]
+      )
+    )
+  )
+) TABLESPACE pg_default;
 create table public.test_types (
   id uuid not null default extensions.uuid_generate_v4 (),
   name text not null,
