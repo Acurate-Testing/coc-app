@@ -1,5 +1,42 @@
 import { Database } from "./supabase";
-import { SampleStatus } from "@/constants/enums";
+import { PrivacyPolicy, SampleStatus } from "@/constants/enums";
+
+export interface TestType {
+  id: string;
+  name: string;
+}
+
+export interface TestGroup {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
+export interface CocTransfer {
+  id: string;
+  sample_id: string;
+  transferred_by: string;
+  received_by: string;
+  timestamp: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  signature?: string | null;
+  photo_url?: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string | null;
+  received_by_user?: {
+    id: string;
+    full_name: string;
+    email?: string;
+    role?: string;
+  };
+  transferred_by_user?: {
+    id: string;
+    full_name: string;
+    email?: string;
+  };
+}
 
 export type Sample = Database["public"]["Tables"]["samples"]["Row"] & {
   test_types?: Array<{
@@ -17,6 +54,7 @@ export type Sample = Database["public"]["Tables"]["samples"]["Row"] & {
     full_name: string;
   };
   address?: string;
+  coc_transfers?: CocTransfer[];
 };
 
 export const sampleInitialValues: Partial<Sample> = {

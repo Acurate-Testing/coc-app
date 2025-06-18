@@ -111,21 +111,19 @@ create table public.agency_test_types (
 
 
 create table public.coc_transfers (
-  id uuid not null default extensions.uuid_generate_v4 (),
-  sample_id uuid null,
-  transferred_by uuid null,
-  received_by uuid null,
-  timestamp timestamp with time zone null default now(),
-  latitude double precision null,
-  longitude double precision null,
-  signature text null,
-  deleted_at timestamp with time zone null,
-  photo_url text null,
-  constraint coc_transfers_pkey primary key (id),
-  constraint coc_transfers_received_by_fkey foreign KEY (received_by) references users (id),
-  constraint coc_transfers_sample_id_fkey foreign KEY (sample_id) references samples (id) on delete CASCADE,
-  constraint coc_transfers_transferred_by_fkey foreign KEY (transferred_by) references users (id)
-) TABLESPACE pg_default;
+  id uuid default gen_random_uuid() primary key,
+  sample_id uuid references public.samples(id) on delete cascade not null,
+  transferred_by uuid references public.users(id) not null,
+  received_by uuid references public.users(id) not null,
+  timestamp timestamptz default now() not null,
+  latitude decimal(10,8),
+  longitude decimal(11,8),
+  signature text,
+  photo_url text,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  deleted_at timestamptz
+) tablespace pg_default;
 
 create table public.test_types (
   id uuid not null default extensions.uuid_generate_v4 (),
