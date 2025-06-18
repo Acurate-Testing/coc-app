@@ -24,7 +24,7 @@ import AddAnotherSampleModal from "./AddAnotherSampleModal";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { format } from "date-fns";
 import ConfirmationModal from "../Common/ConfirmationModal";
-// type Sample = Database["public"]["Tables"]["samples"]["Row"];
+import { FaMapMarkerAlt } from "react-icons/fa";
 
 interface Account {
   id: string;
@@ -83,6 +83,9 @@ export default function SampleForm() {
     retainDetails: boolean;
   } | null>(null);
 
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
   const getFilteredSources = () => {
     if (formData.matrix_type === MatrixType.PotableWater)
       return potableSourcesOptions;
@@ -136,6 +139,113 @@ export default function SampleForm() {
     }
   };
 
+  const getLocationWithDelay = () => {
+    setIsLoadingLocation(true);
+    setLocationError(null);
+
+    // Wait for 3 seconds to get a better GPS fix
+    setTimeout(() => {
+      if (navigator.geolocation) {
+        const options = {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const lat = Number(position.coords.latitude.toFixed(6));
+          const lon = Number(position.coords.longitude.toFixed(6));
+          const accuracy = position.coords.accuracy;
+          console.log("position", position);
+
+          setFormData((prev) => ({
+            ...prev,
+            latitude: lat,
+            longitude: lon,
+            location_accuracy: accuracy
+          }));
+
+          // Fetch address using LocationIQ
+          try {
+            const response = await fetch(
+              `https://us1.locationiq.com/v1/reverse.php?key=pk.a8fb6961015eb9e9dddcec9571aa109c&lat=${lat}&lon=${lon}&format=json&zoom=18`
+            );
+            const data = await response.json();
+
+            if (data && data.display_name) {
+              setFormData((prev) => ({
+                ...prev,
+                address: data.display_name,
+              }));
+            }
+          } catch (error) {
+            console.error("Failed to get address:", error);
+            setLocationError("Failed to get address. Please try again.");
+          }
+          setIsLoadingLocation(false);
+        }, (error) => {
+          console.error("Geolocation error:", error);
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              setLocationError("Location access denied. Please enable location services.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              setLocationError("Location information is unavailable. Please try again.");
+              break;
+            case error.TIMEOUT:
+              setLocationError("Location request timed out. Please try again.");
+              break;
+            default:
+              setLocationError("An error occurred while getting your location.");
+          }
+          setIsLoadingLocation(false);
+        }, options);
+      }
+    }, 3000);
+  };
+
+  const handleCoordinateChange = async (field: 'latitude' | 'longitude', value: string) => {
+    const numValue = Number(value);
+    if (isNaN(numValue)) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      [field]: numValue
+    }));
+
+    // Only update address if both coordinates are present
+    if (field === 'latitude' && formData.longitude) {
+      await updateAddressFromCoordinates(numValue, formData.longitude);
+    } else if (field === 'longitude' && formData.latitude) {
+      await updateAddressFromCoordinates(formData.latitude, numValue);
+    }
+  };
+
+  const updateAddressFromCoordinates = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(
+        `https://us1.locationiq.com/v1/reverse.php?key=pk.a8fb6961015eb9e9dddcec9571aa109c&lat=${lat}&lon=${lon}&format=json&zoom=18`
+      );
+      const data = await response.json();
+
+      if (data && data.display_name) {
+        setFormData((prev) => ({
+          ...prev,
+          address: data.display_name,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to get address:", error);
+    }
+  };
+
+  // Replace the existing location fetching code with this
+  useEffect(() => {
+    if (!formData.latitude || !formData.longitude) {
+      getLocationWithDelay();
+    }
+  }, []);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -151,21 +261,30 @@ export default function SampleForm() {
 
     // Only fetch GPS if we don't already have coordinates
     if (navigator.geolocation && (!formData.latitude || !formData.longitude)) {
+      const options = {
+        enableHighAccuracy: true, // Request the most accurate position possible
+        timeout: 10000, // Wait up to 10 seconds for a result
+        maximumAge: 0 // Don't use cached positions
+      };
+
       navigator.geolocation.getCurrentPosition(async (position) => {
-        const lat = Number(position.coords.latitude.toFixed(2));
-        const lon = Number(position.coords.longitude.toFixed(2));
+        // Use more precise coordinates (6 decimal places for ~11cm accuracy)
+        const lat = Number(position.coords.latitude.toFixed(6));
+        const lon = Number(position.coords.longitude.toFixed(6));
+        const accuracy = position.coords.accuracy; // Accuracy in meters
 
         // Set the coordinates in your state
         setFormData((prev) => ({
           ...prev,
           latitude: lat,
           longitude: lon,
+          location_accuracy: accuracy // Store the accuracy for reference
         }));
 
-        // Fetch address using OpenStreetMap Nominatim
+        // Fetch address using LocationIQ
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+            `https://us1.locationiq.com/v1/reverse.php?key=pk.a8fb6961015eb9e9dddcec9571aa109c&lat=${lat}&lon=${lon}&format=json&zoom=18`
           );
           const data = await response.json();
 
@@ -178,7 +297,23 @@ export default function SampleForm() {
         } catch (error) {
           console.error("Failed to get address:", error);
         }
-      });
+      }, (error) => {
+        // Handle geolocation errors
+        console.error("Geolocation error:", error);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorToast("Location access denied. Please enable location services for better accuracy.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorToast("Location information is unavailable. Please try again.");
+            break;
+          case error.TIMEOUT:
+            errorToast("Location request timed out. Please try again.");
+            break;
+          default:
+            errorToast("An error occurred while getting your location.");
+        }
+      }, options);
     }
 
     // Fetch accounts from API
@@ -454,8 +589,7 @@ export default function SampleForm() {
       // If there are more errors, show a summary
       if (validation.errors.length > 3) {
         errorToast(
-          `${
-            validation.errors.length - 3
+          `${validation.errors.length - 3
           } more validation errors found. Please check all required fields.`
         );
       }
@@ -484,8 +618,7 @@ export default function SampleForm() {
 
       if (validation.errors.length > 3) {
         errorToast(
-          `${
-            validation.errors.length - 3
+          `${validation.errors.length - 3
           } more validation errors found. Please complete all required fields.`
         );
       }
@@ -551,7 +684,7 @@ export default function SampleForm() {
       }
 
       successToast(`Sample ${editMode ? "updated" : "created"} successfully`);
-      
+
       // Handle add another functionality
       if (shouldAddAnother) {
         setShowAddAnotherPopup(false);
@@ -622,8 +755,7 @@ export default function SampleForm() {
 
       if (validation.errors.length > 3) {
         errorToast(
-          `${
-            validation.errors.length - 3
+          `${validation.errors.length - 3
           } more validation errors found. Please complete all required fields.`
         );
       }
@@ -770,26 +902,26 @@ export default function SampleForm() {
 
             {(formData.matrix_type === MatrixType.PotableWater ||
               formData.matrix_type === MatrixType.Wastewater) && (
-              <div className="mb-3">
-                <label>
-                  Source <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className="form-input bg-white mt-1"
-                  value={formData.source ?? ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, source: e.target.value })
-                  }
-                >
-                  <option value="">Select Source</option>
-                  {getFilteredSources().map((source) => (
-                    <option key={source} value={source}>
-                      {source}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+                <div className="mb-3">
+                  <label>
+                    Source <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    className="form-input bg-white mt-1"
+                    value={formData.source ?? ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, source: e.target.value })
+                    }
+                  >
+                    <option value="">Select Source</option>
+                    {getFilteredSources().map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
             {formData.matrix_type === MatrixType.PotableWater && (
               <div className="mb-3">
@@ -821,7 +953,7 @@ export default function SampleForm() {
 
       case 2:
         return (
-          <div>
+          <div className="space-y-6">
             <div className="mb-3">
               <label>Select Test Type Group</label>
               <select
@@ -869,48 +1001,15 @@ export default function SampleForm() {
                 labelledBy="Select Test Type(s)"
                 overrideStrings={{
                   selectSomeItems: selectedTestGroup
-                    ? `Select from ${
-                        testGroups.find((g) => g.id === selectedTestGroup)
-                          ?.name || "group"
-                      } tests`
+                    ? `Select from ${testGroups.find((g) => g.id === selectedTestGroup)
+                      ?.name || "group"
+                    } tests`
                     : "Select Test Type(s)",
                   search: "Search Test Type(s)",
                 }}
               />
             </div>
-            <div className="mb-3">
-              <label>Current GPS Location</label>
-              <div className="form-input h-auto bg-white mt-1">
-                {formData.address ? formData.address : ""}
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="sampleDate">
-                Sample Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="datetime-local"
-                id="sampleDate"
-                name="sampleDate"
-                className="form-input mt-1 w-full"
-                value={
-                  formData.sample_collected_at
-                    ? format(
-                        new Date(formData.sample_collected_at),
-                        "yyyy-MM-dd'T'HH:mm"
-                      )
-                    : ""
-                }
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    sample_collected_at: e.target.value,
-                  }))
-                }
-              />
-            </div>
-
+            {renderLocationFields()}
             <div className="mb-3">
               <label>
                 Sample Location <span className="text-red-500">*</span>
@@ -943,6 +1042,31 @@ export default function SampleForm() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="sampleDate">
+                Sample Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="datetime-local"
+                id="sampleDate"
+                name="sampleDate"
+                className="form-input mt-1 w-full"
+                value={
+                  formData.sample_collected_at
+                    ? format(
+                        new Date(formData.sample_collected_at),
+                        "yyyy-MM-dd'T'HH:mm"
+                      )
+                    : ""
+                }
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    sample_collected_at: e.target.value,
+                  }))
+                }
+              />
             </div>
           </div>
         );
@@ -1043,11 +1167,11 @@ export default function SampleForm() {
                 </div>
                 {(formData.matrix_type === MatrixType.PotableWater ||
                   formData.matrix_type === MatrixType.Wastewater) && (
-                  <div>
-                    <p className="text-sm text-gray-600">Source</p>
-                    <p className="font-medium">{formData.source || "-"}</p>
-                  </div>
-                )}
+                    <div>
+                      <p className="text-sm text-gray-600">Source</p>
+                      <p className="font-medium">{formData.source || "-"}</p>
+                    </div>
+                  )}
                 {formData.matrix_type === MatrixType.PotableWater && (
                   <div>
                     <p className="text-sm text-gray-600">Sample Privacy</p>
@@ -1076,7 +1200,7 @@ export default function SampleForm() {
                   <p className="text-sm text-gray-600">Date/Timestamp</p>
                   <p className="font-medium">
                     {formData.sample_collected_at &&
-                    typeof formData.sample_collected_at === "string"
+                      typeof formData.sample_collected_at === "string"
                       ? new Date(formData.sample_collected_at).toLocaleString()
                       : "Not available"}
                   </p>
@@ -1144,6 +1268,112 @@ export default function SampleForm() {
     }
   };
 
+  const renderLocationFields = () => (
+    <div className="space-y-4">
+      {/* Single Location Field with Integrated Button */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Location (Latitude, Longitude)
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="23.079077, 72.501401"
+            value={formData.latitude && formData.longitude ? `${formData.latitude}, ${formData.longitude}` : ''}
+            onChange={(e) => {
+              const coords = e.target.value.split(',').map(coord => coord.trim());
+              if (coords.length === 2) {
+                const lat = parseFloat(coords[0]);
+                const lon = parseFloat(coords[1]);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                  handleCoordinateChange('latitude', lat.toString());
+                  handleCoordinateChange('longitude', lon.toString());
+                }
+              } else if (e.target.value === '') {
+                handleCoordinateChange('latitude', '');
+                handleCoordinateChange('longitude', '');
+              }
+            }}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
+          />
+          <button
+            type="button"
+            onClick={getLocationWithDelay}
+            disabled={isLoadingLocation}
+            aria-label="Get Current Location"
+            title="Get Current Location"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+            className="flex items-center justify-center rounded-lg text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium text-sm w-10 h-10 text-center inline-flex p-0"
+          >
+            {isLoadingLocation ? (
+              <svg className="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 21c-4.418 0-8-5.373-8-10a8 8 0 1116 0c0 4.627-3.582 10-8 10zm0-7a3 3 0 100-6 3 3 0 000 6z" />
+              </svg>
+            )}
+            <span className="sr-only">Get Current Location</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Error Message */}
+      {locationError && (
+        <div className="rounded-md bg-red-50 p-3 border border-red-200">
+          <div className="flex items-center">
+            <svg
+              className="h-4 w-4 text-red-400 mr-2 flex-shrink-0"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-sm text-red-700">{locationError}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Address Field */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Current GPS Location
+        </label>
+        <textarea
+          value={formData.address || ''}
+          readOnly
+          placeholder="Address will appear here after getting location"
+          className="block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 resize-none"
+          rows={Math.max(2, Math.ceil((formData.address || '').length / 60))}
+        />
+      </div>
+
+      {/* Success Indicator */}
+      {(formData.latitude && formData.longitude) && (
+        <div className="flex items-center text-sm text-green-600">
+          <svg
+            className="h-4 w-4 mr-1 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Location coordinates set successfully
+        </div>
+      )}
+    </div>
+  );
+
   if (status === "loading") {
     return <LoadingSpinner />;
   }
@@ -1161,20 +1391,18 @@ export default function SampleForm() {
           {steps.map((_, idx) => (
             <div
               key={idx}
-              className={`h-1 flex-1 rounded-full ${
-                idx <= currentStep - 1 ? "bg-blue-600" : "bg-gray-200"
-              }
+              className={`h-1 flex-1 rounded-full ${idx <= currentStep - 1 ? "bg-blue-600" : "bg-gray-200"
+                }
             `}
             />
           ))}
         </div>
       </div>
       <div
-        className={`w-full ${
-          currentStep === 4 && !editMode
-            ? "min-h-[calc(100vh-300px)]"
-            : "min-h-[calc(100vh-228px)]"
-        } mx-auto md:p-8 p-6`}
+        className={`w-full ${currentStep === 4 && !editMode
+          ? "min-h-[calc(100vh-300px)]"
+          : "min-h-[calc(100vh-228px)]"
+          } mx-auto md:p-8 p-6`}
       >
         <main>{renderStep()}</main>
       </div>
