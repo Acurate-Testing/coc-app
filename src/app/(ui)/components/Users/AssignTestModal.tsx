@@ -11,20 +11,20 @@ interface AssignTestModalProps {
   open: boolean;
   close: () => void;
   userId: string;
-  assignedTestIds: string[];
+  assignedTestGroupIds: string[];
   onAssigned: () => void;
 }
 
-type Test = Database["public"]["Tables"]["test_types"]["Row"];
+type TestGroup = Database["public"]["Tables"]["test_groups"]["Row"];
 
 const AssignTestModal: FC<AssignTestModalProps> = ({
   open,
   close,
   userId,
-  assignedTestIds,
+  assignedTestGroupIds,
   onAssigned,
 }) => {
-  const [tests, setTests] = useState<Test[]>([]);
+  const [testGroups, setTestGroups] = useState<TestGroup[]>([]);
   const [selected, setSelected] = useState<{ label: string; value: string }[]>(
     []
   );
@@ -32,23 +32,23 @@ const AssignTestModal: FC<AssignTestModalProps> = ({
 
   useEffect(() => {
     if (!open) return;
-    const fetchTests = async () => {
-      const res = await fetch("/api/admin/tests");
+    const fetchTestGroups = async () => {
+      const res = await fetch("/api/test-groups");
       const data = await res.json();
       if (res.ok) {
-        const list = data.tests || data;
-        setTests(list);
+        const list = data.groups || [];
+        setTestGroups(list);
         setSelected(
           list
-            .filter((t: Test) => assignedTestIds.includes(t.id))
-            .map((t: Test) => ({ label: t.name, value: t.id }))
+            .filter((tg: TestGroup) => assignedTestGroupIds?.includes(tg.id) || false)
+            .map((tg: TestGroup) => ({ label: tg.name, value: tg.id }))
         );
       } else {
-        errorToast(data.error || "Failed to load tests");
+        errorToast(data.error || "Failed to load test groups");
       }
     };
-    fetchTests();
-  }, [open, assignedTestIds]);
+    fetchTestGroups();
+  }, [open, assignedTestGroupIds]);
 
   const handleAssign = async () => {
     setIsSaving(true);
@@ -56,15 +56,15 @@ const AssignTestModal: FC<AssignTestModalProps> = ({
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, testIds: selected.map((s) => s.value) }),
+        body: JSON.stringify({ userId, testGroupIds: selected.map((s) => s.value) }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to assign test types");
-      successToast("Tests assigned successfully");
+      if (!res.ok) throw new Error(data.error || "Failed to assign test groups");
+      successToast("Test groups assigned successfully");
       onAssigned();
       close();
     } catch (err: any) {
-      errorToast(err.message || "Failed to assign test types");
+      errorToast(err.message || "Failed to assign test groups");
     } finally {
       setIsSaving(false);
     }
@@ -72,23 +72,23 @@ const AssignTestModal: FC<AssignTestModalProps> = ({
 
   return (
     <Modal
-      title="Assign Test Type"
+      title="Assign Test Groups"
       open={open}
       close={close}
       staticModal
       panelClassName="!max-w-md"
     >
       <div className="mb-4">
-        <label>Select Test Type(s)</label>
+        <label>Select Test Group(s)</label>
         <MultiSelect
           className="z-2 w-full mt-1"
-          options={tests.map((t) => ({ label: t.name, value: t.id }))}
+          options={testGroups.map((tg) => ({ label: tg.name, value: tg.id }))}
           value={selected}
           onChange={setSelected}
-          labelledBy="Select Test Type(s)"
+          labelledBy="Select Test Group(s)"
           overrideStrings={{
-            selectSomeItems: "Select Test Type(s)",
-            search: "Search Test Type(s)",
+            selectSomeItems: "Select Test Group(s)",
+            search: "Search Test Group(s)",
           }}
         />
       </div>

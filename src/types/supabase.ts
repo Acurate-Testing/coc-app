@@ -26,6 +26,16 @@ export interface Database {
           created_by: string | null;
           created_at: string;
           deleted_at: string | null;
+          // Add fields for joined data
+          agency_test_type_groups?: {
+            test_groups: {
+              id: string;
+              name: string;
+            };
+          }[];
+          accounts?: {
+            name: string;
+          }[];
         };
         Insert: {
           id?: string;
@@ -339,6 +349,26 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           deleted_at?: string | null;
+        };
+      };
+      agency_test_type_groups: {
+        Row: {
+          id: number;
+          created_at: string;
+          agency_id: string;
+          test_type_group_id: string;
+        };
+        Insert: {
+          id?: number;
+          created_at?: string;
+          agency_id: string;
+          test_type_group_id: string;
+        };
+        Update: {
+          id?: number;
+          created_at?: string;
+          agency_id?: string;
+          test_type_group_id?: string;
         };
       };
     };

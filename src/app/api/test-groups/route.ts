@@ -11,6 +11,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const agencyID = session?.user?.agency_id;
+
     const { data: groups, error } = await supabase
       .from("test_groups")
       .select(`
@@ -28,9 +30,30 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    let filteredGroups = groups || [];
+
+    // If user has an agency ID, check for agency-specific test groups
+    if (agencyID) {
+      // Query agency_test_type_groups table
+      const { data: agencyTestGroups, error: agencyError } = await supabase
+        .from("agency_test_type_groups")
+        .select("test_type_group_id")
+        .eq("agency_id", agencyID);
+
+      if (agencyError) {
+        console.error("Error fetching agency test groups:", agencyError);
+      } else if (agencyTestGroups && agencyTestGroups.length > 0) {
+        // If agency has specific test groups, filter the list
+        const testGroupIds = agencyTestGroups.map(item => item.test_type_group_id);
+        filteredGroups = groups.filter(group => 
+          testGroupIds.includes(group.id)
+        );
+      }
+    }
+
     // For each group, fetch the full test type details
     const groupsWithTestTypes = await Promise.all(
-      (groups || []).map(async (group) => {
+      filteredGroups.map(async (group) => {
         if (group.test_type_ids && group.test_type_ids.length > 0) {
           const { data: testTypes, error: testTypesError } = await supabase
             .from("test_types")

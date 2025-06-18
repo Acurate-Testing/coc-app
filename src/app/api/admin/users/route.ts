@@ -5,17 +5,19 @@ import { supabase } from "@/lib/supabase";
 export async function GET() {
   const { data, error } = await supabase
     .from("agencies")
-    .select("id, name, contact_email, assigned_tests:test_types(id, name, test_code, matrix_types), accounts(name)")
+    .select("id, name, contact_email, agency_test_type_groups(test_groups(id, name)), accounts(name)")
     .is("deleted_at", null);
     
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   
-  // Transform the data to format accounts as string arrays
+  // Transform the data to format accounts as string arrays and flatten test groups
   const formattedData = data?.map(user => ({
     ...user,
-    accounts: user.accounts ? user.accounts.map((account: {name: string}) => account.name) : []
+    accounts: user.accounts ? user.accounts.map((account: {name: string}) => account.name) : [],
+    assigned_test_group: user.agency_test_type_groups ? 
+      user.agency_test_type_groups.map((group: any) => group.test_groups).filter(Boolean) : []
   }));
   
   return NextResponse.json(formattedData);
@@ -23,18 +25,18 @@ export async function GET() {
 
 // Delete a test assignment from a user
 export async function DELETE(req: NextRequest) {
-  const { userId, testId } = await req.json();
+  const { userId, testGroupId } = await req.json();
 
-  if (!userId || !testId) {
-    return NextResponse.json({ error: "userId and testId are required" }, { status: 400 });
+  if (!userId || !testGroupId) {
+    return NextResponse.json({ error: "userId and testGroupId are required" }, { status: 400 });
   }
 
-  // Remove the test assignment from the agency_test_types table
+  // Remove the test group assignment from the agency_test_type_groups table
   const { error } = await supabase
-    .from("agency_test_types")
+    .from("agency_test_type_groups")
     .delete()
     .eq("agency_id", userId)
-    .eq("test_type_id", testId);
+    .eq("test_type_group_id", testGroupId);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -43,57 +45,57 @@ export async function DELETE(req: NextRequest) {
   return NextResponse.json({ success: true });
 }
 
-// Assign tests to a user
+// Assign test groups to a user
 export async function PATCH(req: NextRequest) {
-  const { userId, testIds } = await req.json();
-  if (!userId || !Array.isArray(testIds)) {
-    return NextResponse.json({ error: "userId and testIds[] are required" }, { status: 400 });
+  const { userId, testGroupIds } = await req.json();
+  if (!userId || !Array.isArray(testGroupIds)) {
+    return NextResponse.json({ error: "userId and testGroupIds[] are required" }, { status: 400 });
   }
 
   // Fetch existing assignments for this agency
   const { data: existingAssignments, error: fetchError } = await supabase
-    .from("agency_test_types")
-    .select("test_type_id")
+    .from("agency_test_type_groups")
+    .select("test_type_group_id")
     .eq("agency_id", userId);
     
   if (fetchError) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
   
-  // Create a set of existing test type IDs
+  // Create a set of existing test group IDs
   const existingIds = new Set(
-    (existingAssignments || []).map((entry) => entry.test_type_id)
+    (existingAssignments || []).map((entry) => entry.test_type_group_id)
   );
   
-  // Identify test IDs that need to be removed (exist in DB but not in new testIds)
-  const testIdsToRemove = Array.from(existingIds).filter(
-    (existingId) => !testIds.includes(existingId)
+  // Identify test group IDs that need to be removed (exist in DB but not in new testGroupIds)
+  const testGroupIdsToRemove = Array.from(existingIds).filter(
+    (existingId) => !testGroupIds.includes(existingId)
   );
   
-  // Remove test assignments that are no longer selected
-  if (testIdsToRemove.length > 0) {
+  // Remove test group assignments that are no longer selected
+  if (testGroupIdsToRemove.length > 0) {
     const { error: deleteError } = await supabase
-      .from("agency_test_types")
+      .from("agency_test_type_groups")
       .delete()
       .eq("agency_id", userId)
-      .in("test_type_id", testIdsToRemove);
+      .in("test_type_group_id", testGroupIdsToRemove);
       
     if (deleteError) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
   }
   
-  // Filter to only add test types that don't already exist
-  const newTestIds = testIds.filter((testId: string) => !existingIds.has(testId));
+  // Filter to only add test groups that don't already exist
+  const newTestGroupIds = testGroupIds.filter((testGroupId: string) => !existingIds.has(testGroupId));
   
   // Add new assignments if any are provided
-  if (newTestIds.length > 0) {
-    const inserts = newTestIds.map((testId: string) => ({
+  if (newTestGroupIds.length > 0) {
+    const inserts = newTestGroupIds.map((testGroupId: string) => ({
       agency_id: userId,
-      test_type_id: testId,
+      test_type_group_id: testGroupId,
     }));
     
-    const { error: insertError } = await supabase.from("agency_test_types").insert(inserts);
+    const { error: insertError } = await supabase.from("agency_test_type_groups").insert(inserts);
     if (insertError) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }

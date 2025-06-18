@@ -12,6 +12,7 @@ import { ImSpinner8 } from "react-icons/im";
 import { FiMoreVertical } from "react-icons/fi";
 import { LuPlus } from "react-icons/lu";
 import { createPortal } from "react-dom";
+import { errorToast, successToast } from "@/hooks/useCustomToast";
 
 // Use the correct User type
 type User = {
@@ -19,14 +20,20 @@ type User = {
   name: string;
   contact_email: string;
   accounts?: string[];
-  assigned_tests?: AssignedTest[];
+  agency_test_type_groups?: AgencyTestTypeGroup[];
+  assigned_test_group?: AssignedTestGroup[];
 };
 
-interface AssignedTest {
+interface AgencyTestTypeGroup {
+  test_groups: {
+    id: string;
+    name: string;
+  };
+}
+
+interface AssignedTestGroup {
   id: string;
   name: string;
-  test_code: string;
-  matrix_type: string[];
 }
 
 export default function AdminUsersPage() {
@@ -39,7 +46,7 @@ export default function AdminUsersPage() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showEditAccessModal, setShowEditAccessModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [selectedTest, setSelectedTest] = useState<string>("");
+  const [selectedTestGroup, setSelectedTestGroup] = useState<string>(""); // Changed from selectedTest
   const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -84,7 +91,9 @@ export default function AdminUsersPage() {
         setSelectedUser(data[0]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch users");
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch users";
+      setError(errorMessage);
+      errorToast(errorMessage);
     } finally {
       setIsLoading(false);
       setIsInitialLoading(false);
@@ -101,8 +110,8 @@ export default function AdminUsersPage() {
       (u.contact_email ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDeleteClick = (testId: string) => {
-    setSelectedTest(testId);
+  const handleDeleteClick = (testGroupId: string) => {
+    setSelectedTestGroup(testGroupId); // Changed from setSelectedTest
     setOpenConfirmDeleteDialog(true);
   };
 
@@ -117,7 +126,7 @@ export default function AdminUsersPage() {
         },
         body: JSON.stringify({
           userId: selectedUser?.id,
-          testId: selectedTest,
+          testGroupId: selectedTestGroup, // Changed from testId
         }),
       });
 
@@ -126,13 +135,16 @@ export default function AdminUsersPage() {
         throw new Error(data.error || "Failed to remove test access");
       }
 
+      successToast("Test group access removed successfully");
       fetchUsers();
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Failed to remove test access");
+      const errorMessage = error instanceof Error ? error.message : "Failed to remove test access";
+      setError(errorMessage);
+      errorToast(errorMessage);
     } finally {
       setIsLoading(false);
       setOpenConfirmDeleteDialog(false);
-      setSelectedTest("");
+      setSelectedTestGroup(""); // Changed from setSelectedTest
     }
   };
 
@@ -263,19 +275,19 @@ export default function AdminUsersPage() {
               <div className="flex items-center justify-between mb-4">
                 <div className="font-semibold text-base">Test Permissions</div>
                 <Button
-                  label="+ Assign Test Type"
+                  label="+ Assign Test Type Group"
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
                   onClick={() => setShowAssignModal(true)}
                 >
-                  + Assign Test Type
+                  + Assign Test Type Group
                 </Button>
               </div>
 
               {/* Table view for tests, similar to tests page */}
               <div className="w-full">
-                {(selectedUser.assigned_tests || []).length === 0 ? (
+                {(selectedUser.assigned_test_group || []).length === 0 ? (
                   <div className="text-center py-8 text-gray-400 text-base font-medium">
-                    No test types assigned.
+                    No test groups assigned.
                   </div>
                 ) : (
                   <div className="overflow-x-auto w-full">
@@ -288,19 +300,13 @@ export default function AdminUsersPage() {
                                 scope="col"
                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                               >
-                                Test Type Name
+                                Test Group Name
                               </th>
                               <th
                                 scope="col"
                                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                               >
-                                Test Type Code
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                              >
-                                Matrix Type
+                                Test Group ID
                               </th>
                               <th
                                 scope="col"
@@ -311,24 +317,21 @@ export default function AdminUsersPage() {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {selectedUser.assigned_tests?.map((test) => (
-                              <tr key={test.id} className="hover:bg-gray-50">
+                            {selectedUser.assigned_test_group?.map((testGroup) => (
+                              <tr key={testGroup.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="font-medium text-gray-900 truncate max-w-xs" title={test.name}>{test.name}</div>
+                                  <div className="font-medium text-gray-900 truncate max-w-xs" title={testGroup.name}>{testGroup.name}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-gray-500 truncate max-w-xs" title={test.test_code || "-"}>{test.test_code || "-"}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-gray-500 truncate max-w-xs" title={Array.isArray(test.matrix_type) ? test.matrix_type.join(", ") : test.matrix_type || "-"}>{Array.isArray(test.matrix_type) ? test.matrix_type.join(", ") : test.matrix_type || "-"}</div>
+                                  <div className="text-gray-500 truncate max-w-xs" title={testGroup.id}>{testGroup.id}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                   <div>
                                     <button
                                       ref={(el: any) =>
-                                        el && menuButtonRefs.current.set(test.id, el)
+                                        el && menuButtonRefs.current.set(testGroup.id, el)
                                       }
-                                      onClick={(e) => toggleActionMenu(test.id, e)}
+                                      onClick={(e) => toggleActionMenu(testGroup.id, e)}
                                       className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
                                     >
                                       <FiMoreVertical className="h-5 w-5" />
@@ -349,7 +352,7 @@ export default function AdminUsersPage() {
               open={showAssignModal}
               close={() => setShowAssignModal(false)}
               userId={selectedUser.id}
-              assignedTestIds={selectedUser.assigned_tests?.map((t) => t.id) || []}
+              assignedTestGroupIds={selectedUser.assigned_test_group?.map((t) => t.id) || []}
               onAssigned={fetchUsers}
             />
             <EditUserAccessPopover
@@ -364,7 +367,7 @@ export default function AdminUsersPage() {
               processing={isLoading}
               onConfirm={handleDeleteTest}
               setOpenModal={() => {
-                setSelectedTest("");
+                setSelectedTestGroup(""); // Changed from setSelectedTest
                 setOpenConfirmDeleteDialog(false);
               }}
               message="Are you sure you want to remove this test access?"
