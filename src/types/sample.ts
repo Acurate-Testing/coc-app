@@ -1,65 +1,23 @@
-import { PrivacyPolicy, SampleStatus } from "@/constants/enums";
-import { SampleStatusType } from "./supabase";
+import { Database } from "./supabase";
+import { SampleStatus } from "@/constants/enums";
 
-export interface TestType {
-  id: string;
-  name: string;
-}
-
-export interface TestGroup {
-  id: string;
-  name: string;
-  description?: string | null;
-}
-
-export interface Sample {
-  id: string;
-  project_id: string | null;
-  matrix_type: string | null;
-  matrix_name: string | null;
-  sample_type: string | null;
-  sample_location: string | null;
-  sample_privacy: string | null;
-  status: string;
-  sample_collected_at: string | null;
-  created_at: string;
-  updated_at: string;
-  temperature: number | null;
-  notes: string | null;
-  pass_fail_notes: string | null;
-  attachment_url: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  county: string | null;
-  compliance: string | null;
-  chlorine_residual: string | null;
-  pws_id: string | null;
-  source: string | null;
-  address: string | null;
-  account_id: string | null;
-  agency_id: string | null;
-  created_by: string | null;
+export type Sample = Database["public"]["Tables"]["samples"]["Row"] & {
+  test_types?: Array<{
+    id: string;
+    name: string;
+  }>;
+  account?: {
+    name: string;
+  };
+  agency?: {
+    name: string;
+  };
   created_by_user?: {
     id: string;
     full_name: string;
   };
-  agency?: {
-    id: string;
-    name: string;
-  };
-  account?: {
-    id: string;
-    name: string;
-  };
-  test_types?: TestType[];
-  test_group_id?: string | null;
-  test_group?: {
-    id: string;
-    name: string;
-    description?: string | null;
-  };
-  coc_transfers?: any[];
-}
+  address?: string;
+};
 
 export const sampleInitialValues: Partial<Sample> = {
   project_id: "",
@@ -67,26 +25,24 @@ export const sampleInitialValues: Partial<Sample> = {
   account_id: null,
   created_by: null,
   pws_id: "",
-  source: "",
   matrix_type: "",
   matrix_name: "",
-  sample_type: "",
-  chlorine_residual: "",
-  address: "",
   sample_privacy: null,
   compliance: null,
+  chlorine_residual: "",
+  county: "",
+  sample_type: "",
   sample_location: "",
-  coc_transfers: [],
-  test_types: [],
-  test_group_id: null,
-  latitude: undefined,
-  longitude: undefined,
-  temperature: undefined,
+  source: "",
+  latitude: null,
+  longitude: null,
+  sample_collected_at: null,
+  temperature: null,
   notes: "",
   status: SampleStatus.Pending,
   pass_fail_notes: "",
   attachment_url: "",
-  sample_collected_at: new Date().toISOString(),
-  // created_at: new Date().toISOString(),
-  // updated_at: new Date().toISOString(),
+  deleted_at: null,
+  test_group_id: null,
+  test_types: [],
 };

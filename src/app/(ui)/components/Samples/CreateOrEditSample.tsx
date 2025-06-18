@@ -79,6 +79,9 @@ export default function SampleForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showStatusWarning, setShowStatusWarning] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState(false);
+  const [pendingAddAnother, setPendingAddAnother] = useState<{
+    retainDetails: boolean;
+  } | null>(null);
 
   const getFilteredSources = () => {
     if (formData.matrix_type === MatrixType.PotableWater)
@@ -91,6 +94,14 @@ export default function SampleForm() {
     if (formData.matrix_type === MatrixType.PotableWater)
       return potableWaterSampleTypeOptions;
     return otherSampleTypeOptions;
+  };
+
+  const getFilteredTestTypes = () => {
+    if (selectedTestGroup) {
+      const group = testGroups.find((g) => g.id === selectedTestGroup);
+      return group?.test_types || [];
+    }
+    return testTypes;
   };
 
   const fetchTestTypes = async () => {
@@ -502,7 +513,7 @@ export default function SampleForm() {
     await submitSample();
   };
 
-  const submitSample = async () => {
+  const submitSample = async (shouldAddAnother?: { retainDetails: boolean }) => {
     setIsSubmitting(true);
     try {
       // If status was fail, change it to submitted
@@ -540,7 +551,14 @@ export default function SampleForm() {
       }
 
       successToast(`Sample ${editMode ? "updated" : "created"} successfully`);
-      router.push("/samples");
+      
+      // Handle add another functionality
+      if (shouldAddAnother) {
+        setShowAddAnotherPopup(false);
+        handleAddAnother(shouldAddAnother.retainDetails);
+      } else {
+        router.push("/samples");
+      }
     } catch (error) {
       errorToast(
         error instanceof Error
@@ -557,9 +575,9 @@ export default function SampleForm() {
       // Retain specific details
       const retainedData = {
         project_id: formData.project_id,
-        agency_id: session?.user?.agency_id,
-        account_id: formData.project_id || "",
-        created_by: session?.user?.id,
+        agency_id: session?.user?.agency_id || null,
+        account_id: formData.account_id || null,
+        created_by: session?.user?.id || null,
         matrix_type: formData.matrix_type,
         matrix_name: formData.matrix_name,
         latitude: formData.latitude,
@@ -568,34 +586,71 @@ export default function SampleForm() {
         sample_collected_at: formData.sample_collected_at,
         temperature: formData.temperature,
         notes: formData.notes,
+        source: formData.source,
+        sample_privacy: formData.sample_privacy,
+        compliance: formData.compliance,
+        chlorine_residual: formData.chlorine_residual,
+        county: formData.county,
       };
       setFormData({
-        ...formData,
+        ...sampleInitialValues,
         ...retainedData,
-        pws_id: "",
       });
+      setSelectedTests(selectedTests); // Retain selected tests
+      setSelectedTestGroup(selectedTestGroup); // Retain selected test group
     } else {
       // Start fresh
-      setFormData(sampleInitialValues);
+      setFormData({
+        ...sampleInitialValues,
+        agency_id: session?.user?.agency_id || null,
+        created_by: session?.user?.id || null,
+      });
+      setSelectedTests([]);
+      setSelectedTestGroup("");
     }
     setCurrentStep(1);
-    setShowAddAnotherPopup(false);
+    setValidationErrors([]);
   };
 
-  const getFilteredTestTypes = () => {
-    if (!selectedTestGroup) {
-      return testTypes; // Show all tests if no group is selected
+  const handleSubmitAndAddAnother = (retainDetails: boolean) => {
+    const validation = validateStep(4);
+
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      const errorsToShow = validation.errors.slice(0, 3);
+      errorsToShow.forEach((error) => errorToast(error));
+
+      if (validation.errors.length > 3) {
+        errorToast(
+          `${
+            validation.errors.length - 3
+          } more validation errors found. Please complete all required fields.`
+        );
+      }
+      setShowAddAnotherPopup(false);
+      return;
     }
 
-    const group = testGroups.find((g) => g.id === selectedTestGroup);
-    if (group && group.test_types) {
-      return group.test_types.map((test) => ({
-        id: test.id,
-        name: test.name,
-      }));
+    // Check if sample is in submitted or fail status
+    if (
+      editMode &&
+      (formData.status === SampleStatus.Submitted ||
+        formData.status === SampleStatus.Fail)
+    ) {
+      setShowStatusWarning(true);
+      setPendingAddAnother({ retainDetails });
+      setShowAddAnotherPopup(false);
+      return;
     }
 
-    return testTypes;
+    // If sample is in pass status, prevent editing
+    if (editMode && formData.status === SampleStatus.Pass) {
+      errorToast("Cannot edit a sample that has passed inspection");
+      router.push(`/sample/${sampleId}`);
+      return;
+    }
+
+    submitSample({ retainDetails });
   };
 
   const renderStep = () => {
@@ -1173,10 +1228,7 @@ export default function SampleForm() {
                   size="large"
                   variant="white"
                   className="w-full h-[50px] hover:bg-gray-100"
-                  onClick={() => {
-                    setShowAddAnotherPopup(true);
-                    // handleSubmit();
-                  }}
+                  onClick={() => setShowAddAnotherPopup(true)}
                   disabled={isSubmitting}
                 />
               </div>
@@ -1210,16 +1262,20 @@ export default function SampleForm() {
       <AddAnotherSampleModal
         open={showAddAnotherPopup}
         close={() => setShowAddAnotherPopup(false)}
-        onChooseOption={(retainPrevious) =>
-          retainPrevious ? handleAddAnother(retainPrevious) : handleSubmit()
-        }
+        onChooseOption={handleSubmitAndAddAnother}
+        isSubmitting={isSubmitting}
       />
       <ConfirmationModal
         open={showStatusWarning}
         setOpenModal={setShowStatusWarning}
         onConfirm={() => {
           setShowStatusWarning(false);
-          submitSample();
+          if (pendingAddAnother) {
+            submitSample(pendingAddAnother);
+            setPendingAddAnother(null);
+          } else {
+            submitSample();
+          }
         }}
         processing={isSubmitting}
         message="This sample was already submitted to the lab admin. Are you sure you want to update it?"
