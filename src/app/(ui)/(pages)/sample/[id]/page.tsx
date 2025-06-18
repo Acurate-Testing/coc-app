@@ -302,8 +302,8 @@ export default function InspectionDetailPage() {
       }
       
       const lines = [];
-      if (formData.test_group?.name) {
-        lines.push(`Group: ${formData.test_group.name}`);
+      if (formData.test_group_id) {
+        lines.push(`Group ID: ${formData.test_group_id}`);
       }
       
       formData.test_types.forEach(test => {
