@@ -69,7 +69,7 @@ const COCTransferItem = ({
       {/* Header */}
       <div className="flex justify-between items-start mb-1">
         <div className="text-xs text-gray-500 font-medium leading-tight pt-1">
-          {format(new Date(transfer.timestamp), "MMM d, yyyy h:mm a")}
+          {format(new Date(transfer.timestamp), "MMM d, yyyy HH:mm")}
           {/* Transfer text */}
           <h3
             className={`text-base font-semibold m-0 transfer-text ${
@@ -321,7 +321,7 @@ export default function InspectionDetailPage() {
       
       return cocTransfers.map((transfer: any, index: number) => {
         const isLabAdminTransfer = transfer.received_by_user?.id === LAB_ADMIN_ID;
-        const timestamp = transfer.timestamp ? format(new Date(transfer.timestamp), "MMM d, yyyy h:mm a") : "No timestamp";
+        const timestamp = transfer.timestamp ? format(new Date(transfer.timestamp), "MMM d, yyyy HH:mm") : "No timestamp";
         const receivedBy = isLabAdminTransfer ? "Lab Admin" : transfer.received_by_user?.full_name || "Unknown";
         
         return `${index + 1}. ${timestamp} - Transferred to: ${receivedBy}`;
@@ -345,7 +345,7 @@ export default function InspectionDetailPage() {
         { label: "Source", value: formData.source || "" },
         { label: "Sample Type", value: formData.sample_type || "" },
         { label: "Chlorine Residual", value: formData.chlorine_residual || "" },
-        { label: "Sample Date", value: formData?.sample_collected_at ? format(new Date(formData.sample_collected_at), "yyyy-MM-dd hh:mm a") : "" },
+        { label: "Sample Date", value: formData?.sample_collected_at ? format(new Date(formData.sample_collected_at), "yyyy-MM-dd HH:mm") : "" },
         { label: "Test Selection", value: formatTestSelection(), isMultiline: true },
         { label: "Remarks", value: formData?.notes || "" },
         { label: "Chain of Custody", value: formatCocTransfers(), isMultiline: true },
@@ -690,13 +690,16 @@ export default function InspectionDetailPage() {
                 onClick={() => setSelectedStatus("pass")}
               >
                 <div
-                  className={`w-4 h-4 rounded-full mr-2 ${
-                    selectedStatus === "pass" ? "bg-green-500" : "bg-gray-200"
-                  }`}
-                ></div>
-                <span>Pass</span>
+                  className={`
+                    w-4 h-4 rounded-full border-2 mr-2 ${
+                      selectedStatus === "pass"
+                        ? "border-green-500 bg-green-500"
+                        : "border-gray-300"
+                    }
+                  `}
+                />
+                <span className="text-sm font-medium">Pass</span>
               </div>
-
               <div
                 className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
                   selectedStatus === "fail"
@@ -706,15 +709,18 @@ export default function InspectionDetailPage() {
                 onClick={() => setSelectedStatus("fail")}
               >
                 <div
-                  className={`w-4 h-4 rounded-full mr-2 ${
-                    selectedStatus === "fail" ? "bg-red-500" : "bg-gray-200"
-                  }`}
-                ></div>
-                <span>Fail</span>
+                  className={`
+                    w-4 h-4 rounded-full border-2 mr-2 ${
+                      selectedStatus === "fail"
+                        ? "border-red-500 bg-red-500"
+                        : "border-gray-300"
+                    }
+                  `}
+                />
+                <span className="text-sm font-medium">Fail</span>
               </div>
             </div>
           </div>
-
           <div className="mb-4">
             <label className="block text-sm font-medium mb-2">
               Temperature (°C)
@@ -742,46 +748,38 @@ export default function InspectionDetailPage() {
 
           <div className="flex justify-end mt-6 gap-4">
             <Button
-              variant="outline-primary"
-              size="large"
               label="Cancel"
+              variant="white"
+              size="large"
               onClick={handleCancelStatusUpdate}
             />
             <Button
-              variant="primary"
+              label="Save Status"
               size="large"
-              label="Save"
-              disabled={updatingStatus || !selectedStatus}
               onClick={handleSaveStatus}
-              // loading={updatingStatus}
+              disabled={updatingStatus || !selectedStatus}
             />
           </div>
         </div>
       </Modal>
-      {/* Image Preview Modal */}
-      <Modal
-        open={!!selectedImage}
-        onClose={() => setSelectedImage(null)}
-        title={
-          selectedImage?.type === "signature" ? "Signature" : "Handoff Photo"
-        }
-      >
-        <div className="p-4">
-          {selectedImage && (
-            <div className="flex justify-center">
-              <img
-                src={selectedImage.url}
-                alt={
-                  selectedImage.type === "signature"
-                    ? "Signature"
-                    : "Handoff Photo"
-                }
-                className="max-w-full max-h-[80vh] object-contain"
-              />
-            </div>
-          )}
-        </div>
-      </Modal>
+
+      {/* Image Modal */}
+      {selectedImage && (
+        <Modal
+          open={!!selectedImage}
+          title={`View ${selectedImage.type === "signature" ? "Signature" : "Photo"}`}
+          onClose={() => setSelectedImage(null)}
+          size="lg"
+        >
+          <div className="p-6">
+            <img
+              src={selectedImage.url}
+              alt={selectedImage.type === "signature" ? "Signature" : "Photo"}
+              className="w-full h-auto max-h-96 object-contain"
+            />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

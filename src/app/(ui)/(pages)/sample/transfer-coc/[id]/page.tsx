@@ -31,6 +31,7 @@ export default function TransferCOCPage() {
   const sigPadRef = useRef<SignaturePad>(null);
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [isDrawingSignature, setIsDrawingSignature] = useState(true);
 
   const handleConfirm = () => {
     setTimestamp(tempTimestamp);
@@ -71,8 +72,13 @@ export default function TransferCOCPage() {
   const clearSignature = () => {
     if (sigPadRef.current) {
       sigPadRef.current.clear();
-      setSignatureData(null);
     }
+    setSignatureData(null);
+    setIsDrawingSignature(true);
+  };
+
+  const clearPhoto = () => {
+    setPhoto(null);
   };
 
   const saveSignature = () => {
@@ -107,9 +113,28 @@ export default function TransferCOCPage() {
         }
 
         setSignatureData(signatureDataUrl);
+        setIsDrawingSignature(false);
       };
     } catch (error) {
       errorToast("Failed to save signature");
+    }
+  };
+
+  // Auto-save signature when user stops drawing
+  const handleSignatureEnd = () => {
+    // Add a small delay to ensure the signature is complete
+    setTimeout(() => {
+      if (sigPadRef.current && !sigPadRef.current.isEmpty()) {
+        saveSignature();
+      }
+    }, 100);
+  };
+
+  const startDrawingSignature = () => {
+    setIsDrawingSignature(true);
+    setSignatureData(null);
+    if (sigPadRef.current) {
+      sigPadRef.current.clear();
     }
   };
 
@@ -186,6 +211,8 @@ export default function TransferCOCPage() {
     // Save signature before submitting if it hasn't been saved yet
     if (!signatureData && sigPadRef.current && !sigPadRef.current.isEmpty()) {
       saveSignature();
+      // Wait a moment for the signature to be saved
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
 
     if (!signatureData) {
@@ -358,42 +385,45 @@ export default function TransferCOCPage() {
             </p>
 
             <div className="border rounded-md overflow-hidden bg-gray-50 relative">
-              {signatureData ? (
-                <img
-                  src={signatureData}
-                  alt="Signature"
-                  className="w-full h-48 object-contain"
-                />
+              {signatureData && !isDrawingSignature ? (
+                <div className="relative">
+                  <img
+                    src={signatureData}
+                    alt="Signature"
+                    className="w-full h-48 object-contain"
+                  />
+                  {/* <button
+                    onClick={startDrawingSignature}
+                    className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                    title="Edit signature"
+                  >
+                    <BiPencil className="w-4 h-4" />
+                  </button> */}
+                </div>
               ) : (
-                <SignaturePad
-                  ref={sigPadRef}
-                  penColor="#000000"
-                  clearOnResize
-                  canvasProps={{
-                    className: "w-full h-48",
-                    width: 500,
-                    height: 200,
-                  }}
-                />
-              )}
-              {!signatureData && (
-                <BiPencil className="w-6 h-6 text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+                <div className="relative">
+                  <SignaturePad
+                    ref={sigPadRef}
+                    penColor="#000000"
+                    clearOnResize
+                    onEnd={handleSignatureEnd}
+                    canvasProps={{
+                      className: "w-full h-48",
+                      width: 500,
+                      height: 200,
+                    }}
+                  />
+                  <BiPencil className="w-6 h-6 text-gray-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               )}
             </div>
-            <div className="flex items-center justify-between gap-4 mt-4">
+            <div className="mt-4">
               <Button
-                label={isMobile ? "Clear" : "Clear Signature"}
+                label="Clear Signature"
                 variant="outline-primary"
                 size="large"
-                disabled={!sigPadRef.current || sigPadRef.current.isEmpty()}
+                disabled={!signatureData && (!sigPadRef.current || sigPadRef.current.isEmpty())}
                 onClick={clearSignature}
-                className="w-full h-[50px]"
-              />
-              <Button
-                label={isMobile ? "Save" : "Save Signature"}
-                size="large"
-                disabled={!sigPadRef.current || sigPadRef.current.isEmpty()}
-                onClick={saveSignature}
                 className="w-full h-[50px]"
               />
             </div>
@@ -410,16 +440,27 @@ export default function TransferCOCPage() {
 
             <div className="border rounded-md overflow-hidden bg-gray-100 h-48 flex items-center justify-center relative">
               {photo ? (
-                <img
-                  src={photo}
-                  alt="Uploaded"
-                  className="w-full h-full object-cover"
-                />
+                <div className="relative w-full h-full">
+                  <img
+                    src={photo}
+                    alt="Uploaded"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               ) : (
                 <BiCamera className="w-8 h-8 text-gray-400" />
               )}
             </div>
-
+            <div className="mt-4">
+              <Button
+                label="Clear Photo"
+                variant="outline-primary"
+                size="large"
+                disabled={!photo}
+                onClick={clearPhoto}
+                className="w-full h-[50px]"
+              />
+            </div>
             <label htmlFor="photo-upload" className="block mt-3">
               <input
                 type="file"

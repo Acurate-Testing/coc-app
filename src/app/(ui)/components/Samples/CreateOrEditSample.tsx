@@ -24,7 +24,9 @@ import AddAnotherSampleModal from "./AddAnotherSampleModal";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { format } from "date-fns";
 import ConfirmationModal from "../Common/ConfirmationModal";
-import { FaMapMarkerAlt } from "react-icons/fa";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import "@/app/(ui)/styles/react-datepicker-custom.css";
 
 interface Account {
   id: string;
@@ -153,10 +155,9 @@ export default function SampleForm() {
         };
 
         navigator.geolocation.getCurrentPosition(async (position) => {
-          const lat = Number(position.coords.latitude.toFixed(6));
-          const lon = Number(position.coords.longitude.toFixed(6));
+          const lat = Number(position.coords.latitude);
+          const lon = Number(position.coords.longitude);
           const accuracy = position.coords.accuracy;
-          console.log("position", position);
 
           setFormData((prev) => ({
             ...prev,
@@ -269,8 +270,8 @@ export default function SampleForm() {
 
       navigator.geolocation.getCurrentPosition(async (position) => {
         // Use more precise coordinates (6 decimal places for ~11cm accuracy)
-        const lat = Number(position.coords.latitude.toFixed(6));
-        const lon = Number(position.coords.longitude.toFixed(6));
+        const lat = Number(position.coords.latitude);
+        const lon = Number(position.coords.longitude);
         const accuracy = position.coords.accuracy; // Accuracy in meters
 
         // Set the coordinates in your state
@@ -336,7 +337,15 @@ export default function SampleForm() {
   useEffect(() => {
     fetchTestTypes();
     fetchTestGroups();
-  }, []);
+
+    // Set default date and time for new samples only
+    if (!editMode && !formData.sample_collected_at) {
+      setFormData((prev) => ({
+        ...prev,
+        sample_collected_at: new Date().toISOString(),
+      }));
+    }
+  }, [editMode, formData.sample_collected_at]);
 
   const handleTestSelection = (
     selectedOptions: { label: string; value: string }[]
@@ -705,32 +714,36 @@ export default function SampleForm() {
 
   const handleAddAnother = (retainDetails: boolean) => {
     if (retainDetails) {
-      // Retain specific details
-      const retainedData = {
-        project_id: formData.project_id,
-        agency_id: session?.user?.agency_id || null,
-        account_id: formData.account_id || null,
-        created_by: session?.user?.id || null,
-        matrix_type: formData.matrix_type,
-        matrix_name: formData.matrix_name,
-        latitude: formData.latitude,
-        longitude: formData.longitude,
-        address: formData.address,
-        sample_collected_at: formData.sample_collected_at,
-        temperature: formData.temperature,
-        notes: formData.notes,
-        source: formData.source,
-        sample_privacy: formData.sample_privacy,
-        compliance: formData.compliance,
-        chlorine_residual: formData.chlorine_residual,
-        county: formData.county,
-      };
+      const retainedTests = selectedTests;
+      const retainedTestGroup = selectedTestGroup;
+
+      // Retain specific details by copying the existing form data
+      const retainedData = { ...formData };
+
+      // Clear fields that should not be carried over
+      retainedData.latitude = null;
+      retainedData.longitude = null;
+      retainedData.address = "";
+      retainedData.sample_collected_at = "";
+      retainedData.latitude = null
+      retainedData.longitude = null;
+      retainedData.sample_location = "";
+
+      // Remove fields that should be reset for a new sample
+      delete retainedData.id;
+      delete retainedData.status;
+
       setFormData({
         ...sampleInitialValues,
         ...retainedData,
+        // Ensure user and agency are set for the new sample
+        agency_id: session?.user?.agency_id || null,
+        created_by: session?.user?.id || null,
       });
-      setSelectedTests(selectedTests); // Retain selected tests
-      setSelectedTestGroup(selectedTestGroup); // Retain selected test group
+
+      // Restore tests after form data is set
+      setSelectedTestGroup(retainedTestGroup);
+      setSelectedTests(retainedTests);
     } else {
       // Start fresh
       setFormData({
@@ -1047,25 +1060,26 @@ export default function SampleForm() {
               <label htmlFor="sampleDate">
                 Sample Date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="datetime-local"
+              <DatePicker
                 id="sampleDate"
                 name="sampleDate"
-                className="form-input mt-1 w-full"
-                value={
+                selected={
                   formData.sample_collected_at
-                    ? format(
-                        new Date(formData.sample_collected_at),
-                        "yyyy-MM-dd'T'HH:mm"
-                      )
-                    : ""
+                    ? new Date(formData.sample_collected_at)
+                    : null
                 }
-                onChange={(e) =>
+                onChange={(date: Date | null) =>
                   setFormData((prev) => ({
                     ...prev,
-                    sample_collected_at: e.target.value,
+                    sample_collected_at: date ? date.toISOString() : "",
                   }))
                 }
+                showTimeSelect
+                timeFormat="HH:mm"
+                timeIntervals={15}
+                dateFormat="MMMM d, yyyy HH:mm"
+                className="form-input mt-1 w-full"
+                placeholderText="Select date and time"
               />
             </div>
           </div>
@@ -1199,10 +1213,12 @@ export default function SampleForm() {
                 <div>
                   <p className="text-sm text-gray-600">Date/Timestamp</p>
                   <p className="font-medium">
-                    {formData.sample_collected_at &&
-                      typeof formData.sample_collected_at === "string"
-                      ? new Date(formData.sample_collected_at).toLocaleString()
-                      : "Not available"}
+                    {formData.sample_collected_at
+                      ? format(
+                          new Date(formData.sample_collected_at),
+                          "MM/dd/yyyy HH:mm"
+                        )
+                      : "-"}
                   </p>
                 </div>
                 <div>
