@@ -72,9 +72,8 @@ const COCTransferItem = ({
           {format(new Date(transfer.timestamp), "MMM d, yyyy HH:mm")}
           {/* Transfer text */}
           <h3
-            className={`text-base font-semibold m-0 transfer-text ${
-              isLabAdminTransfer ? "text-green-800" : "text-blue-900"
-            }`}
+            className={`text-base font-semibold m-0 transfer-text ${isLabAdminTransfer ? "text-green-800" : "text-blue-900"
+              }`}
           >
             {isLabAdminTransfer ? (
               "Transferred to Lab"
@@ -295,47 +294,60 @@ export default function InspectionDetailPage() {
     const lastIsLabAdmin =
       cocTransfers.length > 0 && cocTransfers[0].received_by === LAB_ADMIN_ID;
 
+    // Format customer address as a string
+    const formatAddress = (agency: any) => {
+      if (!agency) return "(Customer Address)";
+
+      const street = agency.street || "";
+      const cityStateZip = [
+        agency.city,
+        agency.state,
+        agency.zip
+      ].filter(Boolean).join(", ");
+
+      return street && cityStateZip ?
+        `${street}, ${cityStateZip}` :
+        street || cityStateZip || "(Customer Address)";
+    };
+
     // Format test selection with one line per selection
     const formatTestSelection = () => {
       if (!formData?.test_types?.length) {
         return "No tests selected";
       }
-      
-      const lines = [];
-      if (formData.test_group_id) {
-        lines.push(`Group ID: ${formData.test_group_id}`);
-      }
-      
-      formData.test_types.forEach(test => {
-        lines.push(`${test.name}`);
-      });
-      
-      return lines.join("\n");
+
+      return formData.test_types.map(test => test.name).join("\n");
     };
+
 
     // Format Chain of Custody transfers
     const formatCocTransfers = () => {
       if (cocTransfers.length === 0) {
         return "No transfers recorded";
       }
-      
+
       return cocTransfers.map((transfer: any, index: number) => {
         const isLabAdminTransfer = transfer.received_by_user?.id === LAB_ADMIN_ID;
         const timestamp = transfer.timestamp ? format(new Date(transfer.timestamp), "MMM d, yyyy HH:mm") : "No timestamp";
         const receivedBy = isLabAdminTransfer ? "Lab Admin" : transfer.received_by_user?.full_name || "Unknown";
-        
+
         return `${index + 1}. ${timestamp} - Transferred to: ${receivedBy}`;
       }).join("\n");
     };
 
     return {
+      // Customer information in a separate table
+      creatorInfo: [
+        { label: "Customer", value: formData.created_by_user?.full_name || "(Customer)" },
+        { label: "Customer Address", value: formatAddress(formData.agency) },
+      ],
+      // Main sample information
       basicInfo: [
         { label: "Sample ID", value: formData.id },
         { label: "Project ID", value: formData.project_id || "" },
         { label: "PWS ID", value: formData.pws_id || "" },
         { label: "Account Name", value: formData.account?.name || "" },
         { label: "Address", value: formData.address || "" },
-        { label: "Created By", value: formData.created_by_user?.full_name || "(Sampler)" },
         { label: "County", value: formData.county || "" },
         { label: "Sample Privacy", value: formData.sample_privacy || "" },
         { label: "Compliance", value: formData.compliance || "" },
@@ -352,15 +364,15 @@ export default function InspectionDetailPage() {
       ],
       cocTransfers,
       lastIsLabAdmin,
-      showDeleteButton: !isLabAdmin && !lastIsLabAdmin && 
-        formData.status !== SampleStatus.Submitted && 
+      showDeleteButton: !isLabAdmin && !lastIsLabAdmin &&
+        formData.status !== SampleStatus.Submitted &&
         formData.status !== SampleStatus.Pass
     };
   };
 
   const handlePrint = () => {
     const reportData = getReportData();
-    
+
     // Create print content with table format
     const printContent = `
       <div class="print-container">
@@ -368,6 +380,12 @@ export default function InspectionDetailPage() {
       <h1 class="print-title2">Sample Report</h1>
         <table class="print-table">
           <tbody>
+          ${reportData.creatorInfo.map(field => `
+              <tr>
+                <td class="print-label">${field.label}</td>
+                <td class="print-value">${field.value || ''}</td>
+              </tr>
+            `).join('')}
             ${reportData.basicInfo.map(field => `
               <tr>
                 <td class="print-label">${field.label}</td>
@@ -376,6 +394,7 @@ export default function InspectionDetailPage() {
             `).join('')}
           </tbody>
         </table>
+        <div class="print-table-bottom-spacing"></div>
       </div>
     `;
 
@@ -425,6 +444,14 @@ export default function InspectionDetailPage() {
                 border-collapse: collapse;
                 margin-bottom: 30px;
                 border: 1px solid #ccc;
+                padding-bottom: 192px;
+              }
+              
+              .print-table-bottom-spacing {
+                min-height: 192px;
+                height: 192px;
+                max-height: 192px;
+                width: 100%;
               }
               
               .print-table tr {
@@ -494,7 +521,7 @@ export default function InspectionDetailPage() {
   }
 
   return (
-    <div className="w-full md:p-8 p-6">
+    <div className="w-full p-6 !pb-[192px]">
       <div className="flex justify-between items-center mb-4">
         <Button
           label="Back"
@@ -530,7 +557,7 @@ export default function InspectionDetailPage() {
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="text-xl font-semibold text-gray-900">Sample Report</h2>
         </div>
-        
+
         <div className="px-6 py-4">
           {/* Status Badge */}
           {formData.status && (
@@ -538,13 +565,12 @@ export default function InspectionDetailPage() {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-500">Status:</span>
                 <span
-                  className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    formData.status === SampleStatus.Pass
-                      ? "bg-green-100 text-green-800"
-                      : formData.status === SampleStatus.Fail
+                  className={`px-3 py-1 rounded-full text-sm font-semibold ${formData.status === SampleStatus.Pass
+                    ? "bg-green-100 text-green-800"
+                    : formData.status === SampleStatus.Fail
                       ? "bg-red-100 text-red-800"
                       : "bg-yellow-100 text-yellow-800"
-                  }`}
+                    }`}
                 >
                   {formData.status}
                 </span>
@@ -558,26 +584,50 @@ export default function InspectionDetailPage() {
             </div>
           )}
 
-          {/* Simple Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full table-auto">
-              <tbody>
-                {getReportData().basicInfo.map((field, index) => (
-                  <tr key={index} className="border border-gray-200 ">
-                    <td className="p-3 pr-4 text-sm font-medium text-gray-600 align-top w-1/3 border-r border-gray-200">
-                      {field.label}
-                    </td>
-                    <td className="p-3 text-sm text-gray-900 break-words">
-                      {field.isMultiline ? (
-                        <pre className="whitespace-pre-wrap font-sans text-sm">{field.value || ""}</pre>
-                      ) : (
-                        field.value || ""
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Creator Information Table */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Customer Information</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full table-auto">
+                <tbody>
+                  {getReportData().creatorInfo.map((field, index) => (
+                    <tr key={index} className="border border-gray-200">
+                      <td className="p-3 pr-4 text-sm font-medium text-gray-600 align-top w-1/3 border-r border-gray-200">
+                        {field.label}
+                      </td>
+                      <td className="p-3 text-sm text-gray-900 break-words">
+                        {field.value || ""}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Sample Information Table */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">Sample Information</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full table-auto">
+                <tbody>
+                  {getReportData().basicInfo.map((field, index) => (
+                    <tr key={index} className="border border-gray-200">
+                      <td className="p-3 pr-4 text-sm font-medium text-gray-600 align-top w-1/3 border-r border-gray-200">
+                        {field.label}
+                      </td>
+                      <td className="p-3 text-sm text-gray-900 break-words">
+                        {field.isMultiline ? (
+                          <pre className="whitespace-pre-wrap font-sans text-sm">{field.value || ""}</pre>
+                        ) : (
+                          field.value || ""
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -597,7 +647,7 @@ export default function InspectionDetailPage() {
             )}
           </div>
         </div>
-        
+
         <div className="px-6 py-4">
           <div className="relative pl-6">
             {/* Timeline vertical line */}
@@ -613,18 +663,16 @@ export default function InspectionDetailPage() {
                   <div key={transfer.id} className="relative">
                     {/* Timeline dot */}
                     <div
-                      className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${
-                        isLabAdminTransfer
-                          ? "bg-green-600 border-green-600"
-                          : "bg-blue-600 border-blue-600"
-                      } z-10`}
+                      className={`absolute left-[-0.6rem] top-2.5 w-3 h-3 rounded-full border-2 ${isLabAdminTransfer
+                        ? "bg-green-600 border-green-600"
+                        : "bg-blue-600 border-blue-600"
+                        } z-10`}
                     />
                     <div
-                      className={`ml-4 ${
-                        isLabAdminTransfer
-                          ? "bg-green-50 border-green-200"
-                          : "bg-gray-50 border-gray-200"
-                      } border rounded-lg p-4 shadow-sm`}
+                      className={`ml-4 ${isLabAdminTransfer
+                        ? "bg-green-50 border-green-200"
+                        : "bg-gray-50 border-gray-200"
+                        } border rounded-lg p-4 shadow-sm`}
                     >
                       <COCTransferItem
                         transfer={transfer}
@@ -682,38 +730,34 @@ export default function InspectionDetailPage() {
             <label className="block text-sm font-medium mb-2">Status</label>
             <div className="flex gap-4">
               <div
-                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
-                  selectedStatus === "pass"
-                    ? "border-green-500 bg-green-50"
-                    : "border-gray-300"
-                }`}
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${selectedStatus === "pass"
+                  ? "border-green-500 bg-green-50"
+                  : "border-gray-300"
+                  }`}
                 onClick={() => setSelectedStatus("pass")}
               >
                 <div
                   className={`
-                    w-4 h-4 rounded-full border-2 mr-2 ${
-                      selectedStatus === "pass"
-                        ? "border-green-500 bg-green-500"
-                        : "border-gray-300"
+                    w-4 h-4 rounded-full border-2 mr-2 ${selectedStatus === "pass"
+                      ? "border-green-500 bg-green-500"
+                      : "border-gray-300"
                     }
                   `}
                 />
                 <span className="text-sm font-medium">Pass</span>
               </div>
               <div
-                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${
-                  selectedStatus === "fail"
-                    ? "border-red-500 bg-red-50"
-                    : "border-gray-300"
-                }`}
+                className={`flex items-center px-4 py-2 rounded-md border cursor-pointer ${selectedStatus === "fail"
+                  ? "border-red-500 bg-red-50"
+                  : "border-gray-300"
+                  }`}
                 onClick={() => setSelectedStatus("fail")}
               >
                 <div
                   className={`
-                    w-4 h-4 rounded-full border-2 mr-2 ${
-                      selectedStatus === "fail"
-                        ? "border-red-500 bg-red-500"
-                        : "border-gray-300"
+                    w-4 h-4 rounded-full border-2 mr-2 ${selectedStatus === "fail"
+                      ? "border-red-500 bg-red-500"
+                      : "border-gray-300"
                     }
                   `}
                 />

@@ -19,6 +19,11 @@ type User = {
   id: string;
   name: string;
   contact_email: string;
+  phone?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
   accounts?: string[];
   agency_test_type_groups?: AgencyTestTypeGroup[];
   assigned_test_group?: AssignedTestGroup[];
@@ -48,6 +53,7 @@ export default function AdminUsersPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedTestGroup, setSelectedTestGroup] = useState<string>(""); // Changed from selectedTest
   const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
+  const [openConfirmDeleteUserDialog, setOpenConfirmDeleteUserDialog] = useState<boolean>(false);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -148,6 +154,37 @@ export default function AdminUsersPage() {
     }
   };
 
+  // Updated function to handle user deletion
+  const handleDeleteUser = async () => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch(`/api/admin/users/${selectedUser?.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete user");
+      }
+
+      successToast("User deleted successfully");
+      // Remove the user from the list
+      setUsers(users.filter(u => u.id !== selectedUser?.id));
+      setSelectedUser(users.find(u => u.id !== selectedUser?.id) || null);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete user";
+      setError(errorMessage);
+      errorToast(errorMessage);
+    } finally {
+      setIsLoading(false);
+      setOpenConfirmDeleteUserDialog(false);
+    }
+  };
+
   const toggleActionMenu = (testId: string, event: React.MouseEvent<HTMLButtonElement>) => {
     const button = event.currentTarget;
     menuButtonRefs.current.set(testId, button);
@@ -219,11 +256,10 @@ export default function AdminUsersPage() {
           {filteredUsers.map((user) => (
             <button
               key={user.id}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                selectedUser?.id === user.id
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${selectedUser?.id === user.id
                   ? "bg-blue-50 text-blue-700"
                   : "hover:bg-gray-50 text-gray-700"
-              }`}
+                }`}
               onClick={() => setSelectedUser(user)}
             >
               <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold">
@@ -242,34 +278,111 @@ export default function AdminUsersPage() {
         {selectedUser && (
           <div className="w-full mx-auto">
             {/* User Info */}
-            <div className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold">
+            <div className="bg-white rounded-xl shadow p-4 mb-6">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold flex-shrink-0">
                   {(selectedUser.name ?? "")[0] || "?"}
                 </div>
-                <div>
+                <div className="flex-1">
                   <div className="font-semibold text-lg">{selectedUser.name}</div>
-                  <div className="text-gray-400 text-sm">{selectedUser.contact_email}</div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {(selectedUser.accounts || []).map((acc) => (
+                  <div className="text-gray-500 text-sm">{selectedUser.contact_email}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline-danger"
+                    label="Delete User"
+                    onClick={() => setOpenConfirmDeleteUserDialog(true)}
+                  >
+                    Delete User
+                  </Button>
+                </div>
+              </div>
+
+              {/* Accounts Card */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-base">Account Access</h3>
+                  <Button
+                    variant="outline-primary"
+                    label="Assign Account Id"
+                    onClick={() => setShowEditAccessModal(true)}
+                  >
+                    Assign Account Id
+                  </Button>
+                </div>
+
+                {(!selectedUser.accounts || selectedUser.accounts.length === 0) ? (
+                  <div className="text-center py-8 text-gray-400 text-base font-medium">
+                    No accounts assigned.
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedUser.accounts.map((acc) => (
                       <span
                         key={acc}
-                        className="bg-gray-200 text-gray-600 rounded-full px-3 py-1 text-xs font-medium"
+                        className="bg-gray-200 text-gray-600 rounded-full px-3 py-1 text-sm font-medium"
                       >
                         {acc}
                       </span>
                     ))}
                   </div>
-                </div>
+                )}
               </div>
-              <Button
-                variant="outline-primary"
-                label="Assign Account Id"
-                onClick={() => setShowEditAccessModal(true)}
-              >
-                Assign Account Id
-              </Button>
+              {/* User Details */}
+              <div className="grid grid-cols-1">
+                {/* Contact Information */}
+                <div className="">
+                  <h3 className="text-md font-semibold text-black mb-3">Contact Information</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-gray-500 block">Email</span>
+                      <span className="text-black">{selectedUser.contact_email}</span>
+                    </div>
+                    {selectedUser.phone && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-500 block">Phone</span>
+                        <span className="text-black">{selectedUser.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {(selectedUser.street || selectedUser.city || selectedUser.state || selectedUser.zip) && (
+                  <div className="">
+                    <h3 className="text-md font-semibold text-black my-3">Address</h3>
+                    <div className="space-y-2">
+                      {selectedUser.street && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-500 block">Street</span>
+                          <span className="text-black">{selectedUser.street}</span>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {selectedUser.city && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-500 block">City</span>
+                            <span className="text-black">{selectedUser.city}</span>
+                          </div>
+                        )}
+                        {selectedUser.state && (
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-500 block">State</span>
+                            <span className="text-black">{selectedUser.state}</span>
+                          </div>
+                        )}
+                        {selectedUser.zip && (
+                          <div>
+                            <span className="text-sm font-medium text-gray-500 block">ZIP</span>
+                            <span className="text-black">{selectedUser.zip}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+
             {/* Test Permissions */}
             <div className="bg-white rounded-xl shadow p-4">
               <div className="flex items-center justify-between mb-4">
@@ -372,6 +485,15 @@ export default function AdminUsersPage() {
               }}
               message="Are you sure you want to remove this test access?"
               buttonText="Remove"
+            />
+            {/* Add confirmation modal for user deletion */}
+            <ConfirmationModal
+              open={openConfirmDeleteUserDialog}
+              processing={isLoading}
+              onConfirm={handleDeleteUser}
+              setOpenModal={() => setOpenConfirmDeleteUserDialog(false)}
+              message="Are you sure you want to delete this user? This action cannot be undone."
+              buttonText="Delete User"
             />
           </div>
         )}

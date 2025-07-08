@@ -25,7 +25,7 @@ export async function GET(
         `
       *,
       account:accounts(name),
-      agency:agencies(name),
+      agency:agencies(name,street,city,state,zip),
       test_types:test_types(id,name),
       created_by_user:users(id, full_name),
         coc_transfers(
@@ -102,7 +102,7 @@ export async function PUT(
       .select(`
         *,
         account:accounts!samples_account_id_fkey(name),
-        agency:agencies!samples_agency_id_fkey(name),
+        agency:agencies!samples_agency_id_fkey(name,street),
         created_by_user:users!samples_created_by_fkey(id, full_name),
         coc_transfers(
           id,
@@ -166,7 +166,7 @@ export async function PUT(
       .select(`
         *,
         account:accounts!samples_account_id_fkey(name),
-        agency:agencies!samples_agency_id_fkey(name),
+        agency:agencies!samples_agency_id_fkey(name,street),
         test_types:test_types(id,name),
         created_by_user:users!samples_created_by_fkey(id, full_name),
         coc_transfers(
