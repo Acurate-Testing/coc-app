@@ -51,6 +51,7 @@ export default function HomePage() {
       setIsLoading(true);
       setError(null);
 
+      // No need to pass agencyId as URL parameter since the API will use session's agency_id
       const response = await fetch(
         `/api/samples?page=${currentPage}${
           searchQuery ? `&search=${searchQuery}` : ""

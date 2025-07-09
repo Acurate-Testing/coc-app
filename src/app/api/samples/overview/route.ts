@@ -8,86 +8,46 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // Get current user session
     const session = await getServerSession(authOptions);
-    if (!session) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const agencyId = session.user.agency_id;
-    const isLabAdmin = session.user.role === UserRole.LABADMIN;
-
-    const queryForStatus = async (status?: SampleStatus) => {
-      let query = supabase.from("samples").select("id", { count: "exact" });
-      if (status) {
-        query = query.eq("status", status);
-      }
-      if (!isLabAdmin && agencyId) {
-        query = query.eq("agency_id", agencyId);
-      }
-      return query.is("deleted_at", null);
+    
+    // Initialize query
+    let query = supabase.from("samples").select("status", { count: "exact" })
+      .is("deleted_at", null);
+    
+    // Apply agency filter based on user role
+    if (session.user.role !== UserRole.LABADMIN && agencyId) {
+      query = query.eq("agency_id", agencyId);
+    }
+    
+    // Execute query
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error("Error fetching sample overview:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    
+    // Count samples by status
+    const overview = {
+      byStatus: {
+        pending: data.filter(s => s.status === SampleStatus.Pending).length,
+        in_coc: data.filter(s => s.status === SampleStatus.InCOC).length,
+        submitted: data.filter(s => s.status === SampleStatus.Submitted).length,
+        pass: data.filter(s => s.status === SampleStatus.Pass).length,
+        fail: data.filter(s => s.status === SampleStatus.Fail).length
+      },
+      total: data.length
     };
-
-    // Build queries depending on role
-    const queries = isLabAdmin
-      ? [
-          queryForStatus(SampleStatus.Submitted),
-          queryForStatus(SampleStatus.Pass),
-          queryForStatus(SampleStatus.Fail),
-        ]
-      : [
-          queryForStatus(SampleStatus.Pending),
-          queryForStatus(SampleStatus.InCOC),
-          queryForStatus(SampleStatus.Submitted),
-          queryForStatus(SampleStatus.Pass),
-          queryForStatus(SampleStatus.Fail),
-          queryForStatus(), // total
-        ];
-
-    const results: any = await Promise.all(queries);
-
-    // Check for any errors
-    const hasError = results.some((res: any) => res.error);
-    if (hasError) {
-      console.error(
-        "Error fetching sample counts:",
-        results.map((r: any) => r.error)
-      );
-      return NextResponse.json(
-        { error: "Failed to fetch sample counts" },
-        { status: 500 }
-      );
-    }
-
-    if (isLabAdmin) {
-      const [submitted, pass, fail] = results;
-      return NextResponse.json({
-        overview: {
-          total:
-            submitted?.data?.length + pass?.data?.length + fail?.data?.length,
-          byStatus: {
-            submitted: submitted.data.length,
-            pass: pass.data.length,
-            fail: fail.data.length,
-          },
-        },
-      });
-    } else {
-      const [pending, inCoc, submitted, pass, fail, total] = results;
-      return NextResponse.json({
-        overview: {
-          total: total.data.length,
-          byStatus: {
-            pending: pending.data.length,
-            in_coc: inCoc.data.length,
-            submitted: submitted.data.length,
-            pass: pass.data.length,
-            fail: fail.data.length,
-          },
-        },
-      });
-    }
+    
+    return NextResponse.json({ overview });
   } catch (error) {
-    console.error("Sample overview error:", error);
+    console.error("Unexpected error in GET /api/samples/overview:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

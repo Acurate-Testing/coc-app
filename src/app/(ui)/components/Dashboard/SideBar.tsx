@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { TiHome } from "react-icons/ti";
-import { FaChartLine, FaUsers, FaAngleDown } from "react-icons/fa6";
+import {  FaUsers, FaAngleDown } from "react-icons/fa6";
 import { FaFileAlt, FaTasks } from "react-icons/fa";
+import { GrMultiple } from "react-icons/gr";
 import { useMediaQuery } from "react-responsive";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
@@ -101,6 +101,12 @@ const SideBar = ({ sidebarOpen, setSidebarOpen }: SideBarProps) => {
         icon: <FaFileAlt size={22} />,
         to: "/samples",
         isActive: pathname.includes("samples") || pathname.includes("sample"),
+      },
+      {
+        name: "Bulk transfer",
+        icon: <GrMultiple size={22} />,
+        to: "/bulk-transfer",
+        isActive: pathname.includes("bulk-transfer"),
       },
       {
         name: "Members",
