@@ -31,6 +31,16 @@ export async function getSession() {
   const { data: { user }, error } = await supabase.auth.getUser(session.user.supabaseToken);
   if (error || !user) return null;
 
+  // Fetch user profile from users table and check deleted_at
+  const { data: userProfile, error: userProfileError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", user.id)
+    .is("deleted_at", null)
+    .single();
+
+  if (userProfileError || !userProfile) return null;
+
   return user;
 }
 
@@ -84,6 +94,7 @@ export async function getUserRole(userId: string) {
     .from("users")
     .select("role")
     .eq("id", userId)
+    .is("deleted_at", null)
     .single();
 
   if (error || !data) return null;

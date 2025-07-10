@@ -19,6 +19,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Fetch sample and all COC transfers (including deleted users)
     const { data, error } = await supabase
       .from("samples")
       .select(
@@ -28,17 +29,16 @@ export async function GET(
       agency:agencies(name,street,city,state,zip),
       test_types:test_types(id,name),
       created_by_user:users(id, full_name),
-        coc_transfers(
-          id,
-          transferred_by,
-          received_by,
-          timestamp,
-          latitude,
-          longitude,
-          signature,
-          photo_url,
-          received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email,role)
-        )
+      coc_transfers(
+        id,
+        transferred_by,
+        received_by,
+        timestamp,
+        latitude,
+        longitude,
+        signature,
+        photo_url
+      )
       `
       )
       .eq("id", params.sampleId)
@@ -52,6 +52,45 @@ export async function GET(
 
     if (!data) {
       return NextResponse.json({ error: "Sample not found" }, { status: 404 });
+    }
+
+    // Fetch all user IDs involved in COC transfers
+    const userIds = [
+      ...(data.coc_transfers?.map((t: any) => t.transferred_by) || []),
+      ...(data.coc_transfers?.map((t: any) => t.received_by) || []),
+    ].filter(Boolean);
+
+    // Remove duplicates
+    const uniqueUserIds = Array.from(new Set(userIds));
+
+    // Fetch user details for all involved users, including deleted ones
+    let userMap: Record<string, any> = {};
+    if (uniqueUserIds.length > 0) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, full_name, email, role, deleted_at")
+        .in("id", uniqueUserIds);
+
+      if (users) {
+        userMap = users.reduce((acc: any, user: any) => {
+          acc[user.id] = {
+            ...user,
+            full_name: user.deleted_at
+              ? `${user.full_name} (Deactivated)`
+              : user.full_name,
+          };
+          return acc;
+        }, {});
+      }
+    }
+
+    // Attach user details to each COC transfer
+    if (Array.isArray(data.coc_transfers)) {
+      data.coc_transfers = data.coc_transfers.map((transfer: any) => ({
+        ...transfer,
+        transferred_by_user: userMap[transfer.transferred_by] || null,
+        received_by_user: userMap[transfer.received_by] || null,
+      }));
     }
 
     return NextResponse.json({ sample: data });
