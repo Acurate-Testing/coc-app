@@ -61,21 +61,36 @@ const handler = NextAuth({
             }
           );
 
+          // Fetch user from Supabase with deleted_at IS NULL
+          const { data: user, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("email", credentials.email)
+            .single();
+
+          // Check for deleted or deactivated user
+          if (error || !user || user.deleted_at || user.active === false) {
+            // User not found, deleted, or deactivated
+            const err = new Error("Your account has been deactivated");
+            (err as any).code = "ACCOUNT_DEACTIVATED";
+            throw err;
+          }
+
           const {
-            data: { user, session },
-            error,
+            data: { session },
+            error: authError,
           } = await supabase.auth.signInWithPassword({
             email: credentials.email,
             password: credentials.password,
           });
 
-          if (error) {
-            console.error("Supabase auth error:", error);
-            throw new Error(error.message);
+          if (authError) {
+            console.error("Supabase auth error:", authError);
+            throw new Error(authError.message);
           }
 
-          if (!user || !session) {
-            console.error("No user or session found after successful auth");
+          if (!session) {
+            console.error("No session found after successful auth");
             throw new Error("Authentication failed");
           }
 

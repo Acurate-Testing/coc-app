@@ -10,12 +10,24 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "0");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const status = searchParams.get("status");
+    
+    // Get agency filter from query params
+    const agencyIdParam = searchParams.get("agencyId");
+    
+    // Get current user session
     const session = await getServerSession(authOptions);
-
-    if (!session?.user?.supabaseToken) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    
+    // Use agency_id from session if no explicit agency filter provided
+    const agencyId = agencyIdParam || session.user.agency_id;
+    
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -34,79 +46,58 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "0");
-    const pageSize = parseInt(searchParams.get("pageSize") || "10");
-    const search = searchParams.get("search") || "";
-    const status = searchParams.get("status") || "";
-    const agencyId = searchParams.get("agencyId");
-
+    // Initialize query
     let query = supabase
       .from("samples")
-      .select(
-        `
+      .select(`
         *,
         account:accounts(name),
-        agency:agencies(name),
+        agency:agencies(name,street,city,state,zip),
         test_types:test_types(id,name),
-        test_group:test_groups(id, name, description),
         created_by_user:users(id, full_name)
-      `,
-        { count: "exact" }
-      )
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-
+      `, { count: "exact" })
+      .is("deleted_at", null);
+    
+    // Apply agency filter based on user role
+    if (session.user.role !== "lab_admin" && agencyId) {
+      query = query.eq("agency_id", agencyId);
+    }
+    
     // Apply search filter if provided
     if (search) {
-      query = query.or(
-        `pws_id.ilike.%${search}%,matrix_name.ilike.%${search}%,sample_location.ilike.%${search}%`
-      );
+      query = query.ilike("project_id", `%${search}%`);
     }
-
-    // Apply status filter if provided
-    if (status && status !== "All") {
-      query = query.eq("status", status.toLowerCase());
+    
+    // Apply status filter
+    if (status) {
+      if (status.includes(',')) {
+        // For multiple statuses (e.g., "pending,in_coc")
+        const statuses = status.split(',');
+        query = query.in('status', statuses);
+      } else {
+        query = query.eq('status', status);
+      }
     }
-
-    // Apply agency filter if provided or if user is not a lab admin
-    if (agencyId && agencyId !== "null") {
-      query = query.eq("agency_id", agencyId);
-    } else if (session.user.role === "lab_admin") {
-      // No additional filter needed
-    } else if (session.user.agency_id) {
-      // For non-admin users with an agency, only show their agency's samples
-      query = query.eq("agency_id", session.user.agency_id);
-    } else {
-      // For users without a role or agency, show no samples
-      return NextResponse.json({
-        samples: [],
-        total: 0,
-        page,
-        pageSize,
-      });
-    }
-
-    // Apply pagination
-    const from = page * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
-
+    
+    // Add pagination
+    query = query
+      .range(page * limit, (page + 1) * limit - 1)
+      .order('created_at', { ascending: false });
+    
     const { data, error, count } = await query;
-
+    
     if (error) {
-      console.error("Samples API: Query error", error);
+      console.error("Error fetching samples:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-
+    
     return NextResponse.json({
       samples: data,
-      total: count || 0,
-      page,
-      pageSize,
+      total: count,
+      totalPages: Math.ceil((count || 0) / limit)
     });
   } catch (error) {
-    console.error("Samples API: Unexpected error", error);
+    console.error("Unexpected error in GET /api/samples:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

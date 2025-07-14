@@ -5,4 +5,5 @@ export interface User {
   role?: string;
   created_at?: string;
   active?: boolean;
+  deleted_at?: string; // Added for deleted user detection
 }

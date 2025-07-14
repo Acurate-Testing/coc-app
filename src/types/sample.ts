@@ -48,6 +48,10 @@ export type Sample = Database["public"]["Tables"]["samples"]["Row"] & {
   };
   agency?: {
     name: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
   };
   created_by_user?: {
     id: string;

@@ -26,7 +26,8 @@ const CSV_EXPORT_CONFIG = {
     { field: 'temperature', header: 'Temperature' },
     { field: 'chlorine_residual', header: 'Chlorine Residual' },
     { field: 'sample_collected_at', header: 'Sample Collected At' },
-    { field: 'notes', header: 'Notes' }
+    { field: 'notes', header: 'Notes' },
+    { field: "source", header: "Source" },
   ],
   
   // Additional columns for admin users
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
       .select(`
         *,
         created_by_user:users!samples_created_by_fkey(id, full_name, email),
-        agency:agencies!samples_agency_id_fkey(id, name),
+        agency:agencies!samples_agency_id_fkey(id, name, street, city, state, zip),
         account:accounts!samples_account_id_fkey(id, name),
         test_types:test_types(id, name),
         coc_transfers(
@@ -121,8 +122,10 @@ export async function GET(request: Request) {
       "GPS Coordinates",
       "Created By",
       "Customer",
+      "Customer Address",
       "Account",
       "Test Types",
+      "Source",
       "Chain of Custody",
       "Created At",
       "Updated At"
@@ -147,6 +150,18 @@ export async function GET(request: Request) {
         })
         .join(" | ") || "-";
 
+      // Format customer address as a complete string
+      const customerAddress = sample.agency 
+        ? [
+            sample.agency.street,
+            sample.agency.city,
+            sample.agency.state,
+            sample.agency.zip
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : "-";
+
       return [
         sample.project_id || "-",
         sample.matrix_type || "-",
@@ -165,8 +180,10 @@ export async function GET(request: Request) {
         gpsLocation,
         sample.created_by_user?.full_name || sample.created_by_user?.email || "-",
         sample.agency?.name || "-",
+        customerAddress,
         sample.account?.name || "-",
         testTypes,
+        sample.source || "-", // Added source field here
         cocInfo,
         sample.created_at ? format(new Date(sample.created_at), "yyyy-MM-dd HH:mm:ss") : "-",
         sample.updated_at ? format(new Date(sample.updated_at), "yyyy-MM-dd HH:mm:ss") : "-"

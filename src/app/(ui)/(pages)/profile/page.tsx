@@ -29,12 +29,19 @@ export default function ProfilePage() {
     const fetchUserData = async () => {
       const { data: userData, error: userError } = await supabase
         .from("users")
-        .select("full_name, email, role, agency_id")
+        .select("full_name, email, role, agency_id, active, deleted_at")
         .eq("id", session.user.id)
         .single();
 
       if (userError) {
         console.error("Error fetching user data:", userError);
+        return;
+      }
+
+      // Check if account is deactivated (soft deleted or not active)
+      if (userData?.deleted_at || userData?.active === false) {
+        errorToast("Your account has deactivated.");
+        router.push("/login");
         return;
       }
 
