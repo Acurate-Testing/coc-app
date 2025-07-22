@@ -41,6 +41,7 @@ interface TestGroup {
   name: string;
   description: string | null;
   test_type_ids: string[];
+  assigned_test_type_ids?: string[]; // <-- Add this line
   test_types?: {
     id: string;
     name: string;
@@ -88,6 +89,36 @@ export default function SampleForm() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  const [assignedTestGroups, setAssignedTestGroups] = useState<TestGroup[]>([]);
+  const [assignedTestTypes, setAssignedTestTypes] = useState<TestType[]>([]);
+
+  // Fetch assigned test groups and test types for the user
+  const fetchAssignedTestGroupsAndTypes = async () => {
+    if (!session?.user?.id) return;
+    try {
+      // Get assigned test groups
+      const resGroups = await fetch(`/api/test-groups?assignedOnly=true`);
+      const dataGroups = await resGroups.json();
+      setAssignedTestGroups(dataGroups.groups || []);
+
+      // Get assigned test types
+      const resTypes = await fetch(
+        `/api/admin/users/assigned-test-types?userId=${session.user.id}`
+      );
+      const dataTypes = await resTypes.json();
+      setAssignedTestTypes(dataTypes.testTypes || []);
+    } catch (error) {
+      setAssignedTestGroups([]);
+      setAssignedTestTypes([]);
+    }
+  };
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchAssignedTestGroupsAndTypes();
+    }
+  }, [session?.user?.id]);
+
   const getFilteredSources = () => {
     if (formData.matrix_type === MatrixType.PotableWater)
       return potableSourcesOptions;
@@ -101,12 +132,26 @@ export default function SampleForm() {
     return otherSampleTypeOptions;
   };
 
+  // Use assigned groups/types for selection
+  const getFilteredTestGroups = () => assignedTestGroups;
+
+  // Updated logic for test type filtering
   const getFilteredTestTypes = () => {
     if (selectedTestGroup) {
-      const group = testGroups.find((g) => g.id === selectedTestGroup);
-      return group?.test_types || [];
+      const group = assignedTestGroups.find((g) => g.id === selectedTestGroup);
+      if (group) {
+        // If assigned_test_type_ids exists and is non-empty, filter test_types by those IDs
+        const assignedIds = group.assigned_test_type_ids ?? [];
+        if (assignedIds.length > 0) {
+          return (group.test_types || []).filter(test =>
+            assignedIds.includes(test.id)
+          );
+        }
+        // Otherwise, show all test_types in the group
+        return group.test_types || [];
+      }
     }
-    return testTypes;
+    return assignedTestTypes;
   };
 
   const fetchTestTypes = async () => {
@@ -364,11 +409,21 @@ export default function SampleForm() {
   const handleGroupSelection = (groupId: string) => {
     const group = testGroups.find((g) => g.id === groupId);
     if (group && group.test_types) {
-      // Now we can use the test_types directly instead of filtering from testTypes
-      const groupTestTypes = group.test_types.map((test) => ({
-        id: test.id,
-        name: test.name,
-      }));
+      const assignedIds = group.assigned_test_type_ids ?? [];
+      let groupTestTypes;
+      if (assignedIds.length > 0) {
+        groupTestTypes = group.test_types
+          .filter((test) => assignedIds.includes(test.id))
+          .map((test) => ({
+            id: test.id,
+            name: test.name,
+          }));
+      } else {
+        groupTestTypes = group.test_types.map((test) => ({
+          id: test.id,
+          name: test.name,
+        }));
+      }
       setSelectedTests(groupTestTypes);
       setFormData((prev) => ({
         ...prev,
@@ -432,9 +487,6 @@ export default function SampleForm() {
           (!formData.pws_id || String(formData.pws_id).trim() === "")
         ) {
           errors.push("PWS ID is required for Potable Water");
-        }
-        if (!formData.project_id || String(formData.project_id).trim() === "") {
-          errors.push("Project ID is required");
         }
         if (
           !formData.sample_type ||
@@ -519,9 +571,6 @@ export default function SampleForm() {
           (!formData.pws_id || String(formData.pws_id).trim() === "")
         ) {
           step1Errors.push("PWS ID is required for Potable Water");
-        }
-        if (!formData.project_id || String(formData.project_id).trim() === "") {
-          step1Errors.push("Project ID is required");
         }
         if (
           !formData.sample_type ||
@@ -881,7 +930,7 @@ export default function SampleForm() {
 
             <div className="mb-3">
               <label>
-                Project ID <span className="text-red-500">*</span>
+                Project ID
               </label>
               <input
                 type="text"
@@ -980,16 +1029,23 @@ export default function SampleForm() {
                 }}
               >
                 <option value="">N/A</option>
-                {testGroups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name} ({group.test_types?.length || 0} tests)
-                  </option>
-                ))}
+                {getFilteredTestGroups().map((group) => {
+                  // Calculate the count based on filtered test types for this group
+                  const assignedIds = group.assigned_test_type_ids ?? [];
+                  const filteredTestTypes = assignedIds.length > 0
+                    ? (group.test_types || []).filter(test => assignedIds.includes(test.id))
+                    : (group.test_types || []);
+                  return (
+                    <option key={group.id} value={group.id}>
+                      {group.name} ({filteredTestTypes.length} tests)
+                    </option>
+                  );
+                })}
               </select>
               <p className="text-xs text-gray-500 mt-1">
                 {selectedTestGroup
                   ? "Showing tests from selected group only"
-                  : "Showing all available tests"}
+                  : "Showing all assigned tests"}
               </p>
             </div>
 
@@ -1014,7 +1070,7 @@ export default function SampleForm() {
                 labelledBy="Select Test Type(s)"
                 overrideStrings={{
                   selectSomeItems: selectedTestGroup
-                    ? `Select from ${testGroups.find((g) => g.id === selectedTestGroup)
+                    ? `Select from ${getFilteredTestGroups().find((g) => g.id === selectedTestGroup)
                       ?.name || "group"
                     } tests`
                     : "Select Test Type(s)",

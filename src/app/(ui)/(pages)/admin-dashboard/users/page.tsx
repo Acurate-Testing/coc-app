@@ -39,6 +39,7 @@ interface AgencyTestTypeGroup {
 interface AssignedTestGroup {
   id: string;
   name: string;
+  assigned_test_type_ids?: string[];
 }
 
 export default function AdminUsersPage() {
@@ -466,6 +467,13 @@ export default function AdminUsersPage() {
               close={() => setShowAssignModal(false)}
               userId={selectedUser.id}
               assignedTestGroupIds={selectedUser.assigned_test_group?.map((t) => t.id) || []}
+              assignedTestTypeIdsByGroup={
+                selectedUser.assigned_test_group?.reduce((acc, group) => {
+                  acc[group.id] = group.assigned_test_type_ids || [];
+                  return acc;
+                }, {} as Record<string, string[]>)
+                || {}
+              }
               onAssigned={fetchUsers}
             />
             <EditUserAccessPopover
