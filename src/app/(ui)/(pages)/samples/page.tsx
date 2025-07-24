@@ -53,8 +53,7 @@ export default function HomePage() {
 
       // No need to pass agencyId as URL parameter since the API will use session's agency_id
       const response = await fetch(
-        `/api/samples?page=${currentPage}${
-          searchQuery ? `&search=${searchQuery}` : ""
+        `/api/samples?page=${currentPage}${searchQuery ? `&search=${searchQuery}` : ""
         }${activeTab !== "All" ? `&status=${activeTab}` : ""}
         `
       );
@@ -150,11 +149,16 @@ export default function HomePage() {
 
     try {
       setIsExporting(true);
+      const params: Record<string, string> = {
+        search: searchQuery,
+        status: activeTab !== "All" ? activeTab : "",
+      };
+      // Add agencyId if available
+      if (session?.user?.agency_id) {
+        params.agencyId = session.user.agency_id;
+      }
       const response = await fetch(
-        `/api/samples/export?${new URLSearchParams({
-          search: searchQuery,
-          status: activeTab !== "All" ? activeTab : "",
-        })}`
+        `/api/samples/export?${new URLSearchParams(params)}`
       );
 
       if (!response.ok) {
@@ -294,14 +298,14 @@ export default function HomePage() {
                               sample?.status === "pending"
                                 ? "yellow"
                                 : sample?.status === "in_coc"
-                                ? "blue"
-                                : sample?.status === "submitted"
-                                ? "purple"
-                                : sample?.status === "pass"
-                                ? "green"
-                                : sample?.status === "fail"
-                                ? "red"
-                                : "gray"
+                                  ? "blue"
+                                  : sample?.status === "submitted"
+                                    ? "purple"
+                                    : sample?.status === "pass"
+                                      ? "green"
+                                      : sample?.status === "fail"
+                                        ? "red"
+                                        : "gray"
                             }
                           />
                         </div>
@@ -343,9 +347,9 @@ export default function HomePage() {
                           label={
                             sample?.created_at
                               ? format(
-                                  new Date(sample.created_at),
-                                  "yyyy-MM-dd hh:mm a"
-                                )
+                                new Date(sample.created_at),
+                                "yyyy-MM-dd hh:mm a"
+                              )
                               : "-"
                           }
                           className="text-lg"
@@ -362,7 +366,7 @@ export default function HomePage() {
                         />
                         <div className="flex items-center flex-wrap gap-2">
                           {sample?.test_types &&
-                          sample?.test_types?.length > 0 ? (
+                            sample?.test_types?.length > 0 ? (
                             sample?.test_types?.map((item, index) => (
                               <div key={index}>
                                 {item?.name && (
