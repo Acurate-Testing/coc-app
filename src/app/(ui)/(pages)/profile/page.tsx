@@ -13,7 +13,8 @@ import { useSession } from "next-auth/react";
 export default function ProfilePage() {
   const router = useRouter();
   const { data: session, update: updateSession } = useSession();
-  const [name, setName] = useState(session?.user?.name || "");
+  const [contactName, setContactName] = useState(session?.user?.name || "");
+  const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
@@ -25,7 +26,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!session?.user?.id) return;
 
-    // Fetch initial user data
     const fetchUserData = async () => {
       const { data: userData, error: userError } = await supabase
         .from("users")
@@ -46,11 +46,11 @@ export default function ProfilePage() {
       }
 
       if (userData?.full_name) {
-        setName(userData.full_name);
+        setContactName(userData.full_name);
       }
 
-      // If user is an agency, fetch agency details
-      if (userData?.role === "agency" && userData?.agency_id) {
+      // Always fetch agency details if agency_id exists
+      if (userData?.agency_id) {
         const { data: agencyData, error: agencyError } = await supabase
           .from("agencies")
           .select("name, contact_email, phone, street, city, state, zip")
@@ -63,7 +63,7 @@ export default function ProfilePage() {
         }
 
         if (agencyData) {
-          setName(agencyData.name || userData.full_name);
+          setCompanyName(agencyData.name || "");
           setPhone(agencyData.phone || "");
           setStreet(agencyData.street || "");
           setCity(agencyData.city || "");
@@ -87,7 +87,7 @@ export default function ProfilePage() {
 
       const { error } = await supabase
         .from("users")
-        .update({ full_name: name })
+        .update({ full_name: contactName })
         .eq("id", session.user.id);
 
       if (error) throw error;
@@ -97,7 +97,7 @@ export default function ProfilePage() {
         ...session,
         user: {
           ...session.user,
-          name: name,
+          name: contactName,
         },
       });
 
@@ -123,7 +123,7 @@ export default function ProfilePage() {
       const { error: agencyError } = await supabase
         .from("agencies")
         .update({
-          name: name,
+          name: companyName,
           phone: phone || null,
           street: street || null,
           city: city || null,
@@ -134,10 +134,10 @@ export default function ProfilePage() {
 
       if (agencyError) throw agencyError;
 
-      // Update the user's name in the users table
+      // Update the user's contact name in the users table
       const { error: userError } = await supabase
         .from("users")
-        .update({ full_name: name })
+        .update({ full_name: contactName })
         .eq("id", session.user.id);
 
       if (userError) throw userError;
@@ -147,7 +147,7 @@ export default function ProfilePage() {
         ...session,
         user: {
           ...session.user,
-          name: name,
+          name: contactName,
         },
       });
 
@@ -159,6 +159,8 @@ export default function ProfilePage() {
       setIsLoading(false);
     }
   };
+
+  const isUserRole = session?.user?.role === "user";
 
   if (!session) {
     return (
@@ -188,23 +190,33 @@ export default function ProfilePage() {
       />
 
       <div className="space-y-8 mt-6">
-        {session.user.role === "agency" ? (
-          // Customer Profile Form
           <Card className="p-6 !shadow-none rounded-xl">
             <h2 className="text-xl font-semibold mb-4">
-              Update Customer Information
+              Customer Information
             </h2>
             <form onSubmit={handleAgencyUpdate} className="space-y-4">
               <div>
-                <label htmlFor="name">Customer Name</label>
+                <label htmlFor="contactName">Contact Name</label>
                 <input
                   type="text"
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  id="contactName"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  className="mt-1 form-input bg-gray-100"
+                  placeholder="Contact name"
+                />
+              </div>
+              <div>
+                <label htmlFor="companyName">Company Name</label>
+                <input
+                  type="text"
+                  id="companyName"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
                   className="mt-1 form-input"
-                  placeholder="Enter customer name"
+                  placeholder="Enter company name"
                   required
+                  disabled={isUserRole}
                 />
               </div>
               <div>
@@ -217,18 +229,19 @@ export default function ProfilePage() {
                   className="mt-1 form-input"
                   placeholder="Enter phone number"
                   required
+                  disabled={isUserRole}
                 />
               </div>
               <div>
                 <label htmlFor="street">Street Address</label>
-                <input
-                  type="text"
+                <textarea
                   id="street"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
-                  className="mt-1 form-input"
+                  className="mt-1  form-input max-h-[120px] min-h-[80px]"
                   placeholder="Enter street address"
                   required
+                  disabled={isUserRole}
                 />
               </div>
               <div>
@@ -241,6 +254,7 @@ export default function ProfilePage() {
                   className="mt-1 form-input"
                   placeholder="Enter city"
                   required
+                  disabled={isUserRole}
                 />
               </div>
               <div>
@@ -253,6 +267,7 @@ export default function ProfilePage() {
                   className="mt-1 form-input"
                   placeholder="Enter state"
                   required
+                  disabled={isUserRole}
                 />
               </div>
               <div>
@@ -265,46 +280,20 @@ export default function ProfilePage() {
                   className="mt-1 form-input"
                   placeholder="Enter ZIP code"
                   required
+                  disabled={isUserRole}
                 />
               </div>
-              <Button
-                label={
-                  isLoading ? "Updating..." : "Update Customer Information"
-                }
-                size="large"
-                type="submit"
-                className="w-full h-[50px] mt-4"
-                disabled={isLoading}
-              />
-            </form>
-          </Card>
-        ) : (
-          // User/Admin Name Update Form
-          <Card className="p-6 !shadow-none rounded-xl">
-            <h2 className="text-xl font-semibold mb-4">Update Name</h2>
-            <form onSubmit={handleNameUpdate} className="space-y-4">
-              <div>
-                <label htmlFor="name">Full Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="mt-1 form-input"
-                  placeholder="Enter your full name"
-                  required
+                <Button
+                  label={
+                    isLoading ? "Updating..." : "Update Information"
+                  }
+                  size="large"
+                  type="submit"
+                  className="w-full h-[50px] mt-4"
+                  disabled={isLoading}
                 />
-              </div>
-              <Button
-                label={isLoading ? "Updating..." : "Update Name"}
-                size="large"
-                type="submit"
-                className="w-full h-[50px] mt-4"
-                disabled={isLoading}
-              />
             </form>
           </Card>
-        )}
       </div>
     </div>
   );

@@ -34,10 +34,10 @@ export async function GET() {
 
     // If user has an agency ID, check for agency-specific test groups
     if (agencyID) {
-      // Query agency_test_type_groups table
+      // Query agency_test_type_groups table with assigned_test_type_ids
       const { data: agencyTestGroups, error: agencyError } = await supabase
         .from("agency_test_type_groups")
-        .select("test_type_group_id")
+        .select("test_type_group_id, assigned_test_type_ids")
         .eq("agency_id", agencyID);
 
       if (agencyError) {
@@ -48,6 +48,18 @@ export async function GET() {
         filteredGroups = groups.filter(group => 
           testGroupIds.includes(group.id)
         );
+
+        // Add assigned_test_type_ids to each filtered group
+        filteredGroups = filteredGroups.map(group => {
+          const agencyGroup = agencyTestGroups.find(
+            item => item.test_type_group_id === group.id
+          );
+          
+          return {
+            ...group,
+            assigned_test_type_ids: agencyGroup?.assigned_test_type_ids || null
+          };
+        });
       }
     }
 

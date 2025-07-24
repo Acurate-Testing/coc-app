@@ -366,18 +366,21 @@ export interface Database {
           created_at: string;
           agency_id: string;
           test_type_group_id: string;
+          assigned_test_type_ids: string[] | null;
         };
         Insert: {
           id?: number;
           created_at?: string;
           agency_id: string;
           test_type_group_id: string;
+          assigned_test_type_ids?: string[] | null;
         };
         Update: {
           id?: number;
           created_at?: string;
           agency_id?: string;
           test_type_group_id?: string;
+          assigned_test_type_ids?: string[] | null;
         };
       };
     };

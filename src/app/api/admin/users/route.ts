@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 export async function GET() {
   const { data, error } = await supabase
     .from("agencies")
-    .select("id, name, contact_email, phone, street, city, state, zip, agency_test_type_groups(test_groups(id, name)), accounts(name)")
+    .select("id, name, contact_email, phone, street, city, state, zip, agency_test_type_groups(test_groups(id, name), assigned_test_type_ids), accounts(name)")
     .is("deleted_at", null);
     
   if (error) {
@@ -17,7 +17,13 @@ export async function GET() {
     ...user,
     accounts: user.accounts ? user.accounts.map((account: {name: string}) => account.name) : [],
     assigned_test_group: user.agency_test_type_groups ? 
-      user.agency_test_type_groups.map((group: any) => group.test_groups).filter(Boolean) : []
+      user.agency_test_type_groups.map((group: any) => ({
+        id: group.test_groups?.id,
+        name: group.test_groups?.name,
+        assigned_test_type_ids: group.assigned_test_type_ids && group.assigned_test_type_ids.length > 0 
+          ? group.assigned_test_type_ids 
+          : []
+      })).filter(g => g.id) : []
   }));
   
   return NextResponse.json(formattedData);
@@ -47,57 +53,68 @@ export async function DELETE(req: NextRequest) {
 
 // Assign test groups to a user
 export async function PATCH(req: NextRequest) {
-  const { userId, testGroupIds } = await req.json();
-  if (!userId || !Array.isArray(testGroupIds)) {
-    return NextResponse.json({ error: "userId and testGroupIds[] are required" }, { status: 400 });
+  const { userId, testGroupIds, testTypeIdsByGroup } = await req.json();
+
+  // Validate input
+  if (!userId || !Array.isArray(testGroupIds) || typeof testTypeIdsByGroup !== "object") {
+    return NextResponse.json({ error: "userId, testGroupIds[], and testTypeIdsByGroup are required" }, { status: 400 });
   }
 
   // Fetch existing assignments for this agency
   const { data: existingAssignments, error: fetchError } = await supabase
     .from("agency_test_type_groups")
-    .select("test_type_group_id")
+    .select("id, test_type_group_id")
     .eq("agency_id", userId);
-    
+
   if (fetchError) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
-  
-  // Create a set of existing test group IDs
+
   const existingIds = new Set(
     (existingAssignments || []).map((entry) => entry.test_type_group_id)
   );
-  
-  // Identify test group IDs that need to be removed (exist in DB but not in new testGroupIds)
+
+  // Remove test group assignments that are no longer selected
   const testGroupIdsToRemove = Array.from(existingIds).filter(
     (existingId) => !testGroupIds.includes(existingId)
   );
-  
-  // Remove test group assignments that are no longer selected
   if (testGroupIdsToRemove.length > 0) {
     const { error: deleteError } = await supabase
       .from("agency_test_type_groups")
       .delete()
       .eq("agency_id", userId)
       .in("test_type_group_id", testGroupIdsToRemove);
-      
+
     if (deleteError) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
   }
-  
-  // Filter to only add test groups that don't already exist
+
+  // Add new assignments for test groups that don't already exist
   const newTestGroupIds = testGroupIds.filter((testGroupId: string) => !existingIds.has(testGroupId));
-  
-  // Add new assignments if any are provided
   if (newTestGroupIds.length > 0) {
     const inserts = newTestGroupIds.map((testGroupId: string) => ({
       agency_id: userId,
       test_type_group_id: testGroupId,
+      assigned_test_type_ids: testTypeIdsByGroup[testGroupId] || [],
     }));
-    
     const { error: insertError } = await supabase.from("agency_test_type_groups").insert(inserts);
     if (insertError) {
       return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+  }
+
+  // Update assigned_test_type_ids for all selected test groups
+  for (const testGroupId of testGroupIds) {
+    const assignment = (existingAssignments || []).find((a: any) => a.test_type_group_id === testGroupId);
+    if (assignment) {
+      const { error: updateError } = await supabase
+        .from("agency_test_type_groups")
+        .update({ assigned_test_type_ids: testTypeIdsByGroup[testGroupId] || [] })
+        .eq("id", assignment.id);
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
     }
   }
 

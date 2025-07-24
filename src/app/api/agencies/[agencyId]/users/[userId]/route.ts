@@ -52,8 +52,9 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { email, full_name, role } = body;
+    const { email, full_name, role, agency_name, phone, street, city, state, zip } = body;
 
+    // Update user
     const { data, error } = await supabase
       .from("users")
       .update({
@@ -73,6 +74,28 @@ export async function PUT(
 
     if (!data) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // If role is not "user", update agency details if provided
+    if (role && role !== "user") {
+      const agencyUpdate: Record<string, any> = {};
+      if (agency_name !== undefined) agencyUpdate.name = agency_name;
+      if (phone !== undefined) agencyUpdate.phone = phone;
+      if (street !== undefined) agencyUpdate.street = street;
+      if (city !== undefined) agencyUpdate.city = city;
+      if (state !== undefined) agencyUpdate.state = state;
+      if (zip !== undefined) agencyUpdate.zip = zip;
+
+      if (Object.keys(agencyUpdate).length > 0) {
+        const { error: agencyError } = await supabase
+          .from("agencies")
+          .update(agencyUpdate)
+          .eq("id", params.agencyId);
+
+        if (agencyError) {
+          return NextResponse.json({ error: agencyError.message }, { status: 500 });
+        }
+      }
     }
 
     return NextResponse.json({ user: data });
@@ -115,4 +138,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}
