@@ -90,6 +90,10 @@ export const Pagination = ({
     return () => clearTimeout(delayDebounceFn);
   }, [inputValue]);
 
+  useEffect(() => {
+    setInputValue(activePage + 1);
+  }, [activePage]);
+
   // Mobile UI
   if (isMobile) {
     return (
