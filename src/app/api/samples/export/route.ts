@@ -64,17 +64,18 @@ export async function GET(request: Request) {
         created_by_user:users!samples_created_by_fkey(id, full_name, email),
         agency:agencies!samples_agency_id_fkey(id, name, street, city, state, zip),
         account:accounts!samples_account_id_fkey(id, name),
-        test_types:test_types(id, name),
+        test_types:test_types(id, name, test_code),
         coc_transfers(
           id,
           transferred_by,
+          transferred_by_user:users!coc_transfers_transferred_by_fkey(id, full_name, email),
           received_by,
+          received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email),
           timestamp,
           latitude,
           longitude,
           signature,
-          photo_url,
-          received_by_user:users!coc_transfers_received_by_fkey(id, full_name, email)
+          photo_url
         )
       `)
       .is("deleted_at", null);
@@ -113,7 +114,6 @@ export async function GET(request: Request) {
       "Status",
       "Sample Collected At",
       "Temperature",
-      "Notes",
       "Pass/Fail Notes",
       "County",
       "Compliance",
@@ -125,10 +125,12 @@ export async function GET(request: Request) {
       "Customer Address",
       "Account",
       "Test Types",
+      "Test Code",
       "Source",
       "Chain of Custody",
       "Created At",
-      "Updated At"
+      "Updated At",
+      "Notes" // Moved Notes to the last position
     ];
 
     // Convert samples to CSV rows
@@ -139,6 +141,11 @@ export async function GET(request: Request) {
 
       const testTypes = sample.test_types
         ?.map((test: any) => test.name)
+        .join(", ") || "-";
+
+      const testCodes = sample.test_types
+        ?.map((test: any) => test.test_code || "")
+        .filter(Boolean)
         .join(", ") || "-";
 
       const cocInfo = sample.coc_transfers
@@ -171,7 +178,6 @@ export async function GET(request: Request) {
         sample.status || "-",
         sample.sample_collected_at ? format(new Date(sample.sample_collected_at), "yyyy-MM-dd HH:mm:ss") : "-",
         sample.temperature?.toString() || "-",
-        sample.notes || "-",
         sample.pass_fail_notes || "-",
         sample.county || "-",
         sample.compliance || "-",
@@ -183,10 +189,12 @@ export async function GET(request: Request) {
         customerAddress,
         sample.account?.name || "-",
         testTypes,
-        sample.source || "-", // Added source field here
+        testCodes,
+        sample.source || "-",
         cocInfo,
         sample.created_at ? format(new Date(sample.created_at), "yyyy-MM-dd HH:mm:ss") : "-",
-        sample.updated_at ? format(new Date(sample.updated_at), "yyyy-MM-dd HH:mm:ss") : "-"
+        sample.updated_at ? format(new Date(sample.updated_at), "yyyy-MM-dd HH:mm:ss") : "-",
+        sample.notes || "-" // Notes moved to last
       ];
     });
 
