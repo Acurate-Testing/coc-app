@@ -75,7 +75,7 @@ export default function SampleForm() {
   const [testTypes, setTestTypes] = useState<TestType[]>([]);
   const [testGroups, setTestGroups] = useState<TestGroup[]>([]);
   const [selectedTests, setSelectedTests] = useState<TestType[]>([]);
-  const [selectedTestGroup, setSelectedTestGroup] = useState<string>("");
+  const [selectedTestGroups, setSelectedTestGroups] = useState<string[]>([]);
   const editMode = pathname.includes("edit");
   const sampleId = params?.sampleId as string;
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -137,19 +137,22 @@ export default function SampleForm() {
 
   // Updated logic for test type filtering
   const getFilteredTestTypes = () => {
-    if (selectedTestGroup) {
-      const group = assignedTestGroups.find((g) => g.id === selectedTestGroup);
-      if (group) {
-        // If assigned_test_type_ids exists and is non-empty, filter test_types by those IDs
-        const assignedIds = group.assigned_test_type_ids ?? [];
-        if (assignedIds.length > 0) {
-          return (group.test_types || []).filter(test =>
-            assignedIds.includes(test.id)
-          );
+    if (selectedTestGroups.length > 0) {
+      let tests: TestType[] = [];
+      selectedTestGroups.forEach((groupId) => {
+        const group = assignedTestGroups.find((g) => g.id === groupId);
+        if (group) {
+          const assignedIds = group.assigned_test_type_ids ?? [];
+          const filtered =
+            assignedIds.length > 0
+              ? (group.test_types || []).filter((test) => assignedIds.includes(test.id))
+              : group.test_types || [];
+          tests = tests.concat(filtered);
         }
-        // Otherwise, show all test_types in the group
-        return group.test_types || [];
-      }
+      });
+      // Remove duplicates by id
+      const uniqueTests = Array.from(new Map(tests.map((t) => [t.id, t])).values());
+      return uniqueTests;
     }
     return assignedTestTypes;
   };
@@ -196,73 +199,84 @@ export default function SampleForm() {
         const options = {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 0
+          maximumAge: 0,
         };
 
-        navigator.geolocation.getCurrentPosition(async (position) => {
-          const lat = Number(position.coords.latitude);
-          const lon = Number(position.coords.longitude);
-          const accuracy = position.coords.accuracy;
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const lat = Number(position.coords.latitude);
+            const lon = Number(position.coords.longitude);
+            const accuracy = position.coords.accuracy;
 
-          setFormData((prev) => ({
-            ...prev,
-            latitude: lat,
-            longitude: lon,
-            location_accuracy: accuracy
-          }));
+            setFormData((prev) => ({
+              ...prev,
+              latitude: lat,
+              longitude: lon,
+              location_accuracy: accuracy,
+            }));
 
-          // Fetch address using LocationIQ
-          try {
-            const response = await fetch(
-              `https://us1.locationiq.com/v1/reverse.php?key=pk.a8fb6961015eb9e9dddcec9571aa109c&lat=${lat}&lon=${lon}&format=json&zoom=18`
-            );
-            const data = await response.json();
+            // Fetch address using LocationIQ
+            try {
+              const response = await fetch(
+                `https://us1.locationiq.com/v1/reverse.php?key=pk.a8fb6961015eb9e9dddcec9571aa109c&lat=${lat}&lon=${lon}&format=json&zoom=18`
+              );
+              const data = await response.json();
 
-            if (data && data.display_name) {
-              setFormData((prev) => ({
-                ...prev,
-                address: data.display_name,
-              }));
+              if (data && data.display_name) {
+                setFormData((prev) => ({
+                  ...prev,
+                  address: data.display_name,
+                }));
+              }
+            } catch (error) {
+              console.error("Failed to get address:", error);
+              setLocationError("Failed to get address. Please try again.");
             }
-          } catch (error) {
-            console.error("Failed to get address:", error);
-            setLocationError("Failed to get address. Please try again.");
-          }
-          setIsLoadingLocation(false);
-        }, (error) => {
-          console.error("Geolocation error:", error);
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              setLocationError("Location access denied. Please enable location services.");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              setLocationError("Location information is unavailable. Please try again.");
-              break;
-            case error.TIMEOUT:
-              setLocationError("Location request timed out. Please try again.");
-              break;
-            default:
-              setLocationError("An error occurred while getting your location.");
-          }
-          setIsLoadingLocation(false);
-        }, options);
+            setIsLoadingLocation(false);
+          },
+          (error) => {
+            console.error("Geolocation error:", error);
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                setLocationError(
+                  "Location access denied. Please enable location services."
+                );
+                break;
+              case error.POSITION_UNAVAILABLE:
+                setLocationError(
+                  "Location information is unavailable. Please try again."
+                );
+                break;
+              case error.TIMEOUT:
+                setLocationError("Location request timed out. Please try again.");
+                break;
+              default:
+                setLocationError("An error occurred while getting your location.");
+            }
+            setIsLoadingLocation(false);
+          },
+          options
+        );
       }
     }, 3000);
   };
 
-  const handleCoordinateChange = async (field: 'latitude' | 'longitude', value: string) => {
+  const handleCoordinateChange = async (
+    field: "latitude" | "longitude",
+    value: string
+  ) => {
     const numValue = Number(value);
     if (isNaN(numValue)) return;
 
     setFormData((prev) => ({
       ...prev,
-      [field]: numValue
+      [field]: numValue,
     }));
 
     // Only update address if both coordinates are present
-    if (field === 'latitude' && formData.longitude) {
+    if (field === "latitude" && formData.longitude) {
       await updateAddressFromCoordinates(numValue, formData.longitude);
-    } else if (field === 'longitude' && formData.latitude) {
+    } else if (field === "longitude" && formData.latitude) {
       await updateAddressFromCoordinates(formData.latitude, numValue);
     }
   };
@@ -310,56 +324,62 @@ export default function SampleForm() {
       const options = {
         enableHighAccuracy: true, // Request the most accurate position possible
         timeout: 10000, // Wait up to 10 seconds for a result
-        maximumAge: 0 // Don't use cached positions
+        maximumAge: 0, // Don't use cached positions
       };
 
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        // Use more precise coordinates (6 decimal places for ~11cm accuracy)
-        const lat = Number(position.coords.latitude);
-        const lon = Number(position.coords.longitude);
-        const accuracy = position.coords.accuracy; // Accuracy in meters
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          // Use more precise coordinates (6 decimal places for ~11cm accuracy)
+          const lat = Number(position.coords.latitude);
+          const lon = Number(position.coords.longitude);
+          const accuracy = position.coords.accuracy; // Accuracy in meters
 
-        // Set the coordinates in your state
-        setFormData((prev) => ({
-          ...prev,
-          latitude: lat,
-          longitude: lon,
-          location_accuracy: accuracy // Store the accuracy for reference
-        }));
+          // Set the coordinates in your state
+          setFormData((prev) => ({
+            ...prev,
+            latitude: lat,
+            longitude: lon,
+            location_accuracy: accuracy, // Store the accuracy for reference
+          }));
 
-        // Fetch address using LocationIQ
-        try {
-          const response = await fetch(
-            `https://us1.locationiq.com/v1/reverse.php?key=pk.a8fb6961015eb9e9dddcec9571aa109c&lat=${lat}&lon=${lon}&format=json&zoom=18`
-          );
-          const data = await response.json();
+          // Fetch address using LocationIQ
+          try {
+            const response = await fetch(
+              `https://us1.locationiq.com/v1/reverse.php?key=pk.a8fb6961015eb9e9dddcec9571aa109c&lat=${lat}&lon=${lon}&format=json&zoom=18`
+            );
+            const data = await response.json();
 
-          if (data && data.display_name) {
-            setFormData((prev) => ({
-              ...prev,
-              address: data.display_name,
-            }));
+            if (data && data.display_name) {
+              setFormData((prev) => ({
+                ...prev,
+                address: data.display_name,
+              }));
+            }
+          } catch (error) {
+            console.error("Failed to get address:", error);
           }
-        } catch (error) {
-          console.error("Failed to get address:", error);
-        }
-      }, (error) => {
-        // Handle geolocation errors
-        console.error("Geolocation error:", error);
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorToast("Location access denied. Please enable location services for better accuracy.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorToast("Location information is unavailable. Please try again.");
-            break;
-          case error.TIMEOUT:
-            errorToast("Location request timed out. Please try again.");
-            break;
-          default:
-            errorToast("An error occurred while getting your location.");
-        }
-      }, options);
+        },
+        (error) => {
+          // Handle geolocation errors
+          console.error("Geolocation error:", error);
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorToast(
+                "Location access denied. Please enable location services for better accuracy."
+              );
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorToast("Location information is unavailable. Please try again.");
+              break;
+            case error.TIMEOUT:
+              errorToast("Location request timed out. Please try again.");
+              break;
+            default:
+              errorToast("An error occurred while getting your location.");
+          }
+        },
+        options
+      );
     }
 
     // Fetch accounts from API
@@ -406,30 +426,36 @@ export default function SampleForm() {
     }));
   };
 
-  const handleGroupSelection = (groupId: string) => {
-    const group = testGroups.find((g) => g.id === groupId);
-    if (group && group.test_types) {
-      const assignedIds = group.assigned_test_type_ids ?? [];
-      let groupTestTypes;
-      if (assignedIds.length > 0) {
-        groupTestTypes = group.test_types
-          .filter((test) => assignedIds.includes(test.id))
-          .map((test) => ({
+  // Update handleGroupSelection for multi-select
+  const handleGroupSelection = (selectedOptions: { label: string; value: string }[]) => {
+    const groupIds = selectedOptions.map((opt) => opt.value);
+    setSelectedTestGroups(groupIds);
+
+    // Collect all test types from selected groups
+    let groupTestTypes: TestType[] = [];
+    groupIds.forEach((groupId) => {
+      const group = assignedTestGroups.find((g) => g.id === groupId);
+      if (group && group.test_types) {
+        const assignedIds = group.assigned_test_type_ids ?? [];
+        const filtered =
+          assignedIds.length > 0
+            ? group.test_types.filter((test) => assignedIds.includes(test.id))
+            : group.test_types;
+        groupTestTypes = groupTestTypes.concat(
+          filtered.map((test) => ({
             id: test.id,
             name: test.name,
-          }));
-      } else {
-        groupTestTypes = group.test_types.map((test) => ({
-          id: test.id,
-          name: test.name,
-        }));
+          }))
+        );
       }
-      setSelectedTests(groupTestTypes);
-      setFormData((prev) => ({
-        ...prev,
-        test_types: groupTestTypes,
-      }));
-    }
+    });
+    // Remove duplicates by id
+    const uniqueTests = Array.from(new Map(groupTestTypes.map((t) => [t.id, t])).values());
+    setSelectedTests(uniqueTests);
+    setFormData((prev) => ({
+      ...prev,
+      test_types: uniqueTests,
+    }));
   };
 
   const fetchSampleData = async () => {
@@ -447,7 +473,7 @@ export default function SampleForm() {
 
         // Set the selected test group if available
         if (data.sample.test_group_id) {
-          setSelectedTestGroup(data.sample.test_group_id);
+          setSelectedTestGroups([data.sample.test_group_id]);
         }
 
         setIsLoading(false);
@@ -718,7 +744,7 @@ export default function SampleForm() {
         status: newStatus,
         saved_at: new Date().toISOString(),
         // Include test group information
-        test_group_id: selectedTestGroup || null,
+        test_group_id: selectedTestGroups.length > 0 ? selectedTestGroups[0] : null,
         // Include a flag to indicate this is an update
         is_update: editMode,
         // Include the original status for email notification
@@ -764,7 +790,7 @@ export default function SampleForm() {
   const handleAddAnother = (retainDetails: boolean) => {
     if (retainDetails) {
       const retainedTests = selectedTests;
-      const retainedTestGroup = selectedTestGroup;
+      const retainedTestGroups = selectedTestGroups;
 
       // Retain specific details by copying the existing form data
       const retainedData = { ...formData };
@@ -774,7 +800,7 @@ export default function SampleForm() {
       retainedData.longitude = null;
       retainedData.address = "";
       retainedData.sample_collected_at = "";
-      retainedData.latitude = null
+      retainedData.latitude = null;
       retainedData.longitude = null;
       retainedData.sample_location = "";
 
@@ -791,7 +817,7 @@ export default function SampleForm() {
       });
 
       // Restore tests after form data is set
-      setSelectedTestGroup(retainedTestGroup);
+      setSelectedTestGroups(retainedTestGroups);
       setSelectedTests(retainedTests);
     } else {
       // Start fresh
@@ -801,7 +827,7 @@ export default function SampleForm() {
         created_by: session?.user?.id || null,
       });
       setSelectedTests([]);
-      setSelectedTestGroup("");
+      setSelectedTestGroups([]);
     }
     setCurrentStep(1);
     setValidationErrors([]);
@@ -1018,40 +1044,57 @@ export default function SampleForm() {
           <div className="space-y-6">
             <div className="mb-3">
               <label>Select Test Type Group</label>
-              <select
-                className="form-input bg-white mt-1"
-                value={selectedTestGroup}
-                onChange={(e) => {
-                  setSelectedTestGroup(e.target.value);
-                  if (e.target.value) {
-                    handleGroupSelection(e.target.value);
-                  }
-                }}
-              >
-                <option value="">N/A</option>
-                {getFilteredTestGroups().map((group) => {
-                  // Calculate the count based on filtered test types for this group
+              <MultiSelect
+                className="z-2 w-full mt-1"
+                options={getFilteredTestGroups().map((group) => {
                   const assignedIds = group.assigned_test_type_ids ?? [];
-                  const filteredTestTypes = assignedIds.length > 0
-                    ? (group.test_types || []).filter(test => assignedIds.includes(test.id))
-                    : (group.test_types || []);
-                  return (
-                    <option key={group.id} value={group.id}>
-                      {group.name} ({filteredTestTypes.length} tests)
-                    </option>
-                  );
+                  const filteredTestTypes =
+                    assignedIds.length > 0
+                      ? (group.test_types || []).filter((test) =>
+                        assignedIds.includes(test.id)
+                      )
+                      : group.test_types || [];
+                  return {
+                    label: `${group.name} (${filteredTestTypes.length} tests)`,
+                    value: group.id,
+                  };
                 })}
-              </select>
+                value={selectedTestGroups.map((groupId) => {
+                  const group = assignedTestGroups.find((g) => g.id === groupId);
+                  const assignedIds = group?.assigned_test_type_ids ?? [];
+                  const filteredTestTypes =
+                    assignedIds.length > 0
+                      ? (group?.test_types || []).filter((test) =>
+                        assignedIds.includes(test.id)
+                      )
+                      : group?.test_types || [];
+                  return {
+                    label:
+                      groupId === "N/A"
+                        ? "N/A"
+                        : group
+                          ? `${group.name} (${filteredTestTypes.length} tests)`
+                          : groupId,
+                    value: groupId,
+                  };
+                })}
+                onChange={handleGroupSelection}
+                labelledBy="Select Test Type Group(s)"
+                overrideStrings={{
+                  selectSomeItems: "Select Test Type Group(s)",
+                  search: "Search Test Type Group(s)",
+                }}
+              />
               <p className="text-xs text-gray-500 mt-1">
-                {selectedTestGroup
-                  ? "Showing tests from selected group only"
+                {selectedTestGroups.length > 0
+                  ? "Showing tests from selected group(s) only"
                   : "Showing all assigned tests"}
               </p>
             </div>
 
             <div className="mb-3">
               <label>
-                Select Test Type(s) <span className="text-red-500">*</span>
+                Select Test Type <span className="text-red-500">*</span>
               </label>
               <MultiSelect
                 className="z-2 w-full mt-1"
@@ -1065,12 +1108,13 @@ export default function SampleForm() {
                 value={selectedTests.map((test) => ({
                   label: test.name,
                   value: test.id,
-                }))}
+                }))
+                }
                 onChange={handleTestSelection}
                 labelledBy="Select Test Type(s)"
                 overrideStrings={{
-                  selectSomeItems: selectedTestGroup
-                    ? `Select from ${getFilteredTestGroups().find((g) => g.id === selectedTestGroup)
+                  selectSomeItems: selectedTestGroups.length > 0
+                    ? `Select from ${getFilteredTestGroups().find((g) => g.id === selectedTestGroups[0])
                       ?.name || "group"
                     } tests`
                     : "Select Test Type(s)",
@@ -1351,19 +1395,23 @@ export default function SampleForm() {
           <input
             type="text"
             placeholder="23.079077, 72.501401"
-            value={formData.latitude && formData.longitude ? `${formData.latitude}, ${formData.longitude}` : ''}
+            value={
+              formData.latitude && formData.longitude
+                ? `${formData.latitude}, ${formData.longitude}`
+                : ""
+            }
             onChange={(e) => {
-              const coords = e.target.value.split(',').map(coord => coord.trim());
+              const coords = e.target.value.split(",").map((coord) => coord.trim());
               if (coords.length === 2) {
                 const lat = parseFloat(coords[0]);
                 const lon = parseFloat(coords[1]);
                 if (!isNaN(lat) && !isNaN(lon)) {
-                  handleCoordinateChange('latitude', lat.toString());
-                  handleCoordinateChange('longitude', lon.toString());
+                  handleCoordinateChange("latitude", lat.toString());
+                  handleCoordinateChange("longitude", lon.toString());
                 }
-              } else if (e.target.value === '') {
-                handleCoordinateChange('latitude', '');
-                handleCoordinateChange('longitude', '');
+              } else if (e.target.value === "") {
+                handleCoordinateChange("latitude", "");
+                handleCoordinateChange("longitude", "");
               }
             }}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2"
@@ -1374,17 +1422,42 @@ export default function SampleForm() {
             disabled={isLoadingLocation}
             aria-label="Get Current Location"
             title="Get Current Location"
-            style={{ backgroundColor: 'var(--color-primary)' }}
+            style={{ backgroundColor: "var(--color-primary)" }}
             className="flex items-center justify-center rounded-lg text-white focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium text-sm w-10 h-10 text-center inline-flex p-0"
           >
             {isLoadingLocation ? (
-              <svg className="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <svg
+                className="animate-spin w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
             ) : (
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 21c-4.418 0-8-5.373-8-10a8 8 0 1116 0c0 4.627-3.582 10-8 10zm0-7a3 3 0 100-6 3 3 0 000 6z" />
+              <svg
+                className="w-7 h-7"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 21c-4.418 0-8-5.373-8-10a8 8 0 1116 0c0 4.627-3.582 10-8 10zm0-7a3 3 0 100-6 3 3 0 000 6z"
+                />
               </svg>
             )}
             <span className="sr-only">Get Current Location</span>
@@ -1418,16 +1491,16 @@ export default function SampleForm() {
           Current GPS Location
         </label>
         <textarea
-          value={formData.address || ''}
+          value={formData.address || ""}
           readOnly
           placeholder="Address will appear here after getting location"
           className="block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 resize-none"
-          rows={Math.max(2, Math.ceil((formData.address || '').length / 60))}
+          rows={Math.max(2, Math.ceil((formData.address || "").length / 60))}
         />
       </div>
 
       {/* Success Indicator */}
-      {(formData.latitude && formData.longitude) && (
+      {formData.latitude && formData.longitude && (
         <div className="flex items-center text-sm text-green-600">
           <svg
             className="h-4 w-4 mr-1 flex-shrink-0"
