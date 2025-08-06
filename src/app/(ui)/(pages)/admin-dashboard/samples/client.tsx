@@ -349,22 +349,6 @@ export default function AdminSamplesClient({
                 disabled={!searchQuery && !(samples && samples.length)}
               />
             </div>
-
-            {/* <div className="relative">
-                          <IoSearch className="text-themeColor pointer-events-none h-6 w-6 absolute top-1/2 transform -translate-y-1/2 left-4 z-[1]" />
-                          <input
-                            id="sample-search"
-                            className={`font-medium rounded-lg py-3 px-4 bg-white text-base appearance-none block !pl-14 form-input h-[60px]`}
-                            value={searchQuery}
-                            type="search"
-                            placeholder="Search samples"
-                            onChange={(e) => {
-                              const { value } = e.target;
-                              setCurrentPage(0);
-                              setSearchQuery(value);
-                            }}
-                          />
-                        </div> */}
             <div className="col-span-1">
               <select
                 id="agency"
