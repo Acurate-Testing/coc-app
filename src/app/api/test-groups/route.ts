@@ -66,23 +66,42 @@ export async function GET() {
     // For each group, fetch the full test type details
     const groupsWithTestTypes = await Promise.all(
       filteredGroups.map(async (group) => {
-        if (group.test_type_ids && group.test_type_ids.length > 0) {
-          const { data: testTypes, error: testTypesError } = await supabase
+        // Type assertion to include assigned_test_type_ids
+        const g = group as typeof group & { assigned_test_type_ids?: string[] };
+        let testTypes: any[] = [];
+        // Use assigned_test_type_ids if present, otherwise fallback to test_type_ids
+        const effectiveTestTypeIds = Array.isArray(g.assigned_test_type_ids) && g.assigned_test_type_ids.length > 0
+          ? g.assigned_test_type_ids
+          : g.test_type_ids;
+
+        if (effectiveTestTypeIds && effectiveTestTypeIds.length > 0) {
+          const { data, error: testTypesError } = await supabase
             .from("test_types")
             .select("id, name, test_code, matrix_types, description")
-            .in("id", group.test_type_ids)
+            .in("id", effectiveTestTypeIds)
             .is("deleted_at", null)
             .order("name");
 
           if (testTypesError) {
             console.error("Error fetching test types for group:", testTypesError);
-            return { ...group, test_types: [] };
+            testTypes = [];
+          } else {
+            testTypes = data || [];
           }
-
-          return { ...group, test_types: testTypes || [] };
         }
-        
-        return { ...group, test_types: [] };
+
+        // Collect all unique matrix types from testTypes
+        const allowedMatrixTypes = Array.from(
+          new Set(
+            testTypes.flatMap(tt => Array.isArray(tt.matrix_types) ? tt.matrix_types : [])
+          )
+        );
+
+        return { 
+          ...g, 
+          test_types: testTypes, 
+          allowed_matrix_types: allowedMatrixTypes 
+        };
       })
     );
 

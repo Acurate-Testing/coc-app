@@ -91,6 +91,7 @@ export default function SampleForm() {
 
   const [assignedTestGroups, setAssignedTestGroups] = useState<TestGroup[]>([]);
   const [assignedTestTypes, setAssignedTestTypes] = useState<TestType[]>([]);
+  const [useAllGroups, setUseAllGroups] = useState(false);
 
   // Fetch assigned test groups and test types for the user
   const fetchAssignedTestGroupsAndTypes = async () => {
@@ -117,7 +118,34 @@ export default function SampleForm() {
     if (session?.user?.id) {
       fetchAssignedTestGroupsAndTypes();
     }
+    fetchTestGroups(); // Always fetch all test groups for fallback
   }, [session?.user?.id]);
+
+  // Watch for matrix_type changes and switch to all groups if no assigned group matches
+  useEffect(() => {
+    if (!formData.matrix_type) {
+      setUseAllGroups(false);
+      return;
+    }
+    const filtered = assignedTestGroups.filter(
+      (group: any) =>
+        Array.isArray(group.allowed_matrix_types) &&
+        group.allowed_matrix_types.includes(formData.matrix_type)
+    );
+    setUseAllGroups(filtered.length === 0);
+  }, [formData.matrix_type, assignedTestGroups]);
+
+  // Use assigned groups/types for selection
+  const getFilteredTestGroups = () => {
+    if (!formData.matrix_type) return [];
+    // If no assigned group matches, show all test groups (not filtered by matrix type)
+    if (useAllGroups) return testGroups;
+    return assignedTestGroups.filter(
+      (group: any) =>
+        Array.isArray(group.allowed_matrix_types) &&
+        group.allowed_matrix_types.includes(formData.matrix_type)
+    );
+  };
 
   const getFilteredSources = () => {
     if (formData.matrix_type === MatrixType.PotableWater)
@@ -131,9 +159,6 @@ export default function SampleForm() {
       return potableWaterSampleTypeOptions;
     return otherSampleTypeOptions;
   };
-
-  // Use assigned groups/types for selection
-  const getFilteredTestGroups = () => assignedTestGroups;
 
   // Updated logic for test type filtering
   const getFilteredTestTypes = () => {
@@ -431,10 +456,13 @@ export default function SampleForm() {
     const groupIds = selectedOptions.map((opt) => opt.value);
     setSelectedTestGroups(groupIds);
 
+    // Use correct source for test groups
+    const sourceGroups = useAllGroups ? testGroups : assignedTestGroups;
+
     // Collect all test types from selected groups
     let groupTestTypes: TestType[] = [];
     groupIds.forEach((groupId) => {
-      const group = assignedTestGroups.find((g) => g.id === groupId);
+      const group = sourceGroups.find((g) => g.id === groupId);
       if (group && group.test_types) {
         const assignedIds = group.assigned_test_type_ids ?? [];
         const filtered =
@@ -1046,6 +1074,7 @@ export default function SampleForm() {
               <label>Select Test Type Group</label>
               <MultiSelect
                 className="z-2 w-full mt-1"
+                // Use correct source for test groups
                 options={getFilteredTestGroups().map((group) => {
                   const assignedIds = group.assigned_test_type_ids ?? [];
                   const filteredTestTypes =
@@ -1060,7 +1089,9 @@ export default function SampleForm() {
                   };
                 })}
                 value={selectedTestGroups.map((groupId) => {
-                  const group = assignedTestGroups.find((g) => g.id === groupId);
+                  // Use correct source for selected group
+                  const sourceGroups = useAllGroups ? testGroups : assignedTestGroups;
+                  const group = sourceGroups.find((g) => g.id === groupId);
                   const assignedIds = group?.assigned_test_type_ids ?? [];
                   const filteredTestTypes =
                     assignedIds.length > 0
@@ -1073,8 +1104,8 @@ export default function SampleForm() {
                       groupId === "N/A"
                         ? "N/A"
                         : group
-                          ? `${group.name} (${filteredTestTypes.length} tests)`
-                          : groupId,
+                        ? `${group.name} (${filteredTestTypes.length} tests)`
+                        : groupId,
                     value: groupId,
                   };
                 })}
