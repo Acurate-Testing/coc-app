@@ -93,8 +93,8 @@ export default function SampleForm() {
   const [assignedTestTypes, setAssignedTestTypes] = useState<TestType[]>([]);
   const [useAllGroups, setUseAllGroups] = useState(false);
 
-  const prevMatrixTypeRef = useRef<string | undefined>(undefined);
   const [initialEditLoad, setInitialEditLoad] = useState(false);
+  const initialMatrixTypeRef = useRef<string | null>(null); // <-- Add this line
 
   // Fetch assigned test groups and test types for the user
   const fetchAssignedTestGroupsAndTypes = async () => {
@@ -124,7 +124,7 @@ export default function SampleForm() {
     fetchTestGroups(); // Always fetch all test groups for fallback
   }, [session?.user?.id]);
 
-  // Watch for matrix_type changes and switch to all groups if no assigned group matches
+   // Watch for matrix_type changes and switch to all groups if no assigned group matches
   useEffect(() => {
     if (!formData.matrix_type) {
       setUseAllGroups(false);
@@ -489,33 +489,6 @@ export default function SampleForm() {
     }));
   };
 
-  const fetchSampleData = async () => {
-    if (editMode && sampleId) {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/samples/${sampleId}`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch sample data");
-        }
-        const data = await response.json();
-        setFormData(data.sample);
-        setSelectedTests(data.sample.test_types || []);
-
-        // Set the selected test group if available
-        if (data.sample.test_group_id) {
-          setSelectedTestGroups([data.sample.test_group_id]);
-        }
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching sample:", error);
-        setIsLoading(false);
-        errorToast("Failed to load sample data. Please try again.");
-      }
-    }
-  };
-
   // Edit mode: load values only once
   useEffect(() => {
     if (editMode && sampleId && !initialEditLoad) {
@@ -530,9 +503,10 @@ export default function SampleForm() {
           const data = await response.json();
           setFormData(data.sample);
           setSelectedTests(data.sample.test_types || []);
-          if (data.sample.test_group_id) {
-            setSelectedTestGroups([data.sample.test_group_id]);
+          if (data.sample.test_group_ids) {
+            setSelectedTestGroups(data.sample.test_group_ids);
           }
+          initialMatrixTypeRef.current = data.sample.matrix_type || null; // <-- Store initial matrix type
           setIsLoading(false);
           setInitialEditLoad(true);
         } catch (error) {
@@ -543,22 +517,25 @@ export default function SampleForm() {
     }
   }, [editMode, sampleId, initialEditLoad]);
 
-  // Reset test group/type if matrix changes after initial load
+  // Reset test group/type if matrix changes (but NOT on initial edit load)
   useEffect(() => {
-    // Reset if matrix type changed (but not on initial load)
+    // Only reset if NOT initial edit load OR user has changed matrix type
+    if (!formData.matrix_type) return;
     if (
-      prevMatrixTypeRef.current !== undefined &&
-      prevMatrixTypeRef.current !== formData.matrix_type
+      editMode &&
+      initialEditLoad &&
+      initialMatrixTypeRef.current === formData.matrix_type
     ) {
-      setSelectedTestGroups([]);
-      setSelectedTests([]);
-      setFormData((prev) => ({
-        ...prev,
-        test_types: [],
-      }));
+      // Don't reset if matrix type matches initial value in edit mode
+      return;
     }
-    // Fix: ensure prevMatrixTypeRef is always string or undefined (never null)
-    prevMatrixTypeRef.current = formData.matrix_type ?? undefined;
+    // Always reset selected test groups and test types when matrix type changes
+    setSelectedTestGroups([]);
+    setSelectedTests([]);
+    setFormData((prev) => ({
+      ...prev,
+      test_types: [],
+    }));
     if (!formData.matrix_type) {
       setUseAllGroups(false);
       return;
@@ -569,7 +546,7 @@ export default function SampleForm() {
         group.allowed_matrix_types.includes(formData.matrix_type)
     );
     setUseAllGroups(filtered.length === 0);
-  }, [formData.matrix_type, assignedTestGroups]);
+  }, [formData.matrix_type, assignedTestGroups, editMode, initialEditLoad]);
 
   const validateStep = (
     step: number
@@ -821,18 +798,16 @@ export default function SampleForm() {
           ? SampleStatus.Submitted
           : formData.status;
 
+      // Always send all selected test group IDs as test_group_ids (array)
       const submission = {
         ...formData,
         status: newStatus,
         saved_at: new Date().toISOString(),
-        // Include test group information
         test_group_id: selectedTestGroups.length > 0 ? selectedTestGroups[0] : null,
-        // Include a flag to indicate this is an update
+        test_group_ids: selectedTestGroups.length > 0 ? selectedTestGroups : [],
         is_update: editMode,
-        // Include the original status for email notification
         original_status: formData.status,
       };
-
       const url = editMode ? `/api/samples/${sampleId}` : "/api/samples";
 
       const res = await fetch(url, {
@@ -1169,6 +1144,9 @@ export default function SampleForm() {
                   selectSomeItems: "Select Test Type Group(s)",
                   search: "Search Test Type Group(s)",
                 }}
+                hasSelectAll={true} // <-- Enable "Select All" option
+                disableSearch={false}
+                // menuIsOpen={true} // Uncomment if your MultiSelect supports this prop
               />
               <p className="text-xs text-gray-500 mt-1">
                 {selectedTestGroups.length > 0
