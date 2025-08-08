@@ -489,33 +489,6 @@ export default function SampleForm() {
     }));
   };
 
-  const fetchSampleData = async () => {
-    if (editMode && sampleId) {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/samples/${sampleId}`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch sample data");
-        }
-        const data = await response.json();
-        setFormData(data.sample);
-        setSelectedTests(data.sample.test_types || []);
-
-        // Set the selected test group if available
-        if (data.sample.test_group_id) {
-          setSelectedTestGroups([data.sample.test_group_id]);
-        }
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error fetching sample:", error);
-        setIsLoading(false);
-        errorToast("Failed to load sample data. Please try again.");
-      }
-    }
-  };
-
   // Edit mode: load values only once
   useEffect(() => {
     if (editMode && sampleId && !initialEditLoad) {
@@ -530,8 +503,8 @@ export default function SampleForm() {
           const data = await response.json();
           setFormData(data.sample);
           setSelectedTests(data.sample.test_types || []);
-          if (data.sample.test_group_id) {
-            setSelectedTestGroups([data.sample.test_group_id]);
+          if (data.sample.test_group_ids) {
+            setSelectedTestGroups(data.sample.test_group_ids);
           }
           setIsLoading(false);
           setInitialEditLoad(true);
@@ -821,18 +794,16 @@ export default function SampleForm() {
           ? SampleStatus.Submitted
           : formData.status;
 
+      // Always send all selected test group IDs as test_group_ids (array)
       const submission = {
         ...formData,
         status: newStatus,
         saved_at: new Date().toISOString(),
-        // Include test group information
         test_group_id: selectedTestGroups.length > 0 ? selectedTestGroups[0] : null,
-        // Include a flag to indicate this is an update
+        test_group_ids: selectedTestGroups.length > 0 ? selectedTestGroups : [],
         is_update: editMode,
-        // Include the original status for email notification
         original_status: formData.status,
       };
-
       const url = editMode ? `/api/samples/${sampleId}` : "/api/samples";
 
       const res = await fetch(url, {

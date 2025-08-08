@@ -117,7 +117,8 @@ export async function PUT(
 
     const { sampleId } = params;
     const body = await request.json();
-    const { is_update, original_status, account, agency, created_by_user, test_types, coc_transfers, address, test_group_id, ...updateData } = body;
+    // Destructure test_group_ids from body
+    const { is_update, original_status, account, agency, created_by_user, test_types, coc_transfers, address, test_group_id, test_group_ids, ...updateData } = body;
 
     console.log("Updating sample:", {
       sampleId,
@@ -131,6 +132,14 @@ export async function PUT(
     // Include test_group_id in update data if provided
     if (test_group_id !== undefined) {
       updateData.test_group_id = test_group_id;
+    }
+    // Include test_group_ids (array of UUIDs) in update data if provided
+    if (Array.isArray(test_group_ids)) {
+      updateData.test_group_ids = test_group_ids;
+    }
+    // Remove location_accuracy from updateData if present, since column does not exist
+    if ('location_accuracy' in updateData) {
+      delete updateData.location_accuracy;
     }
 
     // Update the sample
@@ -160,7 +169,7 @@ export async function PUT(
     if (updateError) {
       console.error("Error updating sample:", updateError);
       return NextResponse.json(
-        { error: "Failed to update sample" },
+        { error: "Failed to update sample", message: updateError.message },
         { status: 500 }
       );
     }
