@@ -545,11 +545,10 @@ export default function SampleForm() {
 
   // Reset test group/type if matrix changes after initial load
   useEffect(() => {
-    // Only reset if matrix type changed and there were selected values
+    // Reset if matrix type changed (but not on initial load)
     if (
       prevMatrixTypeRef.current !== undefined &&
-      prevMatrixTypeRef.current !== formData.matrix_type &&
-      (selectedTestGroups.length > 0 || selectedTests.length > 0)
+      prevMatrixTypeRef.current !== formData.matrix_type
     ) {
       setSelectedTestGroups([]);
       setSelectedTests([]);
@@ -570,7 +569,7 @@ export default function SampleForm() {
         group.allowed_matrix_types.includes(formData.matrix_type)
     );
     setUseAllGroups(filtered.length === 0);
-  }, [formData.matrix_type, assignedTestGroups, selectedTestGroups.length, selectedTests.length]);
+  }, [formData.matrix_type, assignedTestGroups]);
 
   const validateStep = (
     step: number
