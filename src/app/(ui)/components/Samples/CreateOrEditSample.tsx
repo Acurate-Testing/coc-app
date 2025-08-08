@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MultiSelect } from "react-multi-select-component";
 import {
   County,
@@ -92,6 +92,9 @@ export default function SampleForm() {
   const [assignedTestGroups, setAssignedTestGroups] = useState<TestGroup[]>([]);
   const [assignedTestTypes, setAssignedTestTypes] = useState<TestType[]>([]);
   const [useAllGroups, setUseAllGroups] = useState(false);
+
+  const prevMatrixTypeRef = useRef<string | undefined>(undefined);
+  const [initialEditLoad, setInitialEditLoad] = useState(false);
 
   // Fetch assigned test groups and test types for the user
   const fetchAssignedTestGroupsAndTypes = async () => {
@@ -513,9 +516,61 @@ export default function SampleForm() {
     }
   };
 
+  // Edit mode: load values only once
   useEffect(() => {
-    fetchSampleData();
-  }, [editMode, sampleId]);
+    if (editMode && sampleId && !initialEditLoad) {
+      (async () => {
+        setIsLoading(true);
+        try {
+          const response = await fetch(`/api/samples/${sampleId}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to fetch sample data");
+          }
+          const data = await response.json();
+          setFormData(data.sample);
+          setSelectedTests(data.sample.test_types || []);
+          if (data.sample.test_group_id) {
+            setSelectedTestGroups([data.sample.test_group_id]);
+          }
+          setIsLoading(false);
+          setInitialEditLoad(true);
+        } catch (error) {
+          setIsLoading(false);
+          errorToast("Failed to load sample data. Please try again.");
+        }
+      })();
+    }
+  }, [editMode, sampleId, initialEditLoad]);
+
+  // Reset test group/type if matrix changes after initial load
+  useEffect(() => {
+    // Only reset if matrix type changed and there were selected values
+    if (
+      prevMatrixTypeRef.current !== undefined &&
+      prevMatrixTypeRef.current !== formData.matrix_type &&
+      (selectedTestGroups.length > 0 || selectedTests.length > 0)
+    ) {
+      setSelectedTestGroups([]);
+      setSelectedTests([]);
+      setFormData((prev) => ({
+        ...prev,
+        test_types: [],
+      }));
+    }
+    // Fix: ensure prevMatrixTypeRef is always string or undefined (never null)
+    prevMatrixTypeRef.current = formData.matrix_type ?? undefined;
+    if (!formData.matrix_type) {
+      setUseAllGroups(false);
+      return;
+    }
+    const filtered = assignedTestGroups.filter(
+      (group: any) =>
+        Array.isArray(group.allowed_matrix_types) &&
+        group.allowed_matrix_types.includes(formData.matrix_type)
+    );
+    setUseAllGroups(filtered.length === 0);
+  }, [formData.matrix_type, assignedTestGroups, selectedTestGroups.length, selectedTests.length]);
 
   const validateStep = (
     step: number
