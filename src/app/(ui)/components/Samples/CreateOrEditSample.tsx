@@ -93,8 +93,8 @@ export default function SampleForm() {
   const [assignedTestTypes, setAssignedTestTypes] = useState<TestType[]>([]);
   const [useAllGroups, setUseAllGroups] = useState(false);
 
-  const prevMatrixTypeRef = useRef<string | undefined>(undefined);
   const [initialEditLoad, setInitialEditLoad] = useState(false);
+  const initialMatrixTypeRef = useRef<string | null>(null); // <-- Add this line
 
   // Fetch assigned test groups and test types for the user
   const fetchAssignedTestGroupsAndTypes = async () => {
@@ -123,20 +123,6 @@ export default function SampleForm() {
     }
     fetchTestGroups(); // Always fetch all test groups for fallback
   }, [session?.user?.id]);
-
-  // Watch for matrix_type changes and switch to all groups if no assigned group matches
-  useEffect(() => {
-    if (!formData.matrix_type) {
-      setUseAllGroups(false);
-      return;
-    }
-    const filtered = assignedTestGroups.filter(
-      (group: any) =>
-        Array.isArray(group.allowed_matrix_types) &&
-        group.allowed_matrix_types.includes(formData.matrix_type)
-    );
-    setUseAllGroups(filtered.length === 0);
-  }, [formData.matrix_type, assignedTestGroups]);
 
   // Use assigned groups/types for selection
   const getFilteredTestGroups = () => {
@@ -506,6 +492,7 @@ export default function SampleForm() {
           if (data.sample.test_group_ids) {
             setSelectedTestGroups(data.sample.test_group_ids);
           }
+          initialMatrixTypeRef.current = data.sample.matrix_type || null; // <-- Store initial matrix type
           setIsLoading(false);
           setInitialEditLoad(true);
         } catch (error) {
@@ -516,22 +503,25 @@ export default function SampleForm() {
     }
   }, [editMode, sampleId, initialEditLoad]);
 
-  // Reset test group/type if matrix changes after initial load
+  // Reset test group/type if matrix changes (but NOT on initial edit load)
   useEffect(() => {
-    // Reset if matrix type changed (but not on initial load)
+    // Only reset if NOT initial edit load OR user has changed matrix type
+    if (!formData.matrix_type) return;
     if (
-      prevMatrixTypeRef.current !== undefined &&
-      prevMatrixTypeRef.current !== formData.matrix_type
+      editMode &&
+      initialEditLoad &&
+      initialMatrixTypeRef.current === formData.matrix_type
     ) {
-      setSelectedTestGroups([]);
-      setSelectedTests([]);
-      setFormData((prev) => ({
-        ...prev,
-        test_types: [],
-      }));
+      // Don't reset if matrix type matches initial value in edit mode
+      return;
     }
-    // Fix: ensure prevMatrixTypeRef is always string or undefined (never null)
-    prevMatrixTypeRef.current = formData.matrix_type ?? undefined;
+    // Always reset selected test groups and test types when matrix type changes
+    setSelectedTestGroups([]);
+    setSelectedTests([]);
+    setFormData((prev) => ({
+      ...prev,
+      test_types: [],
+    }));
     if (!formData.matrix_type) {
       setUseAllGroups(false);
       return;
@@ -542,7 +532,7 @@ export default function SampleForm() {
         group.allowed_matrix_types.includes(formData.matrix_type)
     );
     setUseAllGroups(filtered.length === 0);
-  }, [formData.matrix_type, assignedTestGroups]);
+  }, [formData.matrix_type, assignedTestGroups, editMode, initialEditLoad]);
 
   const validateStep = (
     step: number
