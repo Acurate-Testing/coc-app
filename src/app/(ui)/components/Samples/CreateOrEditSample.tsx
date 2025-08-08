@@ -124,6 +124,20 @@ export default function SampleForm() {
     fetchTestGroups(); // Always fetch all test groups for fallback
   }, [session?.user?.id]);
 
+   // Watch for matrix_type changes and switch to all groups if no assigned group matches
+  useEffect(() => {
+    if (!formData.matrix_type) {
+      setUseAllGroups(false);
+      return;
+    }
+    const filtered = assignedTestGroups.filter(
+      (group: any) =>
+        Array.isArray(group.allowed_matrix_types) &&
+        group.allowed_matrix_types.includes(formData.matrix_type)
+    );
+    setUseAllGroups(filtered.length === 0);
+  }, [formData.matrix_type, assignedTestGroups]);
+
   // Use assigned groups/types for selection
   const getFilteredTestGroups = () => {
     if (!formData.matrix_type) return [];
@@ -1130,6 +1144,9 @@ export default function SampleForm() {
                   selectSomeItems: "Select Test Type Group(s)",
                   search: "Search Test Type Group(s)",
                 }}
+                hasSelectAll={true} // <-- Enable "Select All" option
+                disableSearch={false}
+                // menuIsOpen={true} // Uncomment if your MultiSelect supports this prop
               />
               <p className="text-xs text-gray-500 mt-1">
                 {selectedTestGroups.length > 0
