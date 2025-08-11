@@ -78,6 +78,22 @@ const handler = NextAuth({
             throw err;
           }
 
+          // Check if user's agency is deleted (if agency_id exists)
+          if (user.agency_id) {
+            const { data: agency, error: agencyError } = await supabase
+              .from("agencies")
+              .select("id, deleted_at")
+              .eq("id", user.agency_id)
+              .single();
+
+            if (agencyError || !agency || agency.deleted_at) {
+              // Agency not found or deleted
+              const err = new Error("Your account has been deactivated");
+              (err as any).code = "ACCOUNT_DEACTIVATED";
+              throw err;
+            }
+          }
+
           const {
             data: { session },
             error: authError,

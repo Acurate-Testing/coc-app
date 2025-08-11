@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const agencyId = session.user.agency_id;
     const { data, error } = await supabase
       .from("accounts")
-      .select("id, name")
+      .select("id, name, agencies(PWS_id_prefix)")
       .eq("agency_id", agencyId)
       .order("name", { ascending: true });
 
@@ -30,7 +30,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ accounts: data });
+    const accounts = (data ?? []).map((account: any) => ({
+      id: account.id,
+      name: account.name,
+      PWS_id_prefix: account.agencies?.PWS_id_prefix ?? null,
+    }));
+
+    return NextResponse.json({ accounts });
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
