@@ -124,7 +124,7 @@ export default function SampleForm() {
     fetchTestGroups(); // Always fetch all test groups for fallback
   }, [session?.user?.id]);
 
-   // Watch for matrix_type changes and switch to all groups if no assigned group matches
+  // Watch for matrix_type changes and switch to all groups if no assigned group matches
   useEffect(() => {
     if (!formData.matrix_type) {
       setUseAllGroups(false);
@@ -890,6 +890,15 @@ export default function SampleForm() {
     setValidationErrors([]);
   };
 
+  useEffect(() => {
+    if (session?.user?.PWS_id_prefix && !formData.pws_id) {
+      setFormData((prev) => ({
+        ...prev,
+        pws_id: session.user.PWS_id_prefix
+      }));
+    }
+  }, [session]);
+
   const handleSubmitAndAddAnother = (retainDetails: boolean) => {
     const validation = validateStep(4);
 
@@ -1000,7 +1009,7 @@ export default function SampleForm() {
                 <input
                   type="text"
                   className="form-input mt-1"
-                  value={formData.pws_id ?? ""}
+                  value={formData.pws_id as string || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, pws_id: e.target.value })
                   }
@@ -1133,8 +1142,8 @@ export default function SampleForm() {
                       groupId === "N/A"
                         ? "N/A"
                         : group
-                        ? `${group.name} (${filteredTestTypes.length} tests)`
-                        : groupId,
+                          ? `${group.name} (${filteredTestTypes.length} tests)`
+                          : groupId,
                     value: groupId,
                   };
                 })}
@@ -1146,7 +1155,7 @@ export default function SampleForm() {
                 }}
                 hasSelectAll={true} // <-- Enable "Select All" option
                 disableSearch={false}
-                // menuIsOpen={true} // Uncomment if your MultiSelect supports this prop
+              // menuIsOpen={true} // Uncomment if your MultiSelect supports this prop
               />
               <p className="text-xs text-gray-500 mt-1">
                 {selectedTestGroups.length > 0
@@ -1378,9 +1387,9 @@ export default function SampleForm() {
                   <p className="font-medium">
                     {formData.sample_collected_at
                       ? format(
-                          new Date(formData.sample_collected_at),
-                          "MM/dd/yyyy HH:mm"
-                        )
+                        new Date(formData.sample_collected_at),
+                        "MM/dd/yyyy HH:mm"
+                      )
                       : "-"}
                   </p>
                 </div>

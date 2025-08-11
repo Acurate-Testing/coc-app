@@ -5,13 +5,13 @@ import { supabase } from "@/lib/supabase";
 export async function GET() {
   const { data, error } = await supabase
     .from("agencies")
-    .select("id, name, contact_email, phone, street, city, state, zip, agency_test_type_groups(test_groups(id, name), assigned_test_type_ids), accounts(name)")
+    .select("id, name, contact_email, phone, street, city, state, zip, PWS_id_prefix, agency_test_type_groups(test_groups(id, name), assigned_test_type_ids), accounts(name)")
     .is("deleted_at", null);
-    
+
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  
+
   // Transform the data to format accounts as string arrays and flatten test groups
   const formattedData = data?.map(user => ({
     ...user,
@@ -23,9 +23,10 @@ export async function GET() {
         assigned_test_type_ids: group.assigned_test_type_ids && group.assigned_test_type_ids.length > 0 
           ? group.assigned_test_type_ids 
           : []
-      })).filter(g => g.id) : []
+      })).filter(g => g.id) : [],
+    PWS_id_prefix: user.PWS_id_prefix // <-- Ensure this is included
   }));
-  
+
   return NextResponse.json(formattedData);
 }
 
@@ -53,9 +54,23 @@ export async function DELETE(req: NextRequest) {
 
 // Assign test groups to a user
 export async function PATCH(req: NextRequest) {
-  const { userId, testGroupIds, testTypeIdsByGroup } = await req.json();
+  const body = await req.json();
+  const { userId, testGroupIds, testTypeIdsByGroup, PWS_id_prefix } = body;
 
-  // Validate input
+  // If only updating PWS_id_prefix
+  if (userId && typeof PWS_id_prefix === "string") {
+    const { error } = await supabase
+      .from("agencies")
+      .update({ PWS_id_prefix })
+      .eq("id", userId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  // Validate input for test group assignment
   if (!userId || !Array.isArray(testGroupIds) || typeof testTypeIdsByGroup !== "object") {
     return NextResponse.json({ error: "userId, testGroupIds[], and testTypeIdsByGroup are required" }, { status: 400 });
   }
@@ -86,6 +101,15 @@ export async function PATCH(req: NextRequest) {
       .in("test_type_group_id", testGroupIdsToRemove);
 
     if (deleteError) {
+      if (
+        typeof deleteError.message === "string" &&
+        deleteError.message.includes("violates foreign key constraint")
+      ) {
+        return NextResponse.json(
+          { error: "Cannot remove test group assignment because it is referenced by other records." },
+          { status: 409 }
+        );
+      }
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
   }
