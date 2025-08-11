@@ -31,6 +31,7 @@ import "@/app/(ui)/styles/react-datepicker-custom.css";
 interface Account {
   id: string;
   name: string;
+  PWS_id_prefix?: string | null; 
 }
 interface TestType {
   id: string;
@@ -41,7 +42,7 @@ interface TestGroup {
   name: string;
   description: string | null;
   test_type_ids: string[];
-  assigned_test_type_ids?: string[]; // <-- Add this line
+  assigned_test_type_ids?: string[]; 
   test_types?: {
     id: string;
     name: string;
@@ -891,13 +892,13 @@ export default function SampleForm() {
   };
 
   useEffect(() => {
-    if (session?.user?.PWS_id_prefix && !formData.pws_id) {
+    if(userAccounts.length > 0){
       setFormData((prev) => ({
         ...prev,
-        pws_id: session.user.PWS_id_prefix
+        pws_id: userAccounts[0].PWS_id_prefix
       }));
     }
-  }, [session]);
+  }, [userAccounts]);
 
   const handleSubmitAndAddAnother = (retainDetails: boolean) => {
     const validation = validateStep(4);
