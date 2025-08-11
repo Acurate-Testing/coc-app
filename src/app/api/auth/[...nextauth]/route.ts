@@ -13,6 +13,7 @@ declare module "next-auth" {
       role?: string | null;
       agency_id?: string | null;
       supabaseToken?: string;
+      PWS_id_prefix?: string | null; // <-- Add this line
     };
   }
 }
@@ -24,6 +25,7 @@ declare module "next-auth/jwt" {
     agency_id?: string | null;
     accounts?: any[];
     supabaseToken?: string;
+    PWS_id_prefix?: string | null; // <-- Add this line
   }
 }
 
@@ -98,6 +100,7 @@ const handler = NextAuth({
           let accounts = [];
           let agency_id = null;
           let LoggedInUserData = null;
+          let PWS_id_prefix = null; // <-- Add this line
 
           try {
             // Try to fetch agency accounts for the user
@@ -118,9 +121,20 @@ const handler = NextAuth({
             if (!userError && userData) {
               agency_id = userData.agency_id;
               LoggedInUserData = userData;
+              // Fetch PWS_id_prefix from agencies table if agency_id exists
+              if (agency_id) {
+                const { data: agencyData, error: agencyError } = await supabase
+                  .from("agencies")
+                  .select("PWS_id_prefix")
+                  .eq("id", agency_id)
+                  .single();
+                if (!agencyError && agencyData) {
+                  PWS_id_prefix = agencyData.PWS_id_prefix || null;
+                }
+              }
             }
           } catch (error) {
-            console.warn("Could not fetch accounts - this is optional:", error);
+            console.warn("Could not fetch accounts or PWS_id_prefix:", error);
           }
 
           return {
@@ -130,6 +144,7 @@ const handler = NextAuth({
             role: LoggedInUserData?.role,
             accounts: accounts,
             agency_id,
+            PWS_id_prefix, // <-- Add this line
             supabaseToken: session.access_token,
           };
         } catch (error) {
@@ -152,6 +167,7 @@ const handler = NextAuth({
         token.agency_id = (user as any).agency_id ?? null;
         token.name = (user as any).name ?? null;
         token.supabaseToken = (user as any).supabaseToken;
+        token.PWS_id_prefix = (user as any).PWS_id_prefix ?? null; // <-- Add this line
       }
       return token;
     },
@@ -163,6 +179,7 @@ const handler = NextAuth({
         session.user.agency_id = token.agency_id;
         session.user.name = token.name;
         session.user.supabaseToken = token.supabaseToken;
+        session.user.PWS_id_prefix = token.PWS_id_prefix; // <-- Add this line
       }
       return session;
     },

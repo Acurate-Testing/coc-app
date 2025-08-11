@@ -27,6 +27,7 @@ type User = {
   accounts?: string[];
   agency_test_type_groups?: AgencyTestTypeGroup[];
   assigned_test_group?: AssignedTestGroup[];
+  PWS_id_prefix?: string; // <-- Add this line
 };
 
 interface AgencyTestTypeGroup {
@@ -60,6 +61,8 @@ export default function AdminUsersPage() {
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [pwsIdPrefix, setPwsIdPrefix] = useState<string>("");
+  const [isSavingPwsId, setIsSavingPwsId] = useState<boolean>(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -208,6 +211,35 @@ export default function AdminUsersPage() {
     setOpenActionMenu(testId);
   };
 
+  useEffect(() => {
+    // Set initial value when selectedUser changes
+    setPwsIdPrefix(selectedUser?.PWS_id_prefix || "");
+  }, [selectedUser]);
+
+  // Save PWS ID prefix handler
+  const handleSavePwsIdPrefix = async () => {
+    if (!selectedUser?.id) return;
+    try {
+      setIsSavingPwsId(true);
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          PWS_id_prefix: pwsIdPrefix,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to save PWS ID");
+      successToast("PWS ID prefix saved");
+      fetchUsers();
+    } catch (err) {
+      errorToast(err instanceof Error ? err.message : "Failed to save PWS ID");
+    } finally {
+      setIsSavingPwsId(false);
+    }
+  };
+
   if (isInitialLoading) {
     return <LoadingSpinner />;
   }
@@ -258,8 +290,8 @@ export default function AdminUsersPage() {
             <button
               key={user.id}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${selectedUser?.id === user.id
-                  ? "bg-blue-50 text-blue-700"
-                  : "hover:bg-gray-50 text-gray-700"
+                ? "bg-blue-50 text-blue-700"
+                : "hover:bg-gray-50 text-gray-700"
                 }`}
               onClick={() => setSelectedUser(user)}
             >
@@ -275,11 +307,11 @@ export default function AdminUsersPage() {
         </div>
       </div>
       {/* Main Panel */}
-      <div className="flex-1 p-2 sm:p-8 bg-gray-50 overflow-auto">
+      <div className="flex-1 p-2 sm:p-8 bg-gray-100 overflow-auto">
         {selectedUser && (
           <div className="w-full mx-auto">
             {/* User Info */}
-            <div className="bg-white rounded-xl shadow p-4 mb-6">
+            <div className="bg-white rounded-xl shadow p-4">
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold flex-shrink-0">
                   {(selectedUser.name ?? "")[0] || "?"}
@@ -382,6 +414,36 @@ export default function AdminUsersPage() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/*  Assign PWS id */}
+            <div className="bg-white rounded-xl shadow p-4 my-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="font-semibold text-base">Assign PWS ID</div>
+              </div>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  className="border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="Enter PWS ID prefix"
+                  value={pwsIdPrefix}
+                  onChange={e => setPwsIdPrefix(e.target.value)}
+                  disabled={isSavingPwsId}
+                />
+                <Button
+                  label={isSavingPwsId ? "Saving..." : "Save"}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
+                  onClick={handleSavePwsIdPrefix}
+                  disabled={isSavingPwsId || !pwsIdPrefix}
+                >
+                  Save
+                </Button>
+              </div>
+              {selectedUser?.PWS_id_prefix && (
+                <div className="mt-2 text-sm text-gray-500">
+                  Current PWS ID Prefix: <span className="font-semibold text-black">{selectedUser.PWS_id_prefix}</span>
+                </div>
+              )}
             </div>
 
             {/* Test Permissions */}

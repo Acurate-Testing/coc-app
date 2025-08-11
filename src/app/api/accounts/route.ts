@@ -18,6 +18,15 @@ export async function GET(request: NextRequest) {
       .order("name", { ascending: true });
 
     if (error) {
+      if (
+        typeof error.message === "string" &&
+        error.message.includes("violates foreign key constraint")
+      ) {
+        return NextResponse.json(
+          { error: "Cannot update or delete account because it is referenced by samples." },
+          { status: 409 }
+        );
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -25,4 +34,4 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-} 
+}

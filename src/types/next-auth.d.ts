@@ -9,6 +9,7 @@ declare module "next-auth" {
     role: string;
     agency_id: string;
     supabaseToken: string;
+    PWS_id_prefix?: string | null; // <-- Add this line
   }
 
   interface Session {
