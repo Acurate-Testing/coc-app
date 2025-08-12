@@ -13,8 +13,9 @@ export async function GET(request: NextRequest) {
     const agencyId = session.user.agency_id;
     const { data, error } = await supabase
       .from("accounts")
-      .select("id, name, agencies(PWS_id_prefix)")
+      .select("id, name, pws_id")
       .eq("agency_id", agencyId)
+      .is("deleted_at", null)
       .order("name", { ascending: true });
 
     if (error) {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     const accounts = (data ?? []).map((account: any) => ({
       id: account.id,
       name: account.name,
-      PWS_id_prefix: account.agencies?.PWS_id_prefix ?? null,
+      pws_id: account.pws_id ?? null,
     }));
 
     return NextResponse.json({ accounts });

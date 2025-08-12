@@ -36,6 +36,7 @@ create table public.accounts (
   id uuid not null default extensions.uuid_generate_v4 (),
   name text not null,
   agency_id uuid null,
+  pws_id text null,
   created_at timestamp with time zone null default now(),
   deleted_at timestamp with time zone null,
   constraint accounts_pkey primary key (id),

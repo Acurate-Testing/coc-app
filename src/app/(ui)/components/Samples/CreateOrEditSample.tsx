@@ -31,7 +31,7 @@ import "@/app/(ui)/styles/react-datepicker-custom.css";
 interface Account {
   id: string;
   name: string;
-  PWS_id_prefix?: string | null; 
+  pws_id?: string | null; 
 }
 interface TestType {
   id: string;
@@ -895,7 +895,7 @@ export default function SampleForm() {
     if(userAccounts.length > 0){
       setFormData((prev) => ({
         ...prev,
-        pws_id: userAccounts[0].PWS_id_prefix
+        pws_id: userAccounts[0].pws_id
       }));
     }
   }, [userAccounts]);
@@ -950,9 +950,15 @@ export default function SampleForm() {
               <select
                 className="form-input bg-white mt-1"
                 value={formData.account_id ?? ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, account_id: e.target.value })
-                }
+                onChange={(e) => {
+                  const selectedAccountId = e.target.value;
+                  const selectedAccount = userAccounts.find(acc => acc.id === selectedAccountId);
+                  setFormData({ 
+                    ...formData, 
+                    account_id: selectedAccountId,
+                    pws_id: selectedAccount?.pws_id || ""
+                  });
+                }}
                 required
               >
                 <option value="">Select Account</option>
@@ -1014,8 +1020,15 @@ export default function SampleForm() {
                   onChange={(e) =>
                     setFormData({ ...formData, pws_id: e.target.value })
                   }
-                  placeholder="Enter PWS ID"
+                  placeholder={formData.account_id ? "PWS ID will be populated from selected account" : "Select an account first"}
+                  // readOnly={!!formData.account_id}
+                  // style={formData.account_id ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
                 />
+                {formData.account_id && !formData.pws_id && (
+                  <div className="text-sm text-amber-600 mt-1">
+                    ⚠️ No PWS ID found for the selected account. Please contact your administrator.
+                  </div>
+                )}
               </div>
             ) : (
               ""

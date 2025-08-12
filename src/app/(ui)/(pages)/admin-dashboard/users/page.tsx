@@ -24,11 +24,16 @@ type User = {
   city?: string;
   state?: string;
   zip?: string;
-  accounts?: string[];
+  accounts?: Account[];
   agency_test_type_groups?: AgencyTestTypeGroup[];
   assigned_test_group?: AssignedTestGroup[];
-  PWS_id_prefix?: string; // <-- Add this line
 };
+
+interface Account {
+  id?: string;
+  name: string;
+  pws_id?: string;
+}
 
 interface AgencyTestTypeGroup {
   test_groups: {
@@ -61,8 +66,6 @@ export default function AdminUsersPage() {
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [pwsIdPrefix, setPwsIdPrefix] = useState<string>("");
-  const [isSavingPwsId, setIsSavingPwsId] = useState<boolean>(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -211,34 +214,7 @@ export default function AdminUsersPage() {
     setOpenActionMenu(testId);
   };
 
-  useEffect(() => {
-    // Set initial value when selectedUser changes
-    setPwsIdPrefix(selectedUser?.PWS_id_prefix || "");
-  }, [selectedUser]);
 
-  // Save PWS ID prefix handler
-  const handleSavePwsIdPrefix = async () => {
-    if (!selectedUser?.id) return;
-    try {
-      setIsSavingPwsId(true);
-      const response = await fetch("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: selectedUser.id,
-          PWS_id_prefix: pwsIdPrefix,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to save PWS ID");
-      successToast("PWS ID prefix saved");
-      fetchUsers();
-    } catch (err) {
-      errorToast(err instanceof Error ? err.message : "Failed to save PWS ID");
-    } finally {
-      setIsSavingPwsId(false);
-    }
-  };
 
   if (isInitialLoading) {
     return <LoadingSpinner />;
@@ -349,14 +325,19 @@ export default function AdminUsersPage() {
                     No accounts assigned.
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {selectedUser.accounts.map((acc) => (
-                      <span
-                        key={acc}
-                        className="bg-gray-200 text-gray-600 rounded-full px-3 py-1 text-sm font-medium"
+                      <div
+                        key={acc.id || acc.name}
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50"
                       >
-                        {acc}
-                      </span>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{acc.name}</div>
+                          {acc.pws_id && (
+                            <div className="text-sm text-gray-500">PWS ID: {acc.pws_id}</div>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -416,35 +397,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            {/*  Assign PWS id */}
-            <div className="bg-white rounded-xl shadow p-4 my-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="font-semibold text-base">Assign PWS ID</div>
-              </div>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="text"
-                  className="border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="Enter PWS ID prefix"
-                  value={pwsIdPrefix}
-                  onChange={e => setPwsIdPrefix(e.target.value)}
-                  disabled={isSavingPwsId}
-                />
-                <Button
-                  label={isSavingPwsId ? "Saving..." : "Save"}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-blue-700 transition"
-                  onClick={handleSavePwsIdPrefix}
-                  disabled={isSavingPwsId || !pwsIdPrefix}
-                >
-                  Save
-                </Button>
-              </div>
-              {selectedUser?.PWS_id_prefix && (
-                <div className="mt-2 text-sm text-gray-500">
-                  Current PWS ID Prefix: <span className="font-semibold text-black">{selectedUser.PWS_id_prefix}</span>
-                </div>
-              )}
-            </div>
+
 
             {/* Test Permissions */}
             <div className="bg-white rounded-xl shadow p-4">

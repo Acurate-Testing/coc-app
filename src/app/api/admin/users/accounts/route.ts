@@ -4,6 +4,12 @@ import { authOptions } from "@/lib/auth-options";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+interface Account {
+  id?: string;
+  name: string;
+  pws_id?: string;
+}
+
 // Update user accounts - handles both adding and removing accounts
 export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -35,31 +41,33 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "userId and accounts[] are required" }, { status: 400 });
   }
 
-    // Fetch existing accounts for this agency
+  // Fetch existing accounts for this agency
   const { data: existingAccounts, error: fetchError } = await supabase
     .from("accounts")
-    .select("name")
-    .eq("agency_id", userId);
+    .select("id, name, pws_id")
+    .eq("agency_id", userId)
+    .is("deleted_at", null);
     
   if (fetchError) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
   
-  // Create a set of existing account names
-  const existingNames = new Set(
-    (existingAccounts || []).map((entry) => entry.name)
+  // Create a map of existing account names to their data
+  const existingAccountsMap = new Map(
+    (existingAccounts || []).map((entry) => [entry.name, entry])
   );
   
   // Identify accounts that need to be removed (exist in DB but not in new accounts)
-  const accountsToRemove = Array.from(existingNames).filter(
-    (existingName) => !accounts.includes(existingName)
+  const newAccountNames = new Set(accounts.map((acc: Account) => acc.name));
+  const accountsToRemove = Array.from(existingAccountsMap.keys()).filter(
+    (existingName) => !newAccountNames.has(existingName)
   );
   
   // Remove accounts that are no longer in the list
   if (accountsToRemove.length > 0) {
     const { error: deleteError } = await supabase
       .from("accounts")
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq("agency_id", userId)
       .in("name", accountsToRemove);
       
@@ -68,19 +76,35 @@ export async function PATCH(req: NextRequest) {
     }
   }
   
-  // Filter to only add accounts that don't already exist
-  const newAccounts = accounts.filter((account: string) => !existingNames.has(account));
-  
-  // Add new accounts if any are provided
-  if (newAccounts.length > 0) {
-    const inserts = newAccounts.map((name: string) => ({
-      agency_id: userId,
-      name: name,
-    }));
+  // Process each account - update existing ones and insert new ones
+  for (const account of accounts) {
+    const existingAccount = existingAccountsMap.get(account.name);
     
-    const { error: insertError } = await supabase.from("accounts").insert(inserts);
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    if (existingAccount) {
+      // Update existing account if PWS ID changed
+      if (existingAccount.pws_id !== account.pws_id) {
+        const { error: updateError } = await supabase
+          .from("accounts")
+          .update({ pws_id: account.pws_id || null })
+          .eq("id", existingAccount.id);
+          
+        if (updateError) {
+          return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+      }
+    } else {
+      // Insert new account
+      const { error: insertError } = await supabase
+        .from("accounts")
+        .insert({
+          agency_id: userId,
+          name: account.name,
+          pws_id: account.pws_id || null,
+        });
+        
+      if (insertError) {
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
     }
   }
 
@@ -118,10 +142,10 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "userId and accountName are required" }, { status: 400 });
   }
 
-  // Remove the account from the accounts table
+  // Soft delete the account from the accounts table
   const { error } = await supabase
     .from("accounts")
-    .delete()
+    .update({ deleted_at: new Date().toISOString() })
     .eq("agency_id", userId)
     .eq("name", accountName);
 
@@ -167,8 +191,9 @@ export async function GET(req: NextRequest) {
   // Fetch accounts for the specified user
   const { data: accounts, error } = await supabase
     .from("accounts")
-    .select("name")
-    .eq("agency_id", userId);
+    .select("id, name, pws_id")
+    .eq("agency_id", userId)
+    .is("deleted_at", null);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

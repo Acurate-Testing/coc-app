@@ -5,17 +5,17 @@ import { supabase } from "@/lib/supabase";
 export async function GET() {
   const { data, error } = await supabase
     .from("agencies")
-    .select("id, name, contact_email, phone, street, city, state, zip, PWS_id_prefix, agency_test_type_groups(test_groups(id, name), assigned_test_type_ids), accounts(name)")
+    .select("id, name, contact_email, phone, street, city, state, zip, agency_test_type_groups(test_groups(id, name), assigned_test_type_ids), accounts(id, name, pws_id)")
     .is("deleted_at", null);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Transform the data to format accounts as string arrays and flatten test groups
+  // Transform the data to format accounts with PWS IDs and flatten test groups
   const formattedData = data?.map(user => ({
     ...user,
-    accounts: user.accounts ? user.accounts.map((account: {name: string}) => account.name) : [],
+    accounts: user.accounts || [],
     assigned_test_group: user.agency_test_type_groups ? 
       user.agency_test_type_groups.map((group: any) => ({
         id: group.test_groups?.id,
@@ -23,8 +23,7 @@ export async function GET() {
         assigned_test_type_ids: group.assigned_test_type_ids && group.assigned_test_type_ids.length > 0 
           ? group.assigned_test_type_ids 
           : []
-      })).filter(g => g.id) : [],
-    PWS_id_prefix: user.PWS_id_prefix // <-- Ensure this is included
+      })).filter(g => g.id) : []
   }));
 
   return NextResponse.json(formattedData);
@@ -55,20 +54,7 @@ export async function DELETE(req: NextRequest) {
 // Assign test groups to a user
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
-  const { userId, testGroupIds, testTypeIdsByGroup, PWS_id_prefix } = body;
-
-  // If only updating PWS_id_prefix
-  if (userId && typeof PWS_id_prefix === "string") {
-    const { error } = await supabase
-      .from("agencies")
-      .update({ PWS_id_prefix })
-      .eq("id", userId);
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-    return NextResponse.json({ success: true });
-  }
+  const { userId, testGroupIds, testTypeIdsByGroup } = body;
 
   // Validate input for test group assignment
   if (!userId || !Array.isArray(testGroupIds) || typeof testTypeIdsByGroup !== "object") {

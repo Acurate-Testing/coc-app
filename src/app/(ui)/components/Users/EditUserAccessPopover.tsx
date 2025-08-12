@@ -6,11 +6,17 @@ import { Modal } from "@/stories/Modal/Modal";
 import { FC, useEffect, useState } from "react";
 import { FaTrash } from "react-icons/fa";
 
+interface Account {
+  id?: string;
+  name: string;
+  pws_id?: string;
+}
+
 interface EditUserAccessPopoverProps {
   open: boolean;
   close: () => void;
   userId: string;
-  existingAccounts: string[];
+  existingAccounts: Account[];
   onUpdated: () => void;
 }
 
@@ -21,30 +27,41 @@ const EditUserAccessPopover: FC<EditUserAccessPopoverProps> = ({
   existingAccounts = [],
   onUpdated,
 }) => {
-  const [accounts, setAccounts] = useState<{ label: string; value: string }[]>(
-    existingAccounts.map((acc) => ({ label: acc, value: acc }))
-  );
-  const [newAccount, setNewAccount] = useState("");
+  const [accounts, setAccounts] = useState<Account[]>(existingAccounts);
+  const [newAccountName, setNewAccountName] = useState("");
+  const [newAccountPwsId, setNewAccountPwsId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setAccounts(existingAccounts.map((acc) => ({ label: acc, value: acc })));
+      setAccounts(existingAccounts);
     }
   }, [open, existingAccounts]);
 
   const handleAddAccount = () => {
-    if (!newAccount.trim()) return;
+    if (!newAccountName.trim()) return;
     
     // Check if the account already exists
-    if (!accounts.some(acc => acc.value === newAccount.trim())) {
-      setAccounts([...accounts, { label: newAccount.trim(), value: newAccount.trim() }]);
+    if (!accounts.some(acc => acc.name === newAccountName.trim())) {
+      setAccounts([...accounts, { 
+        name: newAccountName.trim(), 
+        pws_id: newAccountPwsId.trim() || undefined 
+      }]);
     }
-    setNewAccount("");
+    setNewAccountName("");
+    setNewAccountPwsId("");
   };
 
   const handleRemoveAccount = (accountToRemove: string) => {
-    setAccounts(accounts.filter((acc) => acc.value !== accountToRemove));
+    setAccounts(accounts.filter((acc) => acc.name !== accountToRemove));
+  };
+
+  const handleUpdatePwsId = (accountName: string, pwsId: string) => {
+    setAccounts(accounts.map(acc => 
+      acc.name === accountName 
+        ? { ...acc, pws_id: pwsId.trim() || undefined }
+        : acc
+    ));
   };
 
   const handleSave = async () => {
@@ -55,7 +72,7 @@ const EditUserAccessPopover: FC<EditUserAccessPopoverProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           userId, 
-          accounts: accounts.map(acc => acc.value) 
+          accounts: accounts
         }),
       });
       
@@ -88,27 +105,35 @@ const EditUserAccessPopover: FC<EditUserAccessPopoverProps> = ({
       open={open}
       close={close}
       staticModal
-      panelClassName="!max-w-md"
+      panelClassName="!max-w-2xl"
     >
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Add Account Id
+          Add Account
         </label>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 mb-2">
           <input
             type="text"
-            value={newAccount}
-            onChange={(e) => setNewAccount(e.target.value)}
+            value={newAccountName}
+            onChange={(e) => setNewAccountName(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Enter account id"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter account name"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
-          <Button
-            label="Add"
-            className="!min-w-fit"
-            onClick={handleAddAccount}
+          <input
+            type="text"
+            value={newAccountPwsId}
+            onChange={(e) => setNewAccountPwsId(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Enter PWS ID (optional)"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
+        <Button
+          label="Add Account"
+          className="!min-w-fit"
+          onClick={handleAddAccount}
+        />
       </div>
 
       <div className="mb-4">
@@ -121,15 +146,30 @@ const EditUserAccessPopover: FC<EditUserAccessPopoverProps> = ({
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {accounts.map((acc) => (
               <div 
-                key={acc.value}
-                className="flex items-center justify-between pl-3 border border-gray-200 rounded-md bg-gray-50"
+                key={acc.name}
+                className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-gray-50"
               >
-                <span className="text-sm">{acc.label}</span>
+                <div className="flex-1 grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-xs text-gray-500 block">Account Name</span>
+                    <span className="text-sm font-medium">{acc.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500 block">PWS ID</span>
+                    <input
+                      type="text"
+                      value={acc.pws_id || ""}
+                      onChange={(e) => handleUpdatePwsId(acc.name, e.target.value)}
+                      placeholder="Enter PWS ID"
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
                 <Button
                   label=""
                   variant="icon"
-                  className="text-red-500 hover:text-red-700 !h-fit"
-                  onClick={() => handleRemoveAccount(acc.value)}
+                  className="text-red-500 hover:text-red-700 !h-fit ml-2"
+                  onClick={() => handleRemoveAccount(acc.name)}
                   icon={<FaTrash size={14} />}
                 />
               </div>
