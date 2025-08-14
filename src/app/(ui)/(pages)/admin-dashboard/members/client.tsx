@@ -51,7 +51,7 @@ export default function AdminMembersClient({
       setUserList(data.users || []);
       setIsLoading(false);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       setUserList([]);
       setIsLoading(false);
     }

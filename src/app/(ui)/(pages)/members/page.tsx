@@ -8,7 +8,7 @@ import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { useMediaQuery } from "react-responsive";
 import { format } from "date-fns";
 import { IoSearch } from "react-icons/io5";
-import { IoMailOutline, IoTrashOutline } from "react-icons/io5";
+import { IoMailOutline, IoTrashOutline, IoRefreshOutline } from "react-icons/io5";
 import { LuPlus } from "react-icons/lu";
 
 const Users = () => {
@@ -19,18 +19,19 @@ const Users = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isResending, setIsResending] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isReactivating, setIsReactivating] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(0);
 
   const fetchUserList = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/users");
+      const res = await fetch("/api/users?includeDeleted=true");
       const data = await res.json();
       setUserList(data.users || []);
       setIsLoading(false);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       setUserList([]);
       setIsLoading(false);
     }
@@ -91,6 +92,41 @@ const Users = () => {
     }
   };
 
+  const handleReactivateUser = async (userId: string) => {
+    if (!window.confirm("Are you sure you want to reactivate this user?")) {
+      return;
+    }
+
+    try {
+      setIsReactivating(userId);
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "reactivate",
+          userId: userId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to reactivate user");
+      }
+
+      successToast("User reactivated successfully");
+      fetchUserList(); // Refresh the list
+    } catch (error) {
+      errorToast(
+        error instanceof Error ? error.message : "Failed to reactivate user"
+      );
+    } finally {
+      setIsReactivating(null);
+    }
+  };
+
   useEffect(() => {
     fetchUserList();
   }, []);
@@ -140,7 +176,9 @@ const Users = () => {
         {filteredUsers.map((user) => (
           <div
             key={user.id}
-            className="bg-white rounded-lg shadow-sm p-6 border border-gray-100"
+            className={`bg-white rounded-lg shadow-sm p-6 border ${
+              user.deleted_at ? "border-red-200 bg-red-50" : "border-gray-100"
+            }`}
           >
             <div className="flex items-start justify-between mb-4 flex-col">
               <div>
@@ -149,7 +187,7 @@ const Users = () => {
                 </h3>
                 <p className="text-sm text-gray-500">{user.email}</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-4 w-full">
+              <div className="grid grid-cols-3 gap-2 mt-4 w-full">
                 {user.role === "user" && !user.active && (
                   <button
                     onClick={() => handleResendInvite(user.id)}
@@ -162,6 +200,21 @@ const Users = () => {
                       <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <IoMailOutline size={20} />
+                    )}
+                  </button>
+                )}
+                {user.deleted_at && (
+                  <button
+                    onClick={() => handleReactivateUser(user.id)}
+                    disabled={isReactivating === user.id}
+                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center justify-center bg-green-50"
+                    aria-label="Reactivate user"
+                    title="Reactivate"
+                  >
+                    {isReactivating === user.id ? (
+                      <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <IoRefreshOutline size={20} />
                     )}
                   </button>
                 )}
@@ -196,10 +249,14 @@ const Users = () => {
                 <span className="text-gray-500">Status:</span>
                 <span
                   className={`font-medium ${
-                    user.active ? "text-green-600" : "text-yellow-600"
+                    user.deleted_at 
+                      ? "text-red-600" 
+                      : user.active 
+                        ? "text-green-600" 
+                        : "text-yellow-600"
                   }`}
                 >
-                  {user.active ? "Active" : "Pending"}
+                  {user.deleted_at ? "Deleted" : user.active ? "Active" : "Pending"}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm">

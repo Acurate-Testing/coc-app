@@ -14,16 +14,21 @@ import { LuPlus } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { errorToast, successToast } from "@/hooks/useCustomToast";
 
-// Use the correct User type
+// Use the correct User/Agency type
 type User = {
   id: string;
   name: string;
   contact_email: string;
+  type?: 'agency' | 'user';
   phone?: string;
   street?: string;
   city?: string;
   state?: string;
   zip?: string;
+  deleted_at?: string;
+  role?: string;
+  agency_id?: string;
+  active?: boolean;
   accounts?: Account[];
   agency_test_type_groups?: AgencyTestTypeGroup[];
   assigned_test_group?: AssignedTestGroup[];
@@ -61,11 +66,17 @@ export default function AdminUsersPage() {
   const [selectedTestGroup, setSelectedTestGroup] = useState<string>(""); // Changed from selectedTest
   const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
   const [openConfirmDeleteUserDialog, setOpenConfirmDeleteUserDialog] = useState<boolean>(false);
+  const [openConfirmReactivateUserDialog, setOpenConfirmReactivateUserDialog] = useState<boolean>(false);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Filter and pagination state
+  const [userFilter, setUserFilter] = useState<'all' | 'active' | 'deleted'>('active');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage] = useState(10); // Reduced to make pagination more likely to appear
 
   useEffect(() => {
     setIsMounted(true);
@@ -117,11 +128,28 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, []);
 
-  const filteredUsers = users.filter(
-    (u) =>
-      (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (u.contact_email ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  // Apply filters
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch = (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.contact_email ?? "").toLowerCase().includes(search.toLowerCase());
+    
+    const matchesFilter = userFilter === 'all' || 
+      (userFilter === 'active' && !u.deleted_at) ||
+      (userFilter === 'deleted' && u.deleted_at);
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const endIndex = startIndex + usersPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to first page when filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [userFilter, search]);
 
   const handleDeleteClick = (testGroupId: string) => {
     setSelectedTestGroup(testGroupId); // Changed from setSelectedTest
@@ -178,10 +206,8 @@ export default function AdminUsersPage() {
         throw new Error(data.error || "Failed to delete user");
       }
 
-      successToast("User deleted successfully");
-      // Remove the user from the list
-      setUsers(users.filter(u => u.id !== selectedUser?.id));
-      setSelectedUser(users.find(u => u.id !== selectedUser?.id) || null);
+      successToast(`${selectedUser?.type === 'agency' ? 'Account' : 'User'} deleted successfully`);
+      fetchUsers(); // Refresh the list to show updated status
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to delete user";
       setError(errorMessage);
@@ -189,6 +215,39 @@ export default function AdminUsersPage() {
     } finally {
       setIsLoading(false);
       setOpenConfirmDeleteUserDialog(false);
+    }
+  };
+
+  // Function to handle user reactivation
+  const handleReactivateUser = async () => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch(`/api/admin/users`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "reactivate",
+          userId: selectedUser?.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to reactivate user");
+      }
+
+      successToast(`${selectedUser?.type === 'agency' ? 'Account' : 'User'} reactivated successfully`);
+      fetchUsers(); // Refresh the list to show updated status
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to reactivate user";
+      setError(errorMessage);
+      errorToast(errorMessage);
+    } finally {
+      setIsLoading(false);
+      setOpenConfirmReactivateUserDialog(false);
     }
   };
 
@@ -236,24 +295,68 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="flex flex-col sm:flex-row h-full min-h-[80vh]">
+    <div className="flex flex-col sm:flex-row h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="w-full sm:w-72 bg-white border-r border-gray-100 p-2 sm:p-4 flex-shrink-0">
+      <div className="w-full sm:w-80 bg-white border-r border-gray-200 p-4 flex-shrink-0 flex flex-col">
         <div className="flex justify-between items-center mb-4">
-          <input
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <div className="flex-1 relative">
+            <input
+              className="w-full px-3 py-2 pl-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Search accounts..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
           <button
             onClick={() => setShowInviteModal(true)}
-            className="ml-2 p-1 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="ml-3 p-2 flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
           >
-            <LuPlus size={20} />
+            <LuPlus size={18} />
           </button>
         </div>
-        <div className="flex flex-col gap-1 relative">
+        
+        {/* Filter Controls */}
+        <div className="mb-4">
+          <div className="text-sm font-medium text-gray-700 mb-2">Filter</div>
+          <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => setUserFilter('active')}
+              className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                userFilter === 'active'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => setUserFilter('deleted')}
+              className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                userFilter === 'deleted'
+                  ? 'bg-white text-red-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Deleted
+            </button>
+            <button
+              onClick={() => setUserFilter('all')}
+              className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                userFilter === 'all'
+                  ? 'bg-white text-gray-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              All
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1 relative flex-1 overflow-hidden">
           {isLoading && (
             <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
               <div className="flex items-center gap-2">
@@ -262,48 +365,110 @@ export default function AdminUsersPage() {
               </div>
             </div>
           )}
-          {filteredUsers.map((user) => (
-            <button
-              key={user.id}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${selectedUser?.id === user.id
-                ? "bg-blue-50 text-blue-700"
-                : "hover:bg-gray-50 text-gray-700"
-                }`}
-              onClick={() => setSelectedUser(user)}
-            >
-              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold">
+                      <div className="flex-1 overflow-y-auto">
+              {paginatedUsers.map((user) => (
+                <button
+                  key={user.id}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors w-full ${
+                    selectedUser?.id === user.id
+                      ? "bg-blue-50 text-blue-700"
+                      : user.deleted_at
+                      ? "hover:bg-red-50 text-red-700 opacity-75"
+                      : "hover:bg-gray-50 text-gray-700"
+                  }`}
+                  onClick={() => setSelectedUser(user)}
+                >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                user.deleted_at ? "bg-red-200 text-red-700" : "bg-gray-200"
+              }`}>
                 {(user.name ?? "")[0] || "?"}
               </div>
-              <div>
-                <div className="font-medium text-sm">{user.name}</div>
+              <div className="flex-1">
+                <div className="font-medium text-sm flex items-center gap-2">
+                  {user.name}
+                  {user.deleted_at && (
+                    <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                      Deleted
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-gray-400">{user.contact_email}</div>
               </div>
             </button>
           ))}
+            </div>
         </div>
+        
+        {/* Pagination */}
+        {filteredUsers.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200 bg-white rounded-lg p-3">
+            <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+              <span>
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length}
+                {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Previous
+              </button>
+              <div className="text-sm text-gray-500">
+                Page {currentPage} of {totalPages}
+              </div>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       {/* Main Panel */}
-      <div className="flex-1 p-2 sm:p-8 bg-gray-100 overflow-auto">
-        {selectedUser && (
-          <div className="w-full mx-auto">
+      <div className="flex-1 p-6 bg-gray-50 overflow-auto">        
+        {selectedUser ? (
+          <div className="w-full max-w-4xl mx-auto space-y-6">
             {/* User Info */}
-            <div className="bg-white rounded-xl shadow p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-start gap-4 mb-4">
                 <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold flex-shrink-0">
                   {(selectedUser.name ?? "")[0] || "?"}
                 </div>
                 <div className="flex-1">
-                  <div className="font-semibold text-lg">{selectedUser.name}</div>
+                  <div className="font-semibold text-lg flex items-center gap-2">
+                    {selectedUser.name}
+                    {selectedUser.deleted_at && (
+                      <span className="text-sm bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                        Deleted
+                      </span>
+                    )}
+                  </div>
                   <div className="text-gray-500 text-sm">{selectedUser.contact_email}</div>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline-danger"
-                    label="Delete User"
-                    onClick={() => setOpenConfirmDeleteUserDialog(true)}
-                  >
-                    Delete User
-                  </Button>
+                  {selectedUser.deleted_at ? (
+                    <Button
+                      variant="outline-primary"
+                      label={`Reactivate ${selectedUser.type === 'agency' ? 'Account' : 'User'}`}
+                      onClick={() => setOpenConfirmReactivateUserDialog(true)}
+                    >
+                      Reactivate {selectedUser.type === 'agency' ? 'Account' : 'User'}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline-danger"
+                      label={`Delete ${selectedUser.type === 'agency' ? 'Account' : 'User'}`}
+                      onClick={() => setOpenConfirmDeleteUserDialog(true)}
+                    >
+                      Delete {selectedUser.type === 'agency' ? 'Account' : 'User'}
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -400,7 +565,7 @@ export default function AdminUsersPage() {
 
 
             {/* Test Permissions */}
-            <div className="bg-white rounded-xl shadow p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="font-semibold text-base">Test Permissions</div>
                 <Button
@@ -509,15 +674,42 @@ export default function AdminUsersPage() {
               message="Are you sure you want to remove this test access?"
               buttonText="Remove"
             />
-            {/* Add confirmation modal for user deletion */}
+            {/* Add confirmation modal for deletion */}
             <ConfirmationModal
               open={openConfirmDeleteUserDialog}
               processing={isLoading}
               onConfirm={handleDeleteUser}
               setOpenModal={() => setOpenConfirmDeleteUserDialog(false)}
-              message="Are you sure you want to delete this user? This action cannot be undone."
-              buttonText="Delete User"
+              message={`Are you sure you want to delete this ${selectedUser?.type === 'agency' ? 'account' : 'user'}? This action cannot be undone.`}
+              buttonText={`Delete ${selectedUser?.type === 'agency' ? 'Account' : 'User'}`}
             />
+            {/* Add confirmation modal for reactivation */}
+            <ConfirmationModal
+              open={openConfirmReactivateUserDialog}
+              processing={isLoading}
+              onConfirm={handleReactivateUser}
+              setOpenModal={() => setOpenConfirmReactivateUserDialog(false)}
+              message={`Are you sure you want to reactivate this ${selectedUser?.type === 'agency' ? 'account' : 'user'}? ${selectedUser?.type === 'agency' ? 'The account and all associated users will be able to log in again.' : 'The user will be able to log in again.'}`}
+              buttonText={`Reactivate ${selectedUser?.type === 'agency' ? 'Account' : 'User'}`}
+            />
+          </div>
+        ) : filteredUsers.length > 0 ? (
+          <div className="text-center py-12">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md mx-auto">
+              <div className="text-gray-500 text-lg mb-2">Select an account to view details</div>
+              <div className="text-gray-400 text-sm">
+                Choose an account from the list to see their information and manage their permissions
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md mx-auto">
+              <div className="text-gray-500 text-lg mb-2">No accounts found</div>
+              <div className="text-gray-400 text-sm">
+                No accounts match your current filter criteria
+              </div>
+            </div>
           </div>
         )}
       </div>

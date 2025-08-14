@@ -13,12 +13,17 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const active = searchParams.get("active") === "true";
+    const includeDeleted = searchParams.get("includeDeleted") === "true";
 
     const baseQuery = supabase
       .from("users")
-      .select("id, full_name, email, role, active, created_at")
-      .is("deleted_at", null) // soft delete filter
+      .select("id, full_name, email, role, active, created_at, deleted_at")
       .order("created_at", { ascending: false });
+
+    // Only filter out deleted users if not explicitly including them
+    if (!includeDeleted) {
+      baseQuery.is("deleted_at", null);
+    }
 
     // Apply agency filter only if not lab admin and agency_id exists
     if (session.user.role !== UserRole.LABADMIN && session.user.agency_id) {

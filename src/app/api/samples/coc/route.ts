@@ -183,7 +183,6 @@ export async function POST(request: NextRequest) {
       process.env.ADMIN_EMAIL
     ) {
       const htmlEmailData = await sampleDetailTemplate(updatedSampleData);
-      console.log(htmlEmailData);
 
       sendEmail({
         to: process.env.ADMIN_EMAIL,

@@ -120,15 +120,6 @@ export async function PUT(
     // Destructure test_group_ids from body
     const { is_update, original_status, account, agency, created_by_user, test_types, coc_transfers, address, test_group_id, test_group_ids, ...updateData } = body;
 
-    console.log("Updating sample:", {
-      sampleId,
-      is_update,
-      original_status,
-      new_status: updateData.status,
-      test_group_id,
-      test_types_count: test_types?.length || 0
-    });
-
     // Include test_group_id in update data if provided
     if (test_group_id !== undefined) {
       updateData.test_group_id = test_group_id;
@@ -239,30 +230,15 @@ export async function PUT(
 
     const sampleToReturn = finalSample || updatedSample;
 
-    console.log("Sample updated successfully:", {
-      id: sampleToReturn.id,
-      status: sampleToReturn.status,
-      project_id: sampleToReturn.project_id,
-      test_types_count: sampleToReturn.test_types?.length || 0
-    });
-
     // Send email notification logic remains the same
     const shouldSendEmail = 
       (is_update && updateData.status === "submitted") ||
       (is_update && original_status === "submitted");
 
     if (shouldSendEmail) {
-      console.log("Preparing to send email notification:", {
-        original_status,
-        new_status: updateData.status,
-        is_submitted_update: original_status === "submitted"
-      });
 
       try {
-        console.log("Starting email template generation...");
         const emailHtml = await sampleDetailTemplate(sampleToReturn);
-        console.log("Email template generated successfully, length:", emailHtml.length);
-
         const subject = updateData.status === "submitted" 
           ? `Sample ${sampleToReturn.project_id} has been submitted`
           : `Sample ${sampleToReturn.project_id} has been updated`;
@@ -286,12 +262,7 @@ export async function PUT(
         });
       }
     } else {
-      console.log("No email sent - conditions not met:", {
-        is_update,
-        original_status,
-        new_status: updateData.status,
-        should_send: shouldSendEmail
-      });
+      // do nothing
     }
 
     return NextResponse.json({ sample: sampleToReturn });

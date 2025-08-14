@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 // Soft delete from both users and agencies tables if record exists
 export async function DELETE(
@@ -42,6 +43,23 @@ export async function DELETE(
             { error: `Error deleting user: ${userUpdateError.message}` },
             { status: 500 }
           );
+        }
+
+        // Also mark user as deleted in Supabase Auth
+        try {
+          const adminClient = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+
+          await adminClient.auth.admin.updateUserById(recordId, {
+            user_metadata: {
+              deleted: true
+            }
+          });
+        } catch (authError) {
+          console.error("Auth deletion error:", authError);
+          // Don't fail the whole operation if auth update fails
         }
 
         results.push({
