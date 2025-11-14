@@ -8,7 +8,11 @@ import { errorToast, successToast } from "@/hooks/useCustomToast";
 import { useMediaQuery } from "react-responsive";
 import { format } from "date-fns";
 import { IoSearch } from "react-icons/io5";
-import { IoMailOutline, IoTrashOutline, IoRefreshOutline } from "react-icons/io5";
+import {
+  IoMailOutline,
+  IoTrashOutline,
+  IoRefreshOutline,
+} from "react-icons/io5";
 import { LuPlus } from "react-icons/lu";
 
 const Users = () => {
@@ -135,9 +139,11 @@ const Users = () => {
     return <LoadingSpinner />;
   }
 
-  const filteredUsers = userList.filter((user) =>
-    user.full_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = userList
+    .filter((user) =>
+      user.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
   return (
     <div className="w-full md:p-8 p-4 md:!pt-0">
@@ -249,14 +255,18 @@ const Users = () => {
                 <span className="text-gray-500">Status:</span>
                 <span
                   className={`font-medium ${
-                    user.deleted_at 
-                      ? "text-red-600" 
-                      : user.active 
-                        ? "text-green-600" 
-                        : "text-yellow-600"
+                    user.deleted_at
+                      ? "text-red-600"
+                      : user.active
+                      ? "text-green-600"
+                      : "text-yellow-600"
                   }`}
                 >
-                  {user.deleted_at ? "Deleted" : user.active ? "Active" : "Pending"}
+                  {user.deleted_at
+                    ? "Deleted"
+                    : user.active
+                    ? "Active"
+                    : "Pending"}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm">
