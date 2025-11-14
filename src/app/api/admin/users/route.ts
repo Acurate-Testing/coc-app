@@ -8,11 +8,16 @@ export async function GET() {
     // Fetch all agencies
     const { data: agencies, error: agenciesError } = await supabase
       .from("agencies")
-      .select("id, name, contact_email, phone, street, city, state, zip, deleted_at, agency_test_type_groups(test_groups(id, name), assigned_test_type_ids), accounts(id, name, pws_id)")
+      .select(
+        "id, name, contact_email, phone, street, city, state, zip, deleted_at, agency_test_type_groups(test_groups(id, name), assigned_test_type_ids), accounts(id, name, pws_id)"
+      )
       .order("deleted_at", { ascending: true }); // Show non-deleted first
 
     if (agenciesError) {
-      return NextResponse.json({ error: agenciesError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: agenciesError.message },
+        { status: 500 }
+      );
     }
 
     // Fetch users (excluding lab_admin role)
@@ -27,52 +32,68 @@ export async function GET() {
     }
 
     // Filter agencies to only include those that have non-lab_admin users
-    const agenciesWithNonLabAdminUsers = agencies?.filter(agency => {
-      const hasNonLabAdminUsers = users?.some(user => user.agency_id === agency.id);
-      return hasNonLabAdminUsers;
-    }) || [];
+    const agenciesWithNonLabAdminUsers =
+      agencies?.filter((agency) => {
+        const hasNonLabAdminUsers = users?.some(
+          (user) => user.agency_id === agency.id
+        );
+        return hasNonLabAdminUsers;
+      }) || [];
 
     // Transform agencies data
-    const formattedAgencies = agenciesWithNonLabAdminUsers.map(agency => ({
-      ...agency,
-      type: 'agency',
-      contact_email: agency.contact_email,
-      accounts: agency.accounts || [],
-      assigned_test_group: agency.agency_test_type_groups ? 
-        agency.agency_test_type_groups.map((group: any) => ({
-          id: group.test_groups?.id,
-          name: group.test_groups?.name,
-          assigned_test_type_ids: group.assigned_test_type_ids && group.assigned_test_type_ids.length > 0 
-            ? group.assigned_test_type_ids 
-            : []
-        })).filter(g => g.id) : []
-    })) || [];
+    const formattedAgencies =
+      agenciesWithNonLabAdminUsers.map((agency) => ({
+        ...agency,
+        type: "agency",
+        contact_email: agency.contact_email,
+        accounts: agency.accounts || [],
+        assigned_test_group: agency.agency_test_type_groups
+          ? agency.agency_test_type_groups
+              .map((group: any) => ({
+                id: group.test_groups?.id,
+                name: group.test_groups?.name,
+                assigned_test_type_ids:
+                  group.assigned_test_type_ids &&
+                  group.assigned_test_type_ids.length > 0
+                    ? group.assigned_test_type_ids
+                    : [],
+              }))
+              .filter((g) => g.id)
+              .sort((a, b) => a.name.localeCompare(b.name))
+          : [],
+      })) || [];
 
     // Transform users data
-    const formattedUsers = users?.map(user => ({
-      id: user.id,
-      name: user.full_name,
-      contact_email: user.email,
-      type: 'user',
-      role: user.role,
-      agency_id: user.agency_id,
-      deleted_at: user.deleted_at,
-      active: user.active,
-      accounts: [],
-      assigned_test_group: []
-    })) || [];
+    const formattedUsers =
+      users?.map((user) => ({
+        id: user.id,
+        name: user.full_name,
+        contact_email: user.email,
+        type: "user",
+        role: user.role,
+        agency_id: user.agency_id,
+        deleted_at: user.deleted_at,
+        active: user.active,
+        accounts: [],
+        assigned_test_group: [],
+      })) || [];
 
     // Combine and sort by deletion status
-    const combinedData = [...formattedAgencies, ...formattedUsers].sort((a, b) => {
-      if (a.deleted_at && !b.deleted_at) return 1;
-      if (!a.deleted_at && b.deleted_at) return -1;
-      return 0;
-    });
+    const combinedData = [...formattedAgencies, ...formattedUsers].sort(
+      (a, b) => {
+        if (a.deleted_at && !b.deleted_at) return 1;
+        if (!a.deleted_at && b.deleted_at) return -1;
+        return 0;
+      }
+    );
 
     return NextResponse.json(combinedData);
   } catch (error) {
     console.error("Error fetching data:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -80,13 +101,16 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    
+
     // Check if this is a reactivation request
     if (body.action === "reactivate") {
       const { userId } = body;
 
       if (!userId) {
-        return NextResponse.json({ error: "userId is required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "userId is required" },
+          { status: 400 }
+        );
       }
 
       // Create admin client for Supabase Auth operations
@@ -125,11 +149,17 @@ export async function PATCH(req: NextRequest) {
       }
 
       if (!existingRecord) {
-        return NextResponse.json({ error: "Record not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Record not found" },
+          { status: 404 }
+        );
       }
 
       if (!existingRecord.deleted_at) {
-        return NextResponse.json({ error: "Record is not deleted" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Record is not deleted" },
+          { status: 400 }
+        );
       }
 
       // Reactivate based on type
@@ -138,12 +168,15 @@ export async function PATCH(req: NextRequest) {
         const { error: reactivateError } = await supabase
           .from("agencies")
           .update({
-            deleted_at: null
+            deleted_at: null,
           })
           .eq("id", userId);
 
         if (reactivateError) {
-          return NextResponse.json({ error: reactivateError.message }, { status: 500 });
+          return NextResponse.json(
+            { error: reactivateError.message },
+            { status: 500 }
+          );
         }
 
         // Also reactivate any associated users for this agency
@@ -151,7 +184,7 @@ export async function PATCH(req: NextRequest) {
           .from("users")
           .update({
             deleted_at: null,
-            active: true
+            active: true,
           })
           .eq("agency_id", userId)
           .not("deleted_at", "is", null);
@@ -173,11 +206,14 @@ export async function PATCH(req: NextRequest) {
               try {
                 await adminClient.auth.admin.updateUserById(user.id, {
                   user_metadata: {
-                    deleted: false
-                  }
+                    deleted: false,
+                  },
                 });
               } catch (authError) {
-                console.error(`Auth reactivation error for user ${user.id}:`, authError);
+                console.error(
+                  `Auth reactivation error for user ${user.id}:`,
+                  authError
+                );
                 // Continue with other users even if one fails
               }
             }
@@ -187,34 +223,43 @@ export async function PATCH(req: NextRequest) {
           // Don't fail the whole operation if auth update fails
         }
 
-        return NextResponse.json({ success: true, message: "Agency and associated users reactivated successfully" });
+        return NextResponse.json({
+          success: true,
+          message: "Agency and associated users reactivated successfully",
+        });
       } else if (isUser) {
         // Reactivate individual user
         const { error: reactivateError } = await supabase
           .from("users")
           .update({
             deleted_at: null,
-            active: true
+            active: true,
           })
           .eq("id", userId);
 
         if (reactivateError) {
-          return NextResponse.json({ error: reactivateError.message }, { status: 500 });
+          return NextResponse.json(
+            { error: reactivateError.message },
+            { status: 500 }
+          );
         }
 
         // Reactivate user in Supabase Auth
         try {
           await adminClient.auth.admin.updateUserById(userId, {
             user_metadata: {
-              deleted: false
-            }
+              deleted: false,
+            },
           });
         } catch (authError) {
           console.error("Auth reactivation error:", authError);
           // Don't fail the whole operation if auth update fails
         }
 
-        return NextResponse.json({ success: true, message: "User reactivated successfully" });
+        return NextResponse.json({
+          success: true,
+          message: "User reactivated successfully",
+        });
       }
     }
 
@@ -222,8 +267,17 @@ export async function PATCH(req: NextRequest) {
     const { userId: testUserId, testGroupIds, testTypeIdsByGroup } = body;
 
     // Validate input for test group assignment
-    if (!testUserId || !Array.isArray(testGroupIds) || typeof testTypeIdsByGroup !== "object") {
-      return NextResponse.json({ error: "userId, testGroupIds[], and testTypeIdsByGroup are required" }, { status: 400 });
+    if (
+      !testUserId ||
+      !Array.isArray(testGroupIds) ||
+      typeof testTypeIdsByGroup !== "object"
+    ) {
+      return NextResponse.json(
+        {
+          error: "userId, testGroupIds[], and testTypeIdsByGroup are required",
+        },
+        { status: 400 }
+      );
     }
 
     // Fetch existing assignments for this agency
@@ -257,38 +311,58 @@ export async function PATCH(req: NextRequest) {
           deleteError.message.includes("violates foreign key constraint")
         ) {
           return NextResponse.json(
-            { error: "Cannot remove test group assignment because it is referenced by other records." },
+            {
+              error:
+                "Cannot remove test group assignment because it is referenced by other records.",
+            },
             { status: 409 }
           );
         }
-        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        return NextResponse.json(
+          { error: deleteError.message },
+          { status: 500 }
+        );
       }
     }
 
     // Add new assignments for test groups that don't already exist
-    const newTestGroupIds = testGroupIds.filter((testGroupId: string) => !existingIds.has(testGroupId));
+    const newTestGroupIds = testGroupIds.filter(
+      (testGroupId: string) => !existingIds.has(testGroupId)
+    );
     if (newTestGroupIds.length > 0) {
       const inserts = newTestGroupIds.map((testGroupId: string) => ({
         agency_id: testUserId,
         test_type_group_id: testGroupId,
         assigned_test_type_ids: testTypeIdsByGroup[testGroupId] || [],
       }));
-      const { error: insertError } = await supabase.from("agency_test_type_groups").insert(inserts);
+      const { error: insertError } = await supabase
+        .from("agency_test_type_groups")
+        .insert(inserts);
       if (insertError) {
-        return NextResponse.json({ error: insertError.message }, { status: 500 });
+        return NextResponse.json(
+          { error: insertError.message },
+          { status: 500 }
+        );
       }
     }
 
     // Update assigned_test_type_ids for all selected test groups
     for (const testGroupId of testGroupIds) {
-      const assignment = (existingAssignments || []).find((a: any) => a.test_type_group_id === testGroupId);
+      const assignment = (existingAssignments || []).find(
+        (a: any) => a.test_type_group_id === testGroupId
+      );
       if (assignment) {
         const { error: updateError } = await supabase
           .from("agency_test_type_groups")
-          .update({ assigned_test_type_ids: testTypeIdsByGroup[testGroupId] || [] })
+          .update({
+            assigned_test_type_ids: testTypeIdsByGroup[testGroupId] || [],
+          })
           .eq("id", assignment.id);
         if (updateError) {
-          return NextResponse.json({ error: updateError.message }, { status: 500 });
+          return NextResponse.json(
+            { error: updateError.message },
+            { status: 500 }
+          );
         }
       }
     }
@@ -296,7 +370,10 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("PATCH error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -305,7 +382,10 @@ export async function DELETE(req: NextRequest) {
   const { userId, testGroupId } = await req.json();
 
   if (!userId || !testGroupId) {
-    return NextResponse.json({ error: "userId and testGroupId are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "userId and testGroupId are required" },
+      { status: 400 }
+    );
   }
 
   // Remove the test group assignment from the agency_test_type_groups table

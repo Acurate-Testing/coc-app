@@ -19,7 +19,7 @@ type User = {
   id: string;
   name: string;
   contact_email: string;
-  type?: 'agency' | 'user';
+  type?: "agency" | "user";
   phone?: string;
   street?: string;
   city?: string;
@@ -64,17 +64,22 @@ export default function AdminUsersPage() {
   const [showEditAccessModal, setShowEditAccessModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [selectedTestGroup, setSelectedTestGroup] = useState<string>(""); // Changed from selectedTest
-  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] = useState<boolean>(false);
-  const [openConfirmDeleteUserDialog, setOpenConfirmDeleteUserDialog] = useState<boolean>(false);
-  const [openConfirmReactivateUserDialog, setOpenConfirmReactivateUserDialog] = useState<boolean>(false);
+  const [openConfirmDeleteDialog, setOpenConfirmDeleteDialog] =
+    useState<boolean>(false);
+  const [openConfirmDeleteUserDialog, setOpenConfirmDeleteUserDialog] =
+    useState<boolean>(false);
+  const [openConfirmReactivateUserDialog, setOpenConfirmReactivateUserDialog] =
+    useState<boolean>(false);
   const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   // Filter and pagination state
-  const [userFilter, setUserFilter] = useState<'all' | 'active' | 'deleted'>('active');
+  const [userFilter, setUserFilter] = useState<"all" | "active" | "deleted">(
+    "active"
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10); // Reduced to make pagination more likely to appear
 
@@ -107,7 +112,9 @@ export default function AdminUsersPage() {
       setUsers(data || []);
 
       if (selectedUser) {
-        const updatedSelectedUser = data.find((user: User) => user.id === selectedUser.id);
+        const updatedSelectedUser = data.find(
+          (user: User) => user.id === selectedUser.id
+        );
         if (updatedSelectedUser) {
           setSelectedUser(updatedSelectedUser);
         }
@@ -115,7 +122,8 @@ export default function AdminUsersPage() {
         setSelectedUser(data[0]);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch users";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch users";
       setError(errorMessage);
       errorToast(errorMessage);
     } finally {
@@ -130,13 +138,15 @@ export default function AdminUsersPage() {
 
   // Apply filters
   const filteredUsers = users.filter((u) => {
-    const matchesSearch = (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch =
+      (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (u.contact_email ?? "").toLowerCase().includes(search.toLowerCase());
-    
-    const matchesFilter = userFilter === 'all' || 
-      (userFilter === 'active' && !u.deleted_at) ||
-      (userFilter === 'deleted' && u.deleted_at);
-    
+
+    const matchesFilter =
+      userFilter === "all" ||
+      (userFilter === "active" && !u.deleted_at) ||
+      (userFilter === "deleted" && u.deleted_at);
+
     return matchesSearch && matchesFilter;
   });
 
@@ -179,7 +189,8 @@ export default function AdminUsersPage() {
       successToast("Test group access removed successfully");
       fetchUsers();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to remove test access";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to remove test access";
       setError(errorMessage);
       errorToast(errorMessage);
     } finally {
@@ -206,10 +217,15 @@ export default function AdminUsersPage() {
         throw new Error(data.error || "Failed to delete user");
       }
 
-      successToast(`${selectedUser?.type === 'agency' ? 'Account' : 'User'} deleted successfully`);
+      successToast(
+        `${
+          selectedUser?.type === "agency" ? "Account" : "User"
+        } deleted successfully`
+      );
       fetchUsers(); // Refresh the list to show updated status
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete user";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete user";
       setError(errorMessage);
       errorToast(errorMessage);
     } finally {
@@ -239,10 +255,15 @@ export default function AdminUsersPage() {
         throw new Error(data.error || "Failed to reactivate user");
       }
 
-      successToast(`${selectedUser?.type === 'agency' ? 'Account' : 'User'} reactivated successfully`);
+      successToast(
+        `${
+          selectedUser?.type === "agency" ? "Account" : "User"
+        } reactivated successfully`
+      );
       fetchUsers(); // Refresh the list to show updated status
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to reactivate user";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to reactivate user";
       setError(errorMessage);
       errorToast(errorMessage);
     } finally {
@@ -251,7 +272,10 @@ export default function AdminUsersPage() {
     }
   };
 
-  const toggleActionMenu = (testId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+  const toggleActionMenu = (
+    testId: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
     const button = event.currentTarget;
     menuButtonRefs.current.set(testId, button);
 
@@ -272,8 +296,6 @@ export default function AdminUsersPage() {
     setMenuPosition(position);
     setOpenActionMenu(testId);
   };
-
-
 
   if (isInitialLoading) {
     return <LoadingSpinner />;
@@ -307,8 +329,18 @@ export default function AdminUsersPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                className="h-4 w-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
           </div>
@@ -319,37 +351,37 @@ export default function AdminUsersPage() {
             <LuPlus size={18} />
           </button>
         </div>
-        
+
         {/* Filter Controls */}
         <div className="mb-4">
           <div className="text-sm font-medium text-gray-700 mb-2">Filter</div>
           <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
             <button
-              onClick={() => setUserFilter('active')}
+              onClick={() => setUserFilter("active")}
               className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                userFilter === 'active'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                userFilter === "active"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Active
             </button>
             <button
-              onClick={() => setUserFilter('deleted')}
+              onClick={() => setUserFilter("deleted")}
               className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                userFilter === 'deleted'
-                  ? 'bg-white text-red-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                userFilter === "deleted"
+                  ? "bg-white text-red-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               Deleted
             </button>
             <button
-              onClick={() => setUserFilter('all')}
+              onClick={() => setUserFilter("all")}
               className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                userFilter === 'all'
-                  ? 'bg-white text-gray-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                userFilter === "all"
+                  ? "bg-white text-gray-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               All
@@ -361,50 +393,58 @@ export default function AdminUsersPage() {
             <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
               <div className="flex items-center gap-2">
                 <ImSpinner8 className="animate-spin text-blue-600" />
-                <span className="text-sm font-medium text-gray-600">Loading users...</span>
+                <span className="text-sm font-medium text-gray-600">
+                  Loading users...
+                </span>
               </div>
             </div>
           )}
-                      <div className="flex-1 overflow-y-auto">
-              {paginatedUsers.map((user) => (
-                <button
-                  key={user.id}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors w-full ${
-                    selectedUser?.id === user.id
-                      ? "bg-blue-50 text-blue-700"
-                      : user.deleted_at
-                      ? "hover:bg-red-50 text-red-700 opacity-75"
-                      : "hover:bg-gray-50 text-gray-700"
+          <div className="flex-1 overflow-y-auto">
+            {paginatedUsers.map((user) => (
+              <button
+                key={user.id}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors w-full ${
+                  selectedUser?.id === user.id
+                    ? "bg-blue-50 text-blue-700"
+                    : user.deleted_at
+                    ? "hover:bg-red-50 text-red-700 opacity-75"
+                    : "hover:bg-gray-50 text-gray-700"
+                }`}
+                onClick={() => setSelectedUser(user)}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                    user.deleted_at ? "bg-red-200 text-red-700" : "bg-gray-200"
                   }`}
-                  onClick={() => setSelectedUser(user)}
                 >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                user.deleted_at ? "bg-red-200 text-red-700" : "bg-gray-200"
-              }`}>
-                {(user.name ?? "")[0] || "?"}
-              </div>
-              <div className="flex-1">
-                <div className="font-medium text-sm flex items-center gap-2">
-                  {user.name}
-                  {user.deleted_at && (
-                    <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
-                      Deleted
-                    </span>
-                  )}
+                  {(user.name ?? "")[0] || "?"}
                 </div>
-                <div className="text-xs text-gray-400">{user.contact_email}</div>
-              </div>
-            </button>
-          ))}
-            </div>
+                <div className="flex-1">
+                  <div className="font-medium text-sm flex items-center gap-2">
+                    {user.name}
+                    {user.deleted_at && (
+                      <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                        Deleted
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {user.contact_email}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
-        
+
         {/* Pagination */}
         {filteredUsers.length > 0 && (
           <div className="mt-4 pt-4 border-t border-gray-200 bg-white rounded-lg p-3">
             <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
               <span>
-                Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length}
+                Showing {startIndex + 1}-
+                {Math.min(endIndex, filteredUsers.length)} of{" "}
+                {filteredUsers.length}
                 {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
               </span>
             </div>
@@ -420,7 +460,9 @@ export default function AdminUsersPage() {
                 Page {currentPage} of {totalPages}
               </div>
               <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -431,7 +473,7 @@ export default function AdminUsersPage() {
         )}
       </div>
       {/* Main Panel */}
-      <div className="flex-1 p-6 bg-gray-50 overflow-auto">        
+      <div className="flex-1 p-6 bg-gray-50 overflow-auto">
         {selectedUser ? (
           <div className="w-full max-w-4xl mx-auto space-y-6">
             {/* User Info */}
@@ -449,24 +491,32 @@ export default function AdminUsersPage() {
                       </span>
                     )}
                   </div>
-                  <div className="text-gray-500 text-sm">{selectedUser.contact_email}</div>
+                  <div className="text-gray-500 text-sm">
+                    {selectedUser.contact_email}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   {selectedUser.deleted_at ? (
                     <Button
                       variant="outline-primary"
-                      label={`Reactivate ${selectedUser.type === 'agency' ? 'Account' : 'User'}`}
+                      label={`Reactivate ${
+                        selectedUser.type === "agency" ? "Account" : "User"
+                      }`}
                       onClick={() => setOpenConfirmReactivateUserDialog(true)}
                     >
-                      Reactivate {selectedUser.type === 'agency' ? 'Account' : 'User'}
+                      Reactivate{" "}
+                      {selectedUser.type === "agency" ? "Account" : "User"}
                     </Button>
                   ) : (
                     <Button
                       variant="outline-danger"
-                      label={`Delete ${selectedUser.type === 'agency' ? 'Account' : 'User'}`}
+                      label={`Delete ${
+                        selectedUser.type === "agency" ? "Account" : "User"
+                      }`}
                       onClick={() => setOpenConfirmDeleteUserDialog(true)}
                     >
-                      Delete {selectedUser.type === 'agency' ? 'Account' : 'User'}
+                      Delete{" "}
+                      {selectedUser.type === "agency" ? "Account" : "User"}
                     </Button>
                   )}
                 </div>
@@ -485,7 +535,8 @@ export default function AdminUsersPage() {
                   </Button>
                 </div>
 
-                {(!selectedUser.accounts || selectedUser.accounts.length === 0) ? (
+                {!selectedUser.accounts ||
+                selectedUser.accounts.length === 0 ? (
                   <div className="text-center py-8 text-gray-400 text-base font-medium">
                     No accounts assigned.
                   </div>
@@ -497,9 +548,13 @@ export default function AdminUsersPage() {
                         className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50"
                       >
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">{acc.name}</div>
+                          <div className="font-medium text-gray-900">
+                            {acc.name}
+                          </div>
                           {acc.pws_id && (
-                            <div className="text-sm text-gray-500">PWS ID: {acc.pws_id}</div>
+                            <div className="text-sm text-gray-500">
+                              PWS ID: {acc.pws_id}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -511,48 +566,77 @@ export default function AdminUsersPage() {
               <div className="grid grid-cols-1">
                 {/* Contact Information */}
                 <div className="">
-                  <h3 className="text-md font-semibold text-black mb-3">Contact Information</h3>
+                  <h3 className="text-md font-semibold text-black mb-3">
+                    Contact Information
+                  </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <span className="text-sm font-medium text-gray-500 block">Email</span>
-                      <span className="text-black">{selectedUser.contact_email}</span>
+                      <span className="text-sm font-medium text-gray-500 block">
+                        Email
+                      </span>
+                      <span className="text-black">
+                        {selectedUser.contact_email}
+                      </span>
                     </div>
                     {selectedUser.phone && (
                       <div>
-                        <span className="text-sm font-medium text-gray-500 block">Phone</span>
+                        <span className="text-sm font-medium text-gray-500 block">
+                          Phone
+                        </span>
                         <span className="text-black">{selectedUser.phone}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {(selectedUser.street || selectedUser.city || selectedUser.state || selectedUser.zip) && (
+                {(selectedUser.street ||
+                  selectedUser.city ||
+                  selectedUser.state ||
+                  selectedUser.zip) && (
                   <div className="">
-                    <h3 className="text-md font-semibold text-black my-3">Address</h3>
+                    <h3 className="text-md font-semibold text-black my-3">
+                      Address
+                    </h3>
                     <div className="space-y-2">
                       {selectedUser.street && (
                         <div>
-                          <span className="text-sm font-medium text-gray-500 block">Street</span>
-                          <span className="text-black">{selectedUser.street}</span>
+                          <span className="text-sm font-medium text-gray-500 block">
+                            Street
+                          </span>
+                          <span className="text-black">
+                            {selectedUser.street}
+                          </span>
                         </div>
                       )}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         {selectedUser.city && (
                           <div>
-                            <span className="text-sm font-medium text-gray-500 block">City</span>
-                            <span className="text-black">{selectedUser.city}</span>
+                            <span className="text-sm font-medium text-gray-500 block">
+                              City
+                            </span>
+                            <span className="text-black">
+                              {selectedUser.city}
+                            </span>
                           </div>
                         )}
                         {selectedUser.state && (
                           <div className="flex-1">
-                            <span className="text-sm font-medium text-gray-500 block">State</span>
-                            <span className="text-black">{selectedUser.state}</span>
+                            <span className="text-sm font-medium text-gray-500 block">
+                              State
+                            </span>
+                            <span className="text-black">
+                              {selectedUser.state}
+                            </span>
                           </div>
                         )}
                         {selectedUser.zip && (
                           <div>
-                            <span className="text-sm font-medium text-gray-500 block">ZIP</span>
-                            <span className="text-black">{selectedUser.zip}</span>
+                            <span className="text-sm font-medium text-gray-500 block">
+                              ZIP
+                            </span>
+                            <span className="text-black">
+                              {selectedUser.zip}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -561,8 +645,6 @@ export default function AdminUsersPage() {
                 )}
               </div>
             </div>
-
-
 
             {/* Test Permissions */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -611,29 +693,50 @@ export default function AdminUsersPage() {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {selectedUser.assigned_test_group?.map((testGroup) => (
-                              <tr key={testGroup.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="font-medium text-gray-900 truncate max-w-xs" title={testGroup.name}>{testGroup.name}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-gray-500 truncate max-w-xs" title={testGroup.id}>{testGroup.id}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                  <div>
-                                    <button
-                                      ref={(el: any) =>
-                                        el && menuButtonRefs.current.set(testGroup.id, el)
-                                      }
-                                      onClick={(e) => toggleActionMenu(testGroup.id, e)}
-                                      className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+                            {selectedUser.assigned_test_group?.map(
+                              (testGroup) => (
+                                <tr
+                                  key={testGroup.id}
+                                  className="hover:bg-gray-50"
+                                >
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div
+                                      className="font-medium text-gray-900 truncate max-w-xs"
+                                      title={testGroup.name}
                                     >
-                                      <FiMoreVertical className="h-5 w-5" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                                      {testGroup.name}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div
+                                      className="text-gray-500 truncate max-w-xs"
+                                      title={testGroup.id}
+                                    >
+                                      {testGroup.id}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                                    <div>
+                                      <button
+                                        ref={(el: any) =>
+                                          el &&
+                                          menuButtonRefs.current.set(
+                                            testGroup.id,
+                                            el
+                                          )
+                                        }
+                                        onClick={(e) =>
+                                          toggleActionMenu(testGroup.id, e)
+                                        }
+                                        className="inline-flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+                                      >
+                                        <FiMoreVertical className="h-5 w-5" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -646,13 +749,14 @@ export default function AdminUsersPage() {
               open={showAssignModal}
               close={() => setShowAssignModal(false)}
               userId={selectedUser.id}
-              assignedTestGroupIds={selectedUser.assigned_test_group?.map((t) => t.id) || []}
+              assignedTestGroupIds={
+                selectedUser.assigned_test_group?.map((t) => t.id) || []
+              }
               assignedTestTypeIdsByGroup={
                 selectedUser.assigned_test_group?.reduce((acc, group) => {
                   acc[group.id] = group.assigned_test_type_ids || [];
                   return acc;
-                }, {} as Record<string, string[]>)
-                || {}
+                }, {} as Record<string, string[]>) || {}
               }
               onAssigned={fetchUsers}
             />
@@ -680,8 +784,12 @@ export default function AdminUsersPage() {
               processing={isLoading}
               onConfirm={handleDeleteUser}
               setOpenModal={() => setOpenConfirmDeleteUserDialog(false)}
-              message={`Are you sure you want to delete this ${selectedUser?.type === 'agency' ? 'account' : 'user'}? This action cannot be undone.`}
-              buttonText={`Delete ${selectedUser?.type === 'agency' ? 'Account' : 'User'}`}
+              message={`Are you sure you want to delete this ${
+                selectedUser?.type === "agency" ? "account" : "user"
+              }? This action cannot be undone.`}
+              buttonText={`Delete ${
+                selectedUser?.type === "agency" ? "Account" : "User"
+              }`}
             />
             {/* Add confirmation modal for reactivation */}
             <ConfirmationModal
@@ -689,23 +797,36 @@ export default function AdminUsersPage() {
               processing={isLoading}
               onConfirm={handleReactivateUser}
               setOpenModal={() => setOpenConfirmReactivateUserDialog(false)}
-              message={`Are you sure you want to reactivate this ${selectedUser?.type === 'agency' ? 'account' : 'user'}? ${selectedUser?.type === 'agency' ? 'The account and all associated users will be able to log in again.' : 'The user will be able to log in again.'}`}
-              buttonText={`Reactivate ${selectedUser?.type === 'agency' ? 'Account' : 'User'}`}
+              message={`Are you sure you want to reactivate this ${
+                selectedUser?.type === "agency" ? "account" : "user"
+              }? ${
+                selectedUser?.type === "agency"
+                  ? "The account and all associated users will be able to log in again."
+                  : "The user will be able to log in again."
+              }`}
+              buttonText={`Reactivate ${
+                selectedUser?.type === "agency" ? "Account" : "User"
+              }`}
             />
           </div>
         ) : filteredUsers.length > 0 ? (
           <div className="text-center py-12">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md mx-auto">
-              <div className="text-gray-500 text-lg mb-2">Select an account to view details</div>
+              <div className="text-gray-500 text-lg mb-2">
+                Select an account to view details
+              </div>
               <div className="text-gray-400 text-sm">
-                Choose an account from the list to see their information and manage their permissions
+                Choose an account from the list to see their information and
+                manage their permissions
               </div>
             </div>
           </div>
         ) : (
           <div className="text-center py-12">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 max-w-md mx-auto">
-              <div className="text-gray-500 text-lg mb-2">No accounts found</div>
+              <div className="text-gray-500 text-lg mb-2">
+                No accounts found
+              </div>
               <div className="text-gray-400 text-sm">
                 No accounts match your current filter criteria
               </div>

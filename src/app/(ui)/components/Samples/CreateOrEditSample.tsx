@@ -31,7 +31,7 @@ import "@/app/(ui)/styles/react-datepicker-custom.css";
 interface Account {
   id: string;
   name: string;
-  pws_id?: string | null; 
+  pws_id?: string | null;
 }
 interface TestType {
   id: string;
@@ -42,7 +42,7 @@ interface TestGroup {
   name: string;
   description: string | null;
   test_type_ids: string[];
-  assigned_test_type_ids?: string[]; 
+  assigned_test_type_ids?: string[];
   test_types?: {
     id: string;
     name: string;
@@ -174,13 +174,17 @@ export default function SampleForm() {
           const assignedIds = group.assigned_test_type_ids ?? [];
           const filtered =
             assignedIds.length > 0
-              ? (group.test_types || []).filter((test) => assignedIds.includes(test.id))
+              ? (group.test_types || []).filter((test) =>
+                  assignedIds.includes(test.id)
+                )
               : group.test_types || [];
           tests = tests.concat(filtered);
         }
       });
       // Remove duplicates by id
-      const uniqueTests = Array.from(new Map(tests.map((t) => [t.id, t])).values());
+      const uniqueTests = Array.from(
+        new Map(tests.map((t) => [t.id, t])).values()
+      );
       return uniqueTests;
     }
     return assignedTestTypes;
@@ -277,10 +281,14 @@ export default function SampleForm() {
                 );
                 break;
               case error.TIMEOUT:
-                setLocationError("Location request timed out. Please try again.");
+                setLocationError(
+                  "Location request timed out. Please try again."
+                );
                 break;
               default:
-                setLocationError("An error occurred while getting your location.");
+                setLocationError(
+                  "An error occurred while getting your location."
+                );
             }
             setIsLoadingLocation(false);
           },
@@ -398,7 +406,9 @@ export default function SampleForm() {
               );
               break;
             case error.POSITION_UNAVAILABLE:
-              errorToast("Location information is unavailable. Please try again.");
+              errorToast(
+                "Location information is unavailable. Please try again."
+              );
               break;
             case error.TIMEOUT:
               errorToast("Location request timed out. Please try again.");
@@ -456,7 +466,9 @@ export default function SampleForm() {
   };
 
   // Update handleGroupSelection for multi-select
-  const handleGroupSelection = (selectedOptions: { label: string; value: string }[]) => {
+  const handleGroupSelection = (
+    selectedOptions: { label: string; value: string }[]
+  ) => {
     const groupIds = selectedOptions.map((opt) => opt.value);
     setSelectedTestGroups(groupIds);
 
@@ -482,7 +494,9 @@ export default function SampleForm() {
       }
     });
     // Remove duplicates by id
-    const uniqueTests = Array.from(new Map(groupTestTypes.map((t) => [t.id, t])).values());
+    const uniqueTests = Array.from(
+      new Map(groupTestTypes.map((t) => [t.id, t])).values()
+    );
     setSelectedTests(uniqueTests);
     setFormData((prev) => ({
       ...prev,
@@ -733,7 +747,8 @@ export default function SampleForm() {
       // If there are more errors, show a summary
       if (validation.errors.length > 3) {
         errorToast(
-          `${validation.errors.length - 3
+          `${
+            validation.errors.length - 3
           } more validation errors found. Please check all required fields.`
         );
       }
@@ -762,7 +777,8 @@ export default function SampleForm() {
 
       if (validation.errors.length > 3) {
         errorToast(
-          `${validation.errors.length - 3
+          `${
+            validation.errors.length - 3
           } more validation errors found. Please complete all required fields.`
         );
       }
@@ -790,7 +806,9 @@ export default function SampleForm() {
     await submitSample();
   };
 
-  const submitSample = async (shouldAddAnother?: { retainDetails: boolean }) => {
+  const submitSample = async (shouldAddAnother?: {
+    retainDetails: boolean;
+  }) => {
     setIsSubmitting(true);
     try {
       // If status was fail, change it to submitted
@@ -804,7 +822,8 @@ export default function SampleForm() {
         ...formData,
         status: newStatus,
         saved_at: new Date().toISOString(),
-        test_group_id: selectedTestGroups.length > 0 ? selectedTestGroups[0] : null,
+        test_group_id:
+          selectedTestGroups.length > 0 ? selectedTestGroups[0] : null,
         test_group_ids: selectedTestGroups.length > 0 ? selectedTestGroups : [],
         is_update: editMode,
         original_status: formData.status,
@@ -892,10 +911,12 @@ export default function SampleForm() {
   };
 
   useEffect(() => {
-    if(userAccounts.length > 0){
+    if (userAccounts.length > 0) {
       setFormData((prev) => ({
         ...prev,
-        pws_id: userAccounts[0].pws_id
+        // Only set PWS ID to first account's PWS ID if no PWS ID is currently set
+        pws_id: prev.pws_id,
+        // pws_id: userAccounts[0].pws_id // This is used earlier
       }));
     }
   }, [userAccounts]);
@@ -910,7 +931,8 @@ export default function SampleForm() {
 
       if (validation.errors.length > 3) {
         errorToast(
-          `${validation.errors.length - 3
+          `${
+            validation.errors.length - 3
           } more validation errors found. Please complete all required fields.`
         );
       }
@@ -952,11 +974,13 @@ export default function SampleForm() {
                 value={formData.account_id ?? ""}
                 onChange={(e) => {
                   const selectedAccountId = e.target.value;
-                  const selectedAccount = userAccounts.find(acc => acc.id === selectedAccountId);
-                  setFormData({ 
-                    ...formData, 
+                  const selectedAccount = userAccounts.find(
+                    (acc) => acc.id === selectedAccountId
+                  );
+                  setFormData({
+                    ...formData,
                     account_id: selectedAccountId,
-                    pws_id: selectedAccount?.pws_id || ""
+                    pws_id: selectedAccount?.pws_id || "",
                   });
                 }}
                 required
@@ -1016,17 +1040,22 @@ export default function SampleForm() {
                 <input
                   type="text"
                   className="form-input mt-1"
-                  value={formData.pws_id as string || ""}
+                  value={(formData.pws_id as string) || ""}
                   onChange={(e) =>
                     setFormData({ ...formData, pws_id: e.target.value })
                   }
-                  placeholder={formData.account_id ? "PWS ID will be populated from selected account" : "Select an account first"}
+                  placeholder={
+                    formData.account_id
+                      ? "PWS ID will be populated from selected account"
+                      : "Select an account first"
+                  }
                   // readOnly={!!formData.account_id}
                   // style={formData.account_id ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
                 />
                 {formData.account_id && !formData.pws_id && (
                   <div className="text-sm text-amber-600 mt-1">
-                    ⚠️ No PWS ID found for the selected account. Please contact your administrator.
+                    ⚠️ No PWS ID found for the selected account. Please contact
+                    your administrator.
                   </div>
                 )}
               </div>
@@ -1035,9 +1064,7 @@ export default function SampleForm() {
             )}
 
             <div className="mb-3">
-              <label>
-                Project ID
-              </label>
+              <label>Project ID</label>
               <input
                 type="text"
                 className="form-input mt-1"
@@ -1070,26 +1097,26 @@ export default function SampleForm() {
 
             {(formData.matrix_type === MatrixType.PotableWater ||
               formData.matrix_type === MatrixType.Wastewater) && (
-                <div className="mb-3">
-                  <label>
-                    Source <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    className="form-input bg-white mt-1"
-                    value={formData.source ?? ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, source: e.target.value })
-                    }
-                  >
-                    <option value="">Select Source</option>
-                    {getFilteredSources().map((source) => (
-                      <option key={source} value={source}>
-                        {source}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="mb-3">
+                <label>
+                  Source <span className="text-red-500">*</span>
+                </label>
+                <select
+                  className="form-input bg-white mt-1"
+                  value={formData.source ?? ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, source: e.target.value })
+                  }
+                >
+                  <option value="">Select Source</option>
+                  {getFilteredSources().map((source) => (
+                    <option key={source} value={source}>
+                      {source}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {formData.matrix_type === MatrixType.PotableWater && (
               <div className="mb-3">
@@ -1132,8 +1159,8 @@ export default function SampleForm() {
                   const filteredTestTypes =
                     assignedIds.length > 0
                       ? (group.test_types || []).filter((test) =>
-                        assignedIds.includes(test.id)
-                      )
+                          assignedIds.includes(test.id)
+                        )
                       : group.test_types || [];
                   return {
                     label: `${group.name} (${filteredTestTypes.length} tests)`,
@@ -1142,22 +1169,24 @@ export default function SampleForm() {
                 })}
                 value={selectedTestGroups.map((groupId) => {
                   // Use correct source for selected group
-                  const sourceGroups = useAllGroups ? testGroups : assignedTestGroups;
+                  const sourceGroups = useAllGroups
+                    ? testGroups
+                    : assignedTestGroups;
                   const group = sourceGroups.find((g) => g.id === groupId);
                   const assignedIds = group?.assigned_test_type_ids ?? [];
                   const filteredTestTypes =
                     assignedIds.length > 0
                       ? (group?.test_types || []).filter((test) =>
-                        assignedIds.includes(test.id)
-                      )
+                          assignedIds.includes(test.id)
+                        )
                       : group?.test_types || [];
                   return {
                     label:
                       groupId === "N/A"
                         ? "N/A"
                         : group
-                          ? `${group.name} (${filteredTestTypes.length} tests)`
-                          : groupId,
+                        ? `${group.name} (${filteredTestTypes.length} tests)`
+                        : groupId,
                     value: groupId,
                   };
                 })}
@@ -1169,7 +1198,7 @@ export default function SampleForm() {
                 }}
                 hasSelectAll={true} // <-- Enable "Select All" option
                 disableSearch={false}
-              // menuIsOpen={true} // Uncomment if your MultiSelect supports this prop
+                // menuIsOpen={true} // Uncomment if your MultiSelect supports this prop
               />
               <p className="text-xs text-gray-500 mt-1">
                 {selectedTestGroups.length > 0
@@ -1194,16 +1223,18 @@ export default function SampleForm() {
                 value={selectedTests.map((test) => ({
                   label: test.name,
                   value: test.id,
-                }))
-                }
+                }))}
                 onChange={handleTestSelection}
                 labelledBy="Select Test Type(s)"
                 overrideStrings={{
-                  selectSomeItems: selectedTestGroups.length > 0
-                    ? `Select from ${getFilteredTestGroups().find((g) => g.id === selectedTestGroups[0])
-                      ?.name || "group"
-                    } tests`
-                    : "Select Test Type(s)",
+                  selectSomeItems:
+                    selectedTestGroups.length > 0
+                      ? `Select from ${
+                          getFilteredTestGroups().find(
+                            (g) => g.id === selectedTestGroups[0]
+                          )?.name || "group"
+                        } tests`
+                      : "Select Test Type(s)",
                   search: "Search Test Type(s)",
                 }}
               />
@@ -1367,11 +1398,11 @@ export default function SampleForm() {
                 </div>
                 {(formData.matrix_type === MatrixType.PotableWater ||
                   formData.matrix_type === MatrixType.Wastewater) && (
-                    <div>
-                      <p className="text-sm text-gray-600">Source</p>
-                      <p className="font-medium">{formData.source || "-"}</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm text-gray-600">Source</p>
+                    <p className="font-medium">{formData.source || "-"}</p>
+                  </div>
+                )}
                 {formData.matrix_type === MatrixType.PotableWater && (
                   <div>
                     <p className="text-sm text-gray-600">Sample Privacy</p>
@@ -1401,9 +1432,9 @@ export default function SampleForm() {
                   <p className="font-medium">
                     {formData.sample_collected_at
                       ? format(
-                        new Date(formData.sample_collected_at),
-                        "MM/dd/yyyy HH:mm"
-                      )
+                          new Date(formData.sample_collected_at),
+                          "MM/dd/yyyy HH:mm"
+                        )
                       : "-"}
                   </p>
                 </div>
@@ -1487,7 +1518,9 @@ export default function SampleForm() {
                 : ""
             }
             onChange={(e) => {
-              const coords = e.target.value.split(",").map((coord) => coord.trim());
+              const coords = e.target.value
+                .split(",")
+                .map((coord) => coord.trim());
               if (coords.length === 2) {
                 const lat = parseFloat(coords[0]);
                 const lon = parseFloat(coords[1]);
@@ -1622,18 +1655,20 @@ export default function SampleForm() {
           {steps.map((_, idx) => (
             <div
               key={idx}
-              className={`h-1 flex-1 rounded-full ${idx <= currentStep - 1 ? "bg-blue-600" : "bg-gray-200"
-                }
+              className={`h-1 flex-1 rounded-full ${
+                idx <= currentStep - 1 ? "bg-blue-600" : "bg-gray-200"
+              }
             `}
             />
           ))}
         </div>
       </div>
       <div
-        className={`w-full ${currentStep === 4 && !editMode
-          ? "min-h-[calc(100vh-300px)]"
-          : "min-h-[calc(100vh-228px)]"
-          } mx-auto md:p-8 p-6`}
+        className={`w-full ${
+          currentStep === 4 && !editMode
+            ? "min-h-[calc(100vh-300px)]"
+            : "min-h-[calc(100vh-228px)]"
+        } mx-auto md:p-8 p-6`}
       >
         <main>{renderStep()}</main>
       </div>
