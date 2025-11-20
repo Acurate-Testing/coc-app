@@ -137,48 +137,18 @@ export default function AdminUsersPage() {
   }, []);
 
   // Apply filters
-  const filteredUsers = users
-    .filter((u) => {
-      const matchesSearch =
-        (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-        (u.contact_email ?? "").toLowerCase().includes(search.toLowerCase());
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch =
+      (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.contact_email ?? "").toLowerCase().includes(search.toLowerCase());
 
-      const matchesFilter =
-        userFilter === "all" ||
-        (userFilter === "active" && !u.deleted_at) ||
-        (userFilter === "deleted" && u.deleted_at);
+    const matchesFilter =
+      userFilter === "all" ||
+      (userFilter === "active" && !u.deleted_at) ||
+      (userFilter === "deleted" && u.deleted_at);
 
-      return matchesSearch && matchesFilter;
-    })
-    .sort((a, b) => {
-      // When userFilter === "all", put active first, deleted after
-      if (userFilter === "all") {
-        const aIsDeleted = Boolean(a.deleted_at);
-        const bIsDeleted = Boolean(b.deleted_at);
-
-        // If one is active and the other is deleted, active should come first.
-        if (aIsDeleted !== bIsDeleted) {
-          return aIsDeleted ? 1 : -1;
-        }
-      }
-
-      // Otherwise (or if both have same deleted status), sort by name
-      return a.name.localeCompare(b.name);
-    });
-  // const filteredUsers = users
-  //   .filter((u) => {
-  //     const matchesSearch =
-  //       (u.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-  //       (u.contact_email ?? "").toLowerCase().includes(search.toLowerCase());
-
-  //     const matchesFilter =
-  //       userFilter === "all" ||
-  //       (userFilter === "active" && !u.deleted_at) ||
-  //       (userFilter === "deleted" && u.deleted_at);
-
-  //     return matchesSearch && matchesFilter;
-  //   })
-  //   .sort((a, b) => a.name.localeCompare(b.name));
+    return matchesSearch && matchesFilter;
+  });
 
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
