@@ -15,14 +15,16 @@ export async function GET() {
 
     const { data: groups, error } = await supabase
       .from("test_groups")
-      .select(`
+      .select(
+        `
         id,
         name,
         description,
         test_type_ids,
         created_at,
         updated_at
-      `)
+      `
+      )
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
@@ -44,20 +46,22 @@ export async function GET() {
         console.error("Error fetching agency test groups:", agencyError);
       } else if (agencyTestGroups && agencyTestGroups.length > 0) {
         // If agency has specific test groups, filter the list
-        const testGroupIds = agencyTestGroups.map(item => item.test_type_group_id);
-        filteredGroups = groups.filter(group => 
+        const testGroupIds = agencyTestGroups.map(
+          (item) => item.test_type_group_id
+        );
+        filteredGroups = groups.filter((group) =>
           testGroupIds.includes(group.id)
         );
 
         // Add assigned_test_type_ids to each filtered group
-        filteredGroups = filteredGroups.map(group => {
+        filteredGroups = filteredGroups.map((group) => {
           const agencyGroup = agencyTestGroups.find(
-            item => item.test_type_group_id === group.id
+            (item) => item.test_type_group_id === group.id
           );
-          
+
           return {
             ...group,
-            assigned_test_type_ids: agencyGroup?.assigned_test_type_ids || null
+            assigned_test_type_ids: agencyGroup?.assigned_test_type_ids || null,
           };
         });
       }
@@ -67,12 +71,16 @@ export async function GET() {
     const groupsWithTestTypes = await Promise.all(
       filteredGroups.map(async (group) => {
         // Type assertion to include assigned_test_type_ids
-        const g = group as typeof group & { assigned_test_type_ids?: string[] };
+        const g = group as typeof group & {
+          assigned_test_type_ids?: string[];
+        };
         let testTypes: any[] = [];
         // Use assigned_test_type_ids if present, otherwise fallback to test_type_ids
-        const effectiveTestTypeIds = Array.isArray(g.assigned_test_type_ids) && g.assigned_test_type_ids.length > 0
-          ? g.assigned_test_type_ids
-          : g.test_type_ids;
+        const effectiveTestTypeIds =
+          Array.isArray(g.assigned_test_type_ids) &&
+          g.assigned_test_type_ids.length > 0
+            ? g.assigned_test_type_ids
+            : g.test_type_ids;
 
         if (effectiveTestTypeIds && effectiveTestTypeIds.length > 0) {
           const { data, error: testTypesError } = await supabase
@@ -83,7 +91,10 @@ export async function GET() {
             .order("name");
 
           if (testTypesError) {
-            console.error("Error fetching test types for group:", testTypesError);
+            console.error(
+              "Error fetching test types for group:",
+              testTypesError
+            );
             testTypes = [];
           } else {
             testTypes = data || [];
@@ -93,19 +104,23 @@ export async function GET() {
         // Collect all unique matrix types from testTypes
         const allowedMatrixTypes = Array.from(
           new Set(
-            testTypes.flatMap(tt => Array.isArray(tt.matrix_types) ? tt.matrix_types : [])
+            testTypes.flatMap((tt) =>
+              Array.isArray(tt.matrix_types) ? tt.matrix_types : []
+            )
           )
         );
 
-        return { 
-          ...g, 
-          test_types: testTypes, 
-          allowed_matrix_types: allowedMatrixTypes 
+        return {
+          ...g,
+          test_types: testTypes,
+          allowed_matrix_types: allowedMatrixTypes,
         };
       })
     );
 
-    return NextResponse.json({ groups: groupsWithTestTypes });
+    return NextResponse.json({
+      groups: groupsWithTestTypes.sort((a, b) => a.name.localeCompare(b.name)),
+    });
   } catch (error) {
     console.error("Error fetching test groups:", error);
     return NextResponse.json(
@@ -126,11 +141,8 @@ export async function POST(request: NextRequest) {
     const { name, description, test_type_ids } = await request.json();
 
     // Validate required fields
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 }
-      );
+    if (!name || typeof name !== "string" || !name.trim()) {
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     if (!Array.isArray(test_type_ids) || test_type_ids.length === 0) {
@@ -141,9 +153,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate that all test_type_ids are valid UUIDs
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const invalidIds = test_type_ids.filter(id => !uuidRegex.test(id));
-    
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const invalidIds = test_type_ids.filter((id) => !uuidRegex.test(id));
+
     if (invalidIds.length > 0) {
       return NextResponse.json(
         { error: "Invalid test type IDs provided" },
